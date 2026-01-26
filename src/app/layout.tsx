@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Neil's Network",
+  title: "Networking",
   description: "Personal networking contact management",
 }
 

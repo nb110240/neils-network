@@ -29,7 +29,7 @@ export function NavHeader() {
       <div className="container flex h-14 items-center">
         <div className="mr-4 flex">
           <Link href="/dashboard" className="mr-6 flex items-center space-x-2">
-            <span className="text-lg font-bold">Neil&apos;s Network</span>
+            <span className="text-lg font-bold">Networking</span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
             {navItems.map((item) => {

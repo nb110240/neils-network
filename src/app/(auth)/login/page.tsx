@@ -88,7 +88,7 @@ export default function LoginPage() {
   return (
     <Card>
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Neil&apos;s Network</CardTitle>
+        <CardTitle className="text-2xl">Networking</CardTitle>
         <CardDescription>
           {isSignUp
             ? "Create an account to manage your contacts"

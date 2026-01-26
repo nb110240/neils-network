@@ -106,7 +106,7 @@ export default async function DashboardPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Recent Contacts</h2>
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/search">View All</Link>
+            <Link href="/contacts">View All</Link>
           </Button>
         </div>
         {recentContacts && recentContacts.length > 0 ? (

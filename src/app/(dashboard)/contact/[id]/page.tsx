@@ -25,6 +25,7 @@ import {
   ArrowLeft,
   Building2,
   Calendar,
+  Check,
   Edit2,
   ExternalLink,
   Globe,
@@ -46,6 +47,7 @@ export default function ContactDetailPage({
   const [isLoading, setIsLoading] = useState(true)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [isMarkingFollowedUp, setIsMarkingFollowedUp] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   useEffect(() => {
@@ -71,6 +73,40 @@ export default function ContactDetailPage({
 
     fetchContact()
   }, [id, router, addToast])
+
+  const handleMarkFollowedUp = async () => {
+    setIsMarkingFollowedUp(true)
+    try {
+      const today = new Date().toISOString().split("T")[0]
+      const response = await fetch(`/api/contacts/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          follow_up_needed: false,
+          last_contact_date: today,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update contact")
+      }
+
+      const data = await response.json()
+      setContact(data.contact)
+      addToast({
+        title: "Followed up!",
+        description: "Contact marked as followed up.",
+      })
+    } catch {
+      addToast({
+        title: "Error",
+        description: "Failed to update contact",
+        variant: "destructive",
+      })
+    } finally {
+      setIsMarkingFollowedUp(false)
+    }
+  }
 
   const handleDelete = async () => {
     setIsDeleting(true)
@@ -207,12 +243,28 @@ export default function ContactDetailPage({
               <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-2xl font-bold">
                   {contact.name || "Unknown Contact"}
                 </h1>
                 {contact.follow_up_needed && (
-                  <Badge variant="warning">Follow-up Needed</Badge>
+                  <>
+                    <Badge variant="warning">Follow-up Needed</Badge>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleMarkFollowedUp}
+                      disabled={isMarkingFollowedUp}
+                      className="h-6 text-xs"
+                    >
+                      {isMarkingFollowedUp ? (
+                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                      ) : (
+                        <Check className="mr-1 h-3 w-3" />
+                      )}
+                      Mark Followed Up
+                    </Button>
+                  </>
                 )}
               </div>
               {contact.job_title && (

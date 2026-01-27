@@ -8,7 +8,7 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-background">
       <NavHeader />
-      <main className="container py-6">{children}</main>
+      <main className="container mx-auto py-6">{children}</main>
     </div>
   )
 }

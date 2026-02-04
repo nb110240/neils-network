@@ -5,10 +5,10 @@ import { usePathname, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { LogOut, Plus, Search, Users } from "lucide-react"
+import { LogOut, Plus, Search, LayoutDashboard, Sparkles } from "lucide-react"
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: Users },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/search", label: "Search", icon: Search },
   { href: "/add", label: "Add Contact", icon: Plus },
 ]
@@ -25,24 +25,28 @@ export function NavHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-14 items-center">
+    <header className="sticky top-0 z-40 w-full border-b glass">
+      <div className="container mx-auto flex h-16 items-center px-4">
         <div className="mr-4 flex">
-          <Link href="/dashboard" className="mr-6 flex items-center space-x-2">
-            <span className="text-lg font-bold">Networking</span>
+          <Link href="/dashboard" className="mr-8 flex items-center space-x-3 group">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--copper)] to-[var(--copper-light)] flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
+              <Sparkles className="h-4 w-4 text-white" />
+            </div>
+            <span className="text-xl font-medium tracking-tight">Networking</span>
           </Link>
-          <nav className="flex items-center space-x-6 text-sm font-medium">
+          <nav className="flex items-center space-x-1">
             {navItems.map((item) => {
               const Icon = item.icon
+              const isActive = pathname === item.href
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-2 transition-colors hover:text-foreground/80",
-                    pathname === item.href
-                      ? "text-foreground"
-                      : "text-foreground/60"
+                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                    isActive
+                      ? "bg-[var(--copper)]/10 text-[var(--copper)]"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   )}
                 >
                   <Icon className="h-4 w-4" />
@@ -53,7 +57,12 @@ export function NavHeader() {
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-end space-x-2">
-          <Button variant="ghost" size="sm" onClick={handleSignOut}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSignOut}
+            className="text-muted-foreground hover:text-foreground"
+          >
             <LogOut className="h-4 w-4" />
             <span className="ml-2 hidden sm:inline">Sign Out</span>
           </Button>

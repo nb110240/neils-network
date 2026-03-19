@@ -133,14 +133,22 @@ async function syncCalendarForUser(userId: string, userEmail: string) {
   const events = eventsData.items || []
 
   // Get existing contacts for this user (to avoid duplicates)
+  // Check both email AND name to catch contacts added without email
   const { data: existingContacts } = await supabase
     .from("contacts")
-    .select("email")
+    .select("id, email, name")
     .eq("created_by", userId)
-    .not("email", "is", null)
+    .is("archived_at", null)
 
   const existingEmails = new Set(
-    (existingContacts || []).map((c) => c.email?.toLowerCase())
+    (existingContacts || [])
+      .filter((c) => c.email)
+      .map((c) => c.email!.toLowerCase())
+  )
+  const existingNames = new Set(
+    (existingContacts || [])
+      .filter((c) => c.name)
+      .map((c) => c.name!.toLowerCase().trim())
   )
 
   let newContacts = 0
@@ -159,18 +167,35 @@ async function syncCalendarForUser(userId: string, userEmail: string) {
     if (!otherPerson) continue
 
     const otherEmail = otherPerson.email.toLowerCase()
+    const otherName = (otherPerson.displayName || "").toLowerCase().trim()
 
-    // Skip if we already have this contact
-    if (existingEmails.has(otherEmail)) {
+    // Find existing contact by email or name
+    const matchByEmail = existingEmails.has(otherEmail)
+    const matchByName = otherName && existingNames.has(otherName)
+
+    if (matchByEmail || matchByName) {
       // Update last_contact_date if this meeting is more recent
       const eventDate = event.start?.dateTime?.split("T")[0] || event.start?.date
       if (eventDate) {
-        await supabase
+        // Find the matching contact to update
+        const matchField = matchByEmail
+          ? { column: "email" as const, value: otherEmail, ilike: true }
+          : { column: "name" as const, value: otherName, ilike: true }
+
+        let query = supabase
           .from("contacts")
-          .update({ last_contact_date: eventDate })
+          .update({
+            last_contact_date: eventDate,
+            // Backfill email on name-matched contacts that were missing it
+            ...(matchByName && !matchByEmail ? { email: otherPerson.email } : {}),
+          })
           .eq("created_by", userId)
-          .ilike("email", otherEmail)
-          .lt("last_contact_date", eventDate)
+
+        if (matchField.ilike) {
+          query = query.ilike(matchField.column, matchField.value)
+        }
+
+        await query.lt("last_contact_date", eventDate)
       }
       continue
     }
@@ -193,6 +218,7 @@ async function syncCalendarForUser(userId: string, userEmail: string) {
 
     if (!error) {
       existingEmails.add(otherEmail)
+      if (name) existingNames.add(name.toLowerCase().trim())
       newContacts++
     }
   }

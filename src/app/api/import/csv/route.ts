@@ -4,6 +4,7 @@ import { getUserPlan, getPlanLimits } from "@/lib/subscription"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 import Papa from "papaparse"
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { findDuplicates } from "@/lib/dedup"
 
 export async function POST(request: Request) {
   try {
@@ -98,9 +99,45 @@ export async function POST(request: Request) {
     // Generate embeddings in batch (fire and forget for speed)
     generateEmbeddingsBatch(data, supabase).catch(console.error)
 
+    // Check each imported contact for duplicates among pre-existing contacts
+    const duplicateSummary: {
+      imported_contact: { id: string; name: string | null }
+      existing_contact: { id: string; name: string | null }
+      score: number
+      reason: string
+    }[] = []
+
+    // We need to check against contacts that existed BEFORE this import.
+    // The newly imported contacts have IDs in `data`, so we exclude them.
+    const importedIds = new Set(data.map((c: { id: string }) => c.id))
+
+    for (const imported of data) {
+      const matches = await findDuplicates(supabase, user.id, {
+        name: imported.name,
+        email: imported.email,
+        phone: imported.phone,
+        company: imported.company,
+      })
+      for (const match of matches) {
+        // Skip matches against other contacts from this same import batch
+        if (importedIds.has(match.contact.id) && match.contact.id !== imported.id) continue
+        // Skip self-match
+        if (match.contact.id === imported.id) continue
+        if (match.score >= 0.6) {
+          duplicateSummary.push({
+            imported_contact: { id: imported.id, name: imported.name },
+            existing_contact: { id: match.contact.id, name: match.contact.name },
+            score: match.score,
+            reason: match.reason,
+          })
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
       imported: data.length,
+      ...(duplicateSummary.length > 0 ? { duplicates: duplicateSummary } : {}),
     })
   } catch (error) {
     console.error("CSV import error:", error)

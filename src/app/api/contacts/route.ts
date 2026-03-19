@@ -4,6 +4,7 @@ import { extractContactInfo } from "@/lib/extract-contact"
 import { checkContactLimit } from "@/lib/subscription"
 import { calculateHealthScore } from "@/lib/health"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
+import { findDuplicates } from "@/lib/dedup"
 
 export async function POST(request: Request) {
   try {
@@ -19,6 +20,9 @@ export async function POST(request: Request) {
       )
     }
 
+    const url = new URL(request.url)
+    const skipDedup = url.searchParams.get("skip_dedup") === "true"
+
     const body = await request.json()
     const { raw_note } = body
 
@@ -32,6 +36,19 @@ export async function POST(request: Request) {
 
     // Extract contact info via AI
     const extracted = await extractContactInfo(raw_note)
+
+    // Check for duplicates before inserting
+    let duplicates: Awaited<ReturnType<typeof findDuplicates>> = []
+    if (!skipDedup) {
+      duplicates = await findDuplicates(supabase, user.id, {
+        name: extracted.name as string | null,
+        email: extracted.email as string | null,
+        phone: extracted.phone as string | null,
+        company: extracted.company as string | null,
+      })
+      // Filter to only meaningful matches
+      duplicates = duplicates.filter((d) => d.score >= 0.6)
+    }
 
     // Generate embedding for semantic search
     const embeddingText = buildContactEmbeddingText({
@@ -83,7 +100,11 @@ export async function POST(request: Request) {
             .select()
             .single()
           if (updated) {
-            return NextResponse.json({ success: true, contact: updated })
+            return NextResponse.json({
+              success: true,
+              contact: updated,
+              ...(duplicates.length > 0 ? { duplicates } : {}),
+            })
           }
         }
       } catch {
@@ -91,36 +112,123 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, contact })
+    return NextResponse.json({
+      success: true,
+      contact,
+      ...(duplicates.length > 0 ? { duplicates } : {}),
+    })
   } catch (error) {
     console.error("Error creating contact:", error)
     return errorResponse("Internal server error")
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const auth = await authenticateRequest()
     if (authFailed(auth)) return auth.error
     const { user, supabase } = auth
 
-    const { data: contacts, error } = await supabase
+    const { searchParams } = new URL(request.url)
+    const limitParam = searchParams.get("limit")
+    const cursor = searchParams.get("cursor")
+    const direction = searchParams.get("direction") || "next"
+
+    // If no limit param, return all contacts (backward compat for dashboard)
+    if (!limitParam) {
+      const { data: contacts, error } = await supabase
+        .from("contacts")
+        .select("*")
+        .eq("created_by", user.id)
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("Error fetching contacts:", error)
+        return errorResponse("Failed to fetch contacts")
+      }
+
+      const contactsWithHealth = (contacts || []).map((contact) => ({
+        ...contact,
+        health: calculateHealthScore(contact.last_contact_date, contact.created_at),
+      }))
+
+      return NextResponse.json({ contacts: contactsWithHealth })
+    }
+
+    // Paginated path
+    const limit = Math.min(Math.max(1, parseInt(limitParam, 10) || 25), 100)
+
+    // Get total count
+    const { count: total, error: countError } = await supabase
+      .from("contacts")
+      .select("*", { count: "exact", head: true })
+      .eq("created_by", user.id)
+
+    if (countError) {
+      console.error("Error counting contacts:", countError)
+      return errorResponse("Failed to fetch contacts")
+    }
+
+    // Build paginated query
+    // Ordered by created_at DESC (most recent first)
+    // direction=next: older items (created_at < cursor)
+    // direction=prev: newer items (created_at > cursor), then reverse
+    let query = supabase
       .from("contacts")
       .select("*")
       .eq("created_by", user.id)
-      .order("created_at", { ascending: false })
+
+    if (cursor) {
+      if (direction === "prev") {
+        query = query.gt("created_at", cursor).order("created_at", { ascending: true })
+      } else {
+        query = query.lt("created_at", cursor).order("created_at", { ascending: false })
+      }
+    } else {
+      query = query.order("created_at", { ascending: false })
+    }
+
+    // Fetch one extra to determine hasMore
+    const { data: contacts, error } = await query.limit(limit + 1)
 
     if (error) {
       console.error("Error fetching contacts:", error)
       return errorResponse("Failed to fetch contacts")
     }
 
-    const contactsWithHealth = (contacts || []).map((contact) => ({
+    let results = contacts || []
+    const hasMore = results.length > limit
+    if (hasMore) {
+      results = results.slice(0, limit)
+    }
+
+    // For prev direction, we queried ascending — reverse to maintain DESC order
+    if (direction === "prev") {
+      results.reverse()
+    }
+
+    const contactsWithHealth = results.map((contact) => ({
       ...contact,
       health: calculateHealthScore(contact.last_contact_date, contact.created_at),
     }))
 
-    return NextResponse.json({ contacts: contactsWithHealth })
+    const firstItem = contactsWithHealth[0]
+    const lastItem = contactsWithHealth[contactsWithHealth.length - 1]
+
+    // nextCursor: created_at of the last item (to get older items)
+    // prevCursor: created_at of the first item (to get newer items)
+    const nextCursor = hasMore && lastItem ? lastItem.created_at : null
+    const prevCursor = cursor && firstItem ? firstItem.created_at : null
+
+    return NextResponse.json({
+      contacts: contactsWithHealth,
+      pagination: {
+        hasMore,
+        nextCursor,
+        prevCursor,
+        total: total || 0,
+      },
+    })
   } catch (error) {
     console.error("Error fetching contacts:", error)
     return errorResponse("Internal server error")

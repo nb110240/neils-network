@@ -3,6 +3,8 @@ import { Contact } from "@/lib/types"
 import { calculateHealthScore } from "@/lib/health"
 import { ContactsClient } from "./contacts-client"
 
+const PAGE_SIZE = 25
+
 export default async function ContactsPage() {
   const supabase = await createClient()
   const {
@@ -13,16 +15,31 @@ export default async function ContactsPage() {
     return null
   }
 
+  // Get total count
+  const { count: total } = await supabase
+    .from("contacts")
+    .select("*", { count: "exact", head: true })
+    .eq("created_by", user.id)
+
+  // Fetch the first page ordered by created_at DESC
   const { data: contacts } = await supabase
     .from("contacts")
     .select("*")
     .eq("created_by", user.id)
-    .order("name", { ascending: true })
+    .order("created_at", { ascending: false })
+    .limit(PAGE_SIZE + 1)
 
-  const contactsWithHealth = (contacts || []).map((c) => ({
+  const results = contacts || []
+  const hasMore = results.length > PAGE_SIZE
+  const pageContacts = hasMore ? results.slice(0, PAGE_SIZE) : results
+
+  const contactsWithHealth = pageContacts.map((c) => ({
     ...(c as Contact),
     health: calculateHealthScore(c.last_contact_date, c.created_at),
   }))
+
+  const lastItem = contactsWithHealth[contactsWithHealth.length - 1]
+  const nextCursor = hasMore && lastItem ? lastItem.created_at : null
 
   // Fetch tags
   const { data: tags } = await supabase
@@ -31,7 +48,7 @@ export default async function ContactsPage() {
     .eq("created_by", user.id)
     .order("name", { ascending: true })
 
-  // Fetch contact-tag mappings
+  // Fetch contact-tag mappings for the first page
   const contactIds = contactsWithHealth.map((c) => c.id)
   let contactTagMap: Record<string, string[]> = {}
 
@@ -58,6 +75,11 @@ export default async function ContactsPage() {
       contacts={contactsWithHealth}
       tags={tags || []}
       contactTagMap={contactTagMap}
+      pagination={{
+        hasMore,
+        nextCursor,
+        total: total || 0,
+      }}
     />
   )
 }

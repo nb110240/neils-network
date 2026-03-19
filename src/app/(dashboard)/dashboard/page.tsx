@@ -15,7 +15,8 @@ import { ManageSubscriptionButton } from "@/components/manage-subscription-butto
 import { UpgradeToast } from "@/components/upgrade-toast"
 import { EventModeBanner } from "@/components/event-mode-banner"
 import { StartEventButton } from "@/components/start-event-button"
-import { Plus, Users, AlertCircle, ArrowRight, ThermometerSnowflake, Crown } from "lucide-react"
+import { OnboardingBanner } from "@/components/onboarding-banner"
+import { Plus, Users, AlertCircle, ArrowRight, ThermometerSnowflake, Crown, Mail } from "lucide-react"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -76,41 +77,65 @@ export default async function DashboardPage() {
   const recentContacts = contactsWithHealth.slice(0, 6)
   const isEmpty = (allContacts || []).length === 0
 
-  // Empty state for new users
+  // Empty state for new users — Step 1: Welcome + Value Prop
   if (isEmpty) {
     return (
       <div className="space-y-8">
         <Suspense fallback={null}>
           <UpgradeToast />
         </Suspense>
-        <div className="flex flex-col items-center justify-center py-20 max-w-lg mx-auto text-center">
+        <div className="flex flex-col items-center justify-center py-16 max-w-xl mx-auto text-center animate-fade-in">
           <div className="w-16 h-16 rounded-2xl bg-[var(--copper)]/10 flex items-center justify-center mb-6">
             <Users className="h-8 w-8 text-[var(--copper)]" />
           </div>
           <h1 className="text-3xl font-normal tracking-tight mb-2">Welcome to Savvo</h1>
-          <p className="text-muted-foreground text-lg mb-8">
-            Your network is empty. Add your first contact to get started — just describe someone you know.
+          <p className="text-muted-foreground text-lg mb-10">
+            Add people you meet. We&apos;ll track your relationships and tell you when they&apos;re going cold.
           </p>
+
+          {/* Core concepts */}
+          <div className="grid gap-3 w-full mb-10 sm:grid-cols-3">
+            <Card className="shadow-refined text-left">
+              <CardContent className="pt-5 pb-4 px-4">
+                <div className="h-9 w-9 rounded-lg bg-[var(--copper)]/10 flex items-center justify-center mb-3">
+                  <Plus className="h-4 w-4 text-[var(--copper)]" />
+                </div>
+                <p className="text-sm font-medium leading-snug">Add contacts by typing what you remember</p>
+              </CardContent>
+            </Card>
+            <Card className="shadow-refined text-left">
+              <CardContent className="pt-5 pb-4 px-4">
+                <div className="h-9 w-9 rounded-lg bg-[var(--copper)]/10 flex items-center justify-center mb-3">
+                  <ThermometerSnowflake className="h-4 w-4 text-[var(--copper)]" />
+                </div>
+                <p className="text-sm font-medium leading-snug">Health scores show who needs attention</p>
+              </CardContent>
+            </Card>
+            <Card className="shadow-refined text-left">
+              <CardContent className="pt-5 pb-4 px-4">
+                <div className="h-9 w-9 rounded-lg bg-[var(--copper)]/10 flex items-center justify-center mb-3">
+                  <Mail className="h-4 w-4 text-[var(--copper)]" />
+                </div>
+                <p className="text-sm font-medium leading-snug">Daily digest reminds you to reach out</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             <Button asChild className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0 h-12 px-8 text-base">
               <Link href="/add">
-                <Plus className="mr-2 h-5 w-5" />
                 Add Your First Contact
+                <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
             {plan === "pro" && (
               <Button variant="outline" asChild className="h-12 px-6 text-base">
                 <Link href="/import">
-                  Import Contacts
+                  Or import existing contacts
                 </Link>
               </Button>
             )}
-          </div>
-          <div className="mt-12 w-full p-5 rounded-xl border border-dashed text-left">
-            <p className="text-sm font-medium mb-2">Try typing something like:</p>
-            <p className="text-sm text-muted-foreground italic">
-              &quot;Met John at the AI Summit. He&apos;s VP of Engineering at SersweAI. We talked about their platform and should grab coffee next week.&quot;
-            </p>
           </div>
         </div>
       </div>
@@ -123,6 +148,10 @@ export default async function DashboardPage() {
         <UpgradeToast />
       </Suspense>
       <EventModeBanner />
+      {/* Onboarding banner for new users (1-4 contacts) */}
+      {(totalContacts || 0) > 0 && (totalContacts || 0) < 5 && (
+        <OnboardingBanner contactCount={totalContacts || 0} />
+      )}
       {/* Header */}
       <div className="flex items-start justify-between animate-fade-in">
         <div>

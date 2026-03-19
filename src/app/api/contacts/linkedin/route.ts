@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { authenticateRequest, authFailed, badRequestResponse, forbiddenResponse, errorResponse } from "@/lib/api-utils"
 import { checkContactLimit, getUserPlan } from "@/lib/subscription"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
+import { findDuplicates } from "@/lib/dedup"
 
 export async function POST(request: Request) {
   try {
@@ -85,6 +86,12 @@ export async function POST(request: Request) {
       note ? `\nNote: ${note}` : null,
     ].filter(Boolean).join(" ")
 
+    // Broader dedup check (name, email, phone, company)
+    const duplicates = (await findDuplicates(supabase, user.id, {
+      name,
+      company,
+    })).filter((d) => d.score >= 0.6)
+
     // Generate embedding using centralized utility
     const embeddingText = buildContactEmbeddingText({
       name,
@@ -117,7 +124,11 @@ export async function POST(request: Request) {
       return errorResponse("Failed to create contact")
     }
 
-    return NextResponse.json({ success: true, contact })
+    return NextResponse.json({
+      success: true,
+      contact,
+      ...(duplicates.length > 0 ? { duplicates } : {}),
+    })
   } catch (error) {
     console.error("LinkedIn import error:", error)
     return errorResponse("Internal server error")

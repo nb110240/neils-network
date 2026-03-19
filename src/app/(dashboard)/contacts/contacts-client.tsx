@@ -1,13 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import Link from "next/link"
 import { Contact, HealthScore } from "@/lib/types"
 import { ContactCard } from "@/components/contact-card"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ExportContactsButton } from "@/components/export-contacts-button"
-import { ArrowLeft, Plus, Users } from "lucide-react"
+import { ArrowLeft, Plus, Users, Loader2 } from "lucide-react"
 
 interface Tag {
   id: string
@@ -19,18 +19,77 @@ interface ContactWithHealth extends Contact {
   health: HealthScore
 }
 
+interface PaginationInfo {
+  hasMore: boolean
+  nextCursor: string | null
+  total: number
+}
+
 interface ContactsClientProps {
   contacts: ContactWithHealth[]
   tags: Tag[]
   contactTagMap: Record<string, string[]> // contactId -> tagId[]
+  pagination: PaginationInfo
 }
 
-export function ContactsClient({ contacts, tags, contactTagMap }: ContactsClientProps) {
+export function ContactsClient({ contacts: initialContacts, tags, contactTagMap: initialTagMap, pagination: initialPagination }: ContactsClientProps) {
+  const [contacts, setContacts] = useState<ContactWithHealth[]>(initialContacts)
+  const [contactTagMap, setContactTagMap] = useState<Record<string, string[]>>(initialTagMap)
+  const [pagination, setPagination] = useState<PaginationInfo>(initialPagination)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [activeTagId, setActiveTagId] = useState<string | null>(null)
 
   const filteredContacts = activeTagId
     ? contacts.filter((c) => (contactTagMap[c.id] || []).includes(activeTagId))
     : contacts
+
+  const loadMore = useCallback(async () => {
+    if (!pagination.nextCursor || isLoadingMore) return
+
+    setIsLoadingMore(true)
+    try {
+      const params = new URLSearchParams({
+        limit: "25",
+        cursor: pagination.nextCursor,
+        direction: "next",
+      })
+
+      const res = await fetch(`/api/contacts?${params}`)
+      if (!res.ok) throw new Error("Failed to fetch")
+
+      const data = await res.json()
+
+      setContacts((prev) => [...prev, ...data.contacts])
+      setPagination({
+        hasMore: data.pagination.hasMore,
+        nextCursor: data.pagination.nextCursor,
+        total: data.pagination.total,
+      })
+
+      // Fetch tags for new contacts
+      const newContactIds = data.contacts.map((c: ContactWithHealth) => c.id)
+      if (newContactIds.length > 0) {
+        const tagRes = await fetch(`/api/contact-tags?contactIds=${newContactIds.join(",")}`)
+        if (tagRes.ok) {
+          const tagData = await tagRes.json()
+          if (tagData.contactTags) {
+            setContactTagMap((prev) => {
+              const updated = { ...prev }
+              for (const ct of tagData.contactTags) {
+                if (!updated[ct.contact_id]) updated[ct.contact_id] = []
+                updated[ct.contact_id].push(ct.tag_id)
+              }
+              return updated
+            })
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error loading more contacts:", error)
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }, [pagination.nextCursor, isLoadingMore])
 
   return (
     <div className="space-y-6">
@@ -45,7 +104,9 @@ export function ContactsClient({ contacts, tags, contactTagMap }: ContactsClient
           <div>
             <h1 className="text-3xl font-bold tracking-tight">All Contacts</h1>
             <p className="text-muted-foreground">
-              {filteredContacts.length} contact{filteredContacts.length !== 1 ? "s" : ""}{activeTagId ? " matching filter" : " in your network"}
+              {activeTagId
+                ? `${filteredContacts.length} contact${filteredContacts.length !== 1 ? "s" : ""} matching filter`
+                : `Showing ${contacts.length} of ${pagination.total} contact${pagination.total !== 1 ? "s" : ""}`}
             </p>
           </div>
         </div>
@@ -91,11 +152,34 @@ export function ContactsClient({ contacts, tags, contactTagMap }: ContactsClient
       )}
 
       {filteredContacts.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredContacts.map((contact) => (
-            <ContactCard key={contact.id} contact={contact} />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredContacts.map((contact) => (
+              <ContactCard key={contact.id} contact={contact} />
+            ))}
+          </div>
+
+          {/* Load More button — only shown when not filtering by tag */}
+          {!activeTagId && pagination.hasMore && (
+            <div className="flex justify-center pt-2">
+              <Button
+                variant="outline"
+                onClick={loadMore}
+                disabled={isLoadingMore}
+                className="min-w-[160px]"
+              >
+                {isLoadingMore ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  "Load More"
+                )}
+              </Button>
+            </div>
+          )}
+        </>
       ) : (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-10">

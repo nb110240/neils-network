@@ -38,7 +38,22 @@ export async function POST(request: Request) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session
       const userId = session.metadata?.user_id
-      if (!userId) break
+      const customerId = session.customer as string
+      if (!userId || !customerId) break
+
+      // Security: Verify the Stripe customer belongs to this user
+      // by checking that the customer's metadata.user_id matches
+      const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer
+      if (customer.deleted || customer.metadata?.user_id !== userId) {
+        log("error", "Webhook customer/user mismatch — possible spoofing attempt", {
+          action: "stripe.checkout_mismatch",
+          route: "/api/stripe/webhook",
+          claimedUserId: userId,
+          customerId,
+          customerMetaUserId: (customer as Stripe.Customer).metadata?.user_id,
+        })
+        break
+      }
 
       const subscription = await stripe.subscriptions.retrieve(
         session.subscription as string
@@ -47,7 +62,7 @@ export async function POST(request: Request) {
       await supabase.from("subscriptions").upsert(
         {
           user_id: userId,
-          stripe_customer_id: session.customer as string,
+          stripe_customer_id: customerId,
           stripe_subscription_id: subscription.id,
           plan: "pro",
           status: "active",
@@ -61,7 +76,7 @@ export async function POST(request: Request) {
         action: "stripe.checkout_completed",
         route: "/api/stripe/webhook",
         userId,
-        customerId: session.customer as string,
+        customerId,
         subscriptionId: subscription.id,
       })
       break

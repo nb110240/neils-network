@@ -17,6 +17,10 @@ export async function POST(request: Request) {
       return badRequestResponse("Query is required")
     }
 
+    if (query.length > 2000) {
+      return badRequestResponse("Query too long (max 2000 characters)")
+    }
+
     // Check semantic search limit (free: 5/month, pro: unlimited)
     if (semantic) {
       const { allowed, used, limit, plan } = await checkSemanticSearchLimit(user.id)

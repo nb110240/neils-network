@@ -35,6 +35,10 @@ export async function POST(request: Request) {
       return badRequestResponse("Please write a bit more about this contact")
     }
 
+    if (raw_note.length > 20000) {
+      return badRequestResponse("Note too long (max 20,000 characters)")
+    }
+
     // Extract contact info via AI
     const extracted = await extractContactInfo(raw_note)
 

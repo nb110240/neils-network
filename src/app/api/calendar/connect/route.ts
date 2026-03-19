@@ -6,7 +6,8 @@ import { createHmac } from "crypto"
 
 // Sign state to prevent IDOR — attacker can't forge a valid state for another user
 function signState(userId: string): string {
-  const secret = process.env.CRON_SECRET || process.env.NEXTAUTH_SECRET || "fallback-secret"
+  const secret = process.env.CRON_SECRET || process.env.NEXTAUTH_SECRET
+  if (!secret) throw new Error("Missing CRON_SECRET or NEXTAUTH_SECRET — cannot sign OAuth state")
   const sig = createHmac("sha256", secret).update(userId).digest("hex").slice(0, 16)
   return `${userId}.${sig}`
 }
@@ -14,7 +15,8 @@ function signState(userId: string): string {
 export function verifyState(state: string): string | null {
   const [userId, sig] = state.split(".")
   if (!userId || !sig) return null
-  const secret = process.env.CRON_SECRET || process.env.NEXTAUTH_SECRET || "fallback-secret"
+  const secret = process.env.CRON_SECRET || process.env.NEXTAUTH_SECRET
+  if (!secret) throw new Error("Missing CRON_SECRET or NEXTAUTH_SECRET — cannot sign OAuth state")
   const expected = createHmac("sha256", secret).update(userId).digest("hex").slice(0, 16)
   if (sig !== expected) return null
   return userId

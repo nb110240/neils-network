@@ -14,6 +14,13 @@ export async function POST(request: Request) {
     const priceId = billing === "yearly" ? STRIPE_PRICE_YEARLY : STRIPE_PRICE_MONTHLY
 
     const stripe = getStripe()
+
+    // Validate the price exists and is active in Stripe
+    const price = await stripe.prices.retrieve(priceId)
+    if (!price || !price.active) {
+      return errorResponse("Invalid or inactive price configuration")
+    }
+
     const sub = await getUserSubscription(user.id)
 
     // If user already has a Stripe customer, reuse it

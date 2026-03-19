@@ -59,6 +59,35 @@ export async function authenticateRequest(
   return { user: { id: user.id, email: user.email }, supabase }
 }
 
+// ─── UUID validation ───
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+export function isValidUUID(id: string): boolean {
+  return UUID_RE.test(id)
+}
+
+// ─── Prompt injection sanitization ───
+
+export function sanitizeForPrompt(text: string | null | undefined, maxLength: number = 300): string {
+  if (!text) return "None"
+  return text
+    .slice(0, maxLength)
+    .replace(/```/g, "")
+    .replace(/\bsystem\b\s*:/gi, "")
+    .replace(/\b(ignore|disregard|forget)\b\s+(all\s+)?(previous|above|prior)\b/gi, "[filtered]")
+}
+
+// ─── Dev endpoint secret verification ───
+
+export function verifyDevSecret(request: Request): NextResponse | null {
+  const secret = request.headers.get("x-dev-secret")
+  if (secret !== process.env.DEV_SECRET) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+  return null
+}
+
 // ─── Standard error responses ───
 
 export function errorResponse(message: string, status: number = 500) {

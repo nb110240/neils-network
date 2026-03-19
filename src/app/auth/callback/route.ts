@@ -22,7 +22,7 @@ export async function GET(request: Request) {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "x-internal-secret": process.env.CRON_SECRET || "",
+              "x-internal-secret": process.env.INTERNAL_API_SECRET || process.env.CRON_SECRET || "",
             },
             body: JSON.stringify({
               email: data.user.email,

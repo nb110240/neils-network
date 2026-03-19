@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   try {
     // Protect with internal secret — only callable from auth callback
     const authHeader = request.headers.get("x-internal-secret")
-    if (authHeader !== process.env.CRON_SECRET) {
+    if (authHeader !== (process.env.INTERNAL_API_SECRET || process.env.CRON_SECRET)) {
       return NextResponse.json({ message: "Forbidden" }, { status: 403 })
     }
 

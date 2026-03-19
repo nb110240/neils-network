@@ -5,19 +5,21 @@ import { getUserPlan, getPlanLimits } from "@/lib/subscription"
 import { createHmac } from "crypto"
 
 // Sign state to prevent IDOR — attacker can't forge a valid state for another user
+function getOAuthStateSecret(): string {
+  const secret = process.env.OAUTH_STATE_SECRET || process.env.CRON_SECRET
+  if (!secret) throw new Error("Missing OAUTH_STATE_SECRET — cannot sign OAuth state")
+  return secret
+}
+
 function signState(userId: string): string {
-  const secret = process.env.CRON_SECRET || process.env.NEXTAUTH_SECRET
-  if (!secret) throw new Error("Missing CRON_SECRET or NEXTAUTH_SECRET — cannot sign OAuth state")
-  const sig = createHmac("sha256", secret).update(userId).digest("hex").slice(0, 16)
+  const sig = createHmac("sha256", getOAuthStateSecret()).update(userId).digest("hex").slice(0, 16)
   return `${userId}.${sig}`
 }
 
 export function verifyState(state: string): string | null {
   const [userId, sig] = state.split(".")
   if (!userId || !sig) return null
-  const secret = process.env.CRON_SECRET || process.env.NEXTAUTH_SECRET
-  if (!secret) throw new Error("Missing CRON_SECRET or NEXTAUTH_SECRET — cannot sign OAuth state")
-  const expected = createHmac("sha256", secret).update(userId).digest("hex").slice(0, 16)
+  const expected = createHmac("sha256", getOAuthStateSecret()).update(userId).digest("hex").slice(0, 16)
   if (sig !== expected) return null
   return userId
 }

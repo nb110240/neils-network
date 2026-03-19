@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { createServiceClient } from "@/lib/supabase/server"
 import { getUserPlan } from "@/lib/subscription"
-import { authenticateRequest, authFailed, forbiddenResponse, errorResponse } from "@/lib/api-utils"
+import { authenticateRequest, authFailed, forbiddenResponse, errorResponse, isValidUUID, badRequestResponse, sanitizeForPrompt } from "@/lib/api-utils"
 
 export async function POST(
   request: Request,
@@ -9,6 +9,10 @@ export async function POST(
 ) {
   try {
     const { id } = await params
+
+    if (!isValidUUID(id)) {
+      return badRequestResponse("Invalid contact ID")
+    }
 
     const auth = await authenticateRequest("create")
     if (authFailed(auth)) return auth.error
@@ -86,9 +90,9 @@ Context about this person:
 - Name: ${contact.name || "Unknown"}
 - Company: ${contact.company || "Unknown"}
 - Role: ${contact.job_title || "Unknown"}
-- How we met: ${contact.how_we_met || "Unknown"}
+- How we met: ${sanitizeForPrompt(contact.how_we_met, 200)}
 - Last interaction: ${contact.last_contact_date || "Unknown"}
-- Notes: ${contact.raw_note?.slice(0, 300) || "None"}
+- Notes: ${sanitizeForPrompt(contact.raw_note)}
 ${calendarContext}
 
 Requirements:
@@ -107,10 +111,10 @@ Context about this person:
 - Name: ${contact.name || "Unknown"}
 - Company: ${contact.company || "Unknown"}
 - Role: ${contact.job_title || "Unknown"}
-- How we met: ${contact.how_we_met || "Unknown"}
+- How we met: ${sanitizeForPrompt(contact.how_we_met, 200)}
 - Last interaction: ${contact.last_contact_date || "Unknown"}
-- Next steps noted: ${contact.next_steps || "None"}
-- Notes: ${contact.raw_note?.slice(0, 300) || "None"}
+- Next steps noted: ${sanitizeForPrompt(contact.next_steps, 200)}
+- Notes: ${sanitizeForPrompt(contact.raw_note)}
 
 Requirements:
 - Reference something specific from your last interaction or how you met

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { authenticateRequest, authFailed, forbiddenResponse, errorResponse } from "@/lib/api-utils"
+import { authenticateRequest, authFailed, forbiddenResponse, errorResponse, sanitizeForPrompt } from "@/lib/api-utils"
 import { getUserPlan } from "@/lib/subscription"
 import { log } from "@/lib/logger"
 
@@ -71,8 +71,8 @@ export async function GET() {
           c.company ? `@${c.company}` : "",
           c.job_title ? `(${c.job_title})` : "",
           tags.length > 0 ? `[${tags.join(",")}]` : "",
-          c.how_we_met ? `met:${c.how_we_met.slice(0, 60)}` : "",
-          c.next_steps ? `next:${c.next_steps.slice(0, 60)}` : "",
+          c.how_we_met ? `met:${sanitizeForPrompt(c.how_we_met, 60)}` : "",
+          c.next_steps ? `next:${sanitizeForPrompt(c.next_steps, 60)}` : "",
         ].filter(Boolean)
         return parts.join(" ")
       })

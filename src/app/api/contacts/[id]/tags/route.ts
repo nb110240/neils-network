@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { authenticateRequest, authFailed, notFoundResponse, badRequestResponse, errorResponse } from "@/lib/api-utils"
+import { authenticateRequest, authFailed, notFoundResponse, badRequestResponse, errorResponse, isValidUUID } from "@/lib/api-utils"
 
 export async function GET(
   _request: Request,
@@ -7,6 +7,10 @@ export async function GET(
 ) {
   try {
     const { id } = await params
+
+    if (!isValidUUID(id)) {
+      return badRequestResponse("Invalid contact ID")
+    }
 
     const auth = await authenticateRequest("general")
     if (authFailed(auth)) return auth.error
@@ -49,6 +53,10 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
+
+    if (!isValidUUID(id)) {
+      return badRequestResponse("Invalid contact ID")
+    }
 
     const auth = await authenticateRequest("general")
     if (authFailed(auth)) return auth.error

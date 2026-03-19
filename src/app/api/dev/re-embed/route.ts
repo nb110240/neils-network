@@ -1,9 +1,13 @@
-import { NextResponse } from "next/server"
+import { NextResponse, type NextRequest } from "next/server"
 import { createClient, createServiceClient } from "@/lib/supabase/server"
 import { isAdmin } from "@/lib/admin"
+import { verifyDevSecret } from "@/lib/api-utils"
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
+    const devError = verifyDevSecret(request)
+    if (devError) return devError
+
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 

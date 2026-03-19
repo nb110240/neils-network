@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { authenticateRequest, authFailed, forbiddenResponse, notFoundResponse, errorResponse } from "@/lib/api-utils"
+import { authenticateRequest, authFailed, forbiddenResponse, notFoundResponse, errorResponse, isValidUUID, badRequestResponse, sanitizeForPrompt } from "@/lib/api-utils"
 import { getUserPlan } from "@/lib/subscription"
 import { calculateHealthScore } from "@/lib/health"
 import { log } from "@/lib/logger"
@@ -10,6 +10,10 @@ export async function POST(
 ) {
   try {
     const { id } = await params
+
+    if (!isValidUUID(id)) {
+      return badRequestResponse("Invalid contact ID")
+    }
 
     const auth = await authenticateRequest("general")
     if (authFailed(auth)) return auth.error
@@ -92,11 +96,11 @@ CONTACT PROFILE:
 - Name: ${contact.name || "Unknown"}
 - Company: ${contact.company || "Unknown"}
 - Role: ${contact.job_title || "Unknown"}
-- How we met: ${contact.how_we_met || "Unknown"}
+- How we met: ${sanitizeForPrompt(contact.how_we_met, 200)}
 - Relationship health: ${health.label} (${health.level} — last contact: ${contact.last_contact_date || "never"})
 - Tags: ${tagNames.length > 0 ? tagNames.join(", ") : "None"}
-- Original notes: ${contact.raw_note?.slice(0, 500) || "None"}
-- Next steps noted: ${contact.next_steps || "None"}
+- Original notes: ${sanitizeForPrompt(contact.raw_note, 500)}
+- Next steps noted: ${sanitizeForPrompt(contact.next_steps, 200)}
 ${mutualContext}
 
 RECENT ACTIVITY:

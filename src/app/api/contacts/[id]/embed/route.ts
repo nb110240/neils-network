@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { authenticateRequest, authFailed, notFoundResponse, errorResponse } from "@/lib/api-utils"
+import { authenticateRequest, authFailed, notFoundResponse, errorResponse, isValidUUID, badRequestResponse } from "@/lib/api-utils"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 
 export async function POST(
@@ -8,6 +8,10 @@ export async function POST(
 ) {
   try {
     const { id } = await params
+
+    if (!isValidUUID(id)) {
+      return badRequestResponse("Invalid contact ID")
+    }
 
     const auth = await authenticateRequest("create")
     if (authFailed(auth)) return auth.error

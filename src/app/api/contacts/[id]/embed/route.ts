@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { authenticateRequest, authFailed, notFoundResponse, errorResponse } from "@/lib/api-utils"
-import { extractContactInfo } from "@/lib/extract-contact"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 
 export async function POST(
@@ -14,9 +13,10 @@ export async function POST(
     if (authFailed(auth)) return auth.error
     const { user, supabase } = auth
 
+    // Verify contact belongs to user
     const { data: contact, error } = await supabase
       .from("contacts")
-      .select("id, raw_note, created_by")
+      .select("id, name, company, job_title, raw_note, created_by")
       .eq("id", id)
       .eq("created_by", user.id)
       .single()
@@ -25,37 +25,35 @@ export async function POST(
       return notFoundResponse("Contact not found")
     }
 
-    const extracted = await extractContactInfo(contact.raw_note)
-
-    // Re-generate embedding with extracted fields
+    // Build embedding text and generate embedding
     const embeddingText = buildContactEmbeddingText({
-      name: extracted.name as string | null,
-      company: extracted.company as string | null,
-      job_title: extracted.job_title as string | null,
+      name: contact.name,
+      company: contact.company,
+      job_title: contact.job_title,
       raw_note: contact.raw_note,
     })
     const embedding = await generateEmbedding(embeddingText)
 
     const embeddingStatus = embedding ? "complete" : "failed"
-    const updateData = embedding
-      ? { ...extracted, embedding, embedding_status: embeddingStatus }
-      : { ...extracted, embedding_status: embeddingStatus }
 
-    const { data: fixed, error: updateError } = await supabase
+    const updateData: Record<string, unknown> = { embedding_status: embeddingStatus }
+    if (embedding) {
+      updateData.embedding = embedding
+    }
+
+    const { error: updateError } = await supabase
       .from("contacts")
       .update(updateData)
       .eq("id", id)
       .eq("created_by", user.id)
-      .select()
-      .single()
 
     if (updateError) {
-      return errorResponse("Failed to update contact")
+      return errorResponse("Failed to update contact embedding")
     }
 
-    return NextResponse.json({ contact: fixed })
+    return NextResponse.json({ success: true, status: embeddingStatus })
   } catch (error) {
-    console.error("Error fixing contact:", error)
+    console.error("Error retrying embedding:", error)
     return errorResponse("Internal server error")
   }
 }

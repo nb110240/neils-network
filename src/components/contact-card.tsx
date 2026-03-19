@@ -55,6 +55,12 @@ export function ContactCard({
               {contact.follow_up_needed && (
                 <Badge variant="warning" className="text-xs">Follow-up</Badge>
               )}
+              {contact.embedding_status === "failed" && (
+                <span className="inline-flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                  Not searchable
+                </span>
+              )}
               {showSimilarity && similarity !== undefined && (
                 <Badge variant="secondary" className="text-xs">
                   {Math.round(similarity * 100)}% match

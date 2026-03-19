@@ -5,6 +5,7 @@ import { checkContactLimit } from "@/lib/subscription"
 import { calculateHealthScore } from "@/lib/health"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 import { findDuplicates } from "@/lib/dedup"
+import { log } from "@/lib/logger"
 
 export async function POST(request: Request) {
   try {
@@ -59,6 +60,8 @@ export async function POST(request: Request) {
     })
     const embedding = await generateEmbedding(embeddingText)
 
+    const embeddingStatus = embedding ? "complete" : "failed"
+
     // Insert contact
     const { data: contact, error } = await supabase
       .from("contacts")
@@ -66,6 +69,7 @@ export async function POST(request: Request) {
         ...extracted,
         raw_note,
         embedding,
+        embedding_status: embeddingStatus,
         source: "web",
         created_by: user.id,
       })
@@ -73,12 +77,21 @@ export async function POST(request: Request) {
       .single()
 
     if (error) {
-      console.error("Error inserting contact:", error)
+      log("error", "Failed to insert contact", { userId: user.id, action: "contact.create", route: "/api/contacts", error: error.message })
       return errorResponse(
         error.message?.includes("Free plan limit") ? error.message : "Failed to save contact",
         error.message?.includes("Free plan limit") ? 403 : 500
       )
     }
+
+    log("info", "Contact created", {
+      userId: user.id,
+      action: "contact.create",
+      route: "/api/contacts",
+      contactId: contact?.id,
+      extractionSuccess: !!extracted.name,
+      embeddingStatus,
+    })
 
     // If there's an active event, associate this contact with it
     if (contact?.id) {
@@ -118,7 +131,7 @@ export async function POST(request: Request) {
       ...(duplicates.length > 0 ? { duplicates } : {}),
     })
   } catch (error) {
-    console.error("Error creating contact:", error)
+    log("error", "Unhandled error creating contact", { action: "contact.create", route: "/api/contacts", error: String(error) })
     return errorResponse("Internal server error")
   }
 }

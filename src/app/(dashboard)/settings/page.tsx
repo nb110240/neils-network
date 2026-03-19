@@ -32,6 +32,7 @@ import {
   Bell,
 } from "lucide-react"
 import { NotificationPreferences } from "./notifications"
+import { RecentlyDeleted } from "@/components/recently-deleted"
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -425,6 +426,9 @@ export default function SettingsPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Recently Deleted */}
+      <RecentlyDeleted />
 
       {/* Danger Zone */}
       <Card className="shadow-refined border-red-200 dark:border-red-900">

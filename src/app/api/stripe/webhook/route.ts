@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getStripe } from "@/lib/stripe"
 import { createServiceClient } from "@/lib/supabase/server"
 import Stripe from "stripe"
+import { log } from "@/lib/logger"
 
 export async function POST(request: Request) {
   const body = await request.text()
@@ -21,11 +22,17 @@ export async function POST(request: Request) {
       process.env.STRIPE_WEBHOOK_SECRET!
     )
   } catch (err) {
-    console.error("Webhook signature verification failed:", err)
+    log("error", "Webhook signature verification failed", { action: "stripe.webhook", route: "/api/stripe/webhook", error: String(err) })
     return NextResponse.json({ message: "Invalid signature" }, { status: 400 })
   }
 
   const supabase = await createServiceClient()
+
+  log("info", "Stripe webhook received", {
+    action: "stripe.webhook",
+    route: "/api/stripe/webhook",
+    eventType: event.type,
+  })
 
   switch (event.type) {
     case "checkout.session.completed": {
@@ -50,6 +57,13 @@ export async function POST(request: Request) {
         },
         { onConflict: "user_id" }
       )
+      log("info", "Checkout completed, subscription activated", {
+        action: "stripe.checkout_completed",
+        route: "/api/stripe/webhook",
+        userId,
+        customerId: session.customer as string,
+        subscriptionId: subscription.id,
+      })
       break
     }
 
@@ -83,6 +97,11 @@ export async function POST(request: Request) {
         .from("subscriptions")
         .update({ status: "canceled", plan: "free" })
         .eq("stripe_subscription_id", subscription.id)
+      log("info", "Subscription deleted", {
+        action: "stripe.subscription_deleted",
+        route: "/api/stripe/webhook",
+        subscriptionId: subscription.id,
+      })
       break
     }
   }

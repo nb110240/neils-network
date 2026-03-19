@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server"
 import { calculateHealthScore } from "@/lib/health"
 import { sendDigestEmail } from "@/lib/email"
 import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
+import { log } from "@/lib/logger"
 
 export async function GET(request: Request) {
   // Verify cron secret to prevent unauthorized access
@@ -154,9 +155,17 @@ export async function GET(request: Request) {
       emailsSent++
     }
 
+    log("info", "Daily digest completed", {
+      action: "cron.daily_digest",
+      route: "/api/cron/daily-digest",
+      userCount: proUsers.length,
+      emailsSent,
+      skipped,
+    })
+
     return NextResponse.json({ success: true, sent: emailsSent, skipped })
   } catch (error) {
-    console.error("Daily digest error:", error)
+    log("error", "Daily digest failed", { action: "cron.daily_digest", route: "/api/cron/daily-digest", error: String(error) })
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 }

@@ -157,12 +157,11 @@ async function generateEmbeddingsBatch(
       raw_note: contact.raw_note,
     })
     const embedding = await generateEmbedding(embeddingText)
-    if (embedding) {
-      await supabase
-        .from("contacts")
-        .update({ embedding })
-        .eq("id", contact.id)
-    }
+    const embeddingStatus = embedding ? "complete" : "failed"
+    await supabase
+      .from("contacts")
+      .update({ embedding: embedding || undefined, embedding_status: embeddingStatus })
+      .eq("id", contact.id)
   }
 }
 

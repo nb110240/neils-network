@@ -123,15 +123,16 @@ export async function DELETE(
     if (authFailed(auth)) return auth.error
     const { user, supabase } = auth
 
+    // Soft delete: set archived_at instead of hard delete
     const { error } = await supabase
       .from("contacts")
-      .delete()
+      .update({ archived_at: new Date().toISOString() })
       .eq("id", id)
       .eq("created_by", user.id)
 
     if (error) {
-      console.error("Error deleting contact:", error)
-      return errorResponse("Failed to delete contact")
+      console.error("Error archiving contact:", error)
+      return errorResponse("Failed to archive contact")
     }
 
     return NextResponse.json({ success: true })

@@ -101,6 +101,8 @@ export async function POST(request: Request) {
     })
     const embedding = await generateEmbedding(embeddingText)
 
+    const embeddingStatus = embedding ? "complete" : "failed"
+
     const { data: contact, error } = await supabase
       .from("contacts")
       .insert({
@@ -113,6 +115,7 @@ export async function POST(request: Request) {
         follow_up_needed: followUpNeeded,
         raw_note: rawNote,
         embedding,
+        embedding_status: embeddingStatus,
         source: "linkedin",
         created_by: user.id,
       })

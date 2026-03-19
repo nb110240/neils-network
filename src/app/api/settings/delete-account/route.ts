@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { authenticateRequest, authFailed, errorResponse } from "@/lib/api-utils"
 import { createServiceClient } from "@/lib/supabase/server"
+import { log } from "@/lib/logger"
 
 export async function DELETE() {
   try {
@@ -16,23 +17,25 @@ export async function DELETE() {
     })
 
     if (rpcError) {
-      console.error("Failed to delete user data:", rpcError)
+      log("error", "Failed to delete user data", { userId: user.id, action: "account.delete", route: "/api/settings/delete-account", error: rpcError.message })
       return errorResponse("Failed to delete account data")
     }
 
     // Delete the auth user (must be done separately — auth schema)
     const { error: deleteError } = await serviceSupabase.auth.admin.deleteUser(user.id)
     if (deleteError) {
-      console.error("Failed to delete auth user:", deleteError)
+      log("error", "Failed to delete auth user", { userId: user.id, action: "account.delete", route: "/api/settings/delete-account", error: deleteError.message })
       return errorResponse("Failed to delete account")
     }
 
     // Sign out the session
     await supabase.auth.signOut()
 
+    log("info", "Account deleted", { userId: user.id, action: "account.delete", route: "/api/settings/delete-account" })
+
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Delete account error:", error)
+    log("error", "Unhandled error deleting account", { action: "account.delete", route: "/api/settings/delete-account", error: String(error) })
     return errorResponse("Internal server error")
   }
 }

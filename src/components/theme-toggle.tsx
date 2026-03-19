@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Sun, Moon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -20,12 +20,14 @@ export function ThemeToggle() {
     setMounted(true)
   }, [])
 
-  const toggle = () => {
-    const next = !isDark
-    setIsDark(next)
-    document.documentElement.classList.toggle("dark", next)
-    localStorage.setItem(STORAGE_KEY, next ? "dark" : "light")
-  }
+  const toggle = useCallback(() => {
+    setIsDark((prev) => {
+      const next = !prev
+      document.documentElement.classList.toggle("dark", next)
+      localStorage.setItem(STORAGE_KEY, next ? "dark" : "light")
+      return next
+    })
+  }, [])
 
   if (!mounted) {
     return (

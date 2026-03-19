@@ -25,21 +25,35 @@ export async function GET(request: Request) {
   try {
     const supabase = await createServiceClient()
 
-    // Get all Pro users
+    // Get all users with active subscriptions (Pro users)
     const { data: proUsers } = await supabase
       .from("subscriptions")
       .select("user_id")
       .eq("plan", "pro")
       .eq("status", "active")
 
-    if (!proUsers || proUsers.length === 0) {
-      return NextResponse.json({ message: "No pro users", sent: 0 })
+    const proUserIds = new Set((proUsers || []).map((u) => u.user_id))
+
+    // Get ALL users who have contacts (free users get weekly digest)
+    const { data: allUserRows } = await supabase
+      .from("contacts")
+      .select("created_by")
+      .is("archived_at", null)
+
+    // Deduplicate user IDs
+    const allUserIds = [...new Set((allUserRows || []).map((r) => r.created_by))]
+
+    if (allUserIds.length === 0) {
+      return NextResponse.json({ message: "No users with contacts", sent: 0 })
     }
 
     let emailsSent = 0
     let skipped = 0
+    const isMonday = new Date().getDay() === 1
 
-    for (const { user_id } of proUsers) {
+    for (const user_id of allUserIds) {
+      const isPro = proUserIds.has(user_id)
+
       // Check notification preferences
       const { data: prefs } = await supabase
         .from("user_preferences")
@@ -47,7 +61,8 @@ export async function GET(request: Request) {
         .eq("user_id", user_id)
         .single()
 
-      const frequency = prefs?.digest_frequency || "daily"
+      // Free users default to "weekly", Pro users default to "daily"
+      const frequency = prefs?.digest_frequency || (isPro ? "daily" : "weekly")
 
       // Skip users who opted out
       if (frequency === "never") {
@@ -56,24 +71,48 @@ export async function GET(request: Request) {
       }
 
       // Weekly users only get emails on Mondays
-      if (frequency === "weekly" && new Date().getDay() !== 1) {
+      if (frequency === "weekly" && !isMonday) {
         continue
+      }
+
+      // Free users can only have weekly frequency
+      if (!isPro && frequency === "daily") {
+        // Downgrade to weekly silently
+        if (!isMonday) continue
       }
 
       // Get user email
       const { data: { user } } = await supabase.auth.admin.getUserById(user_id)
       if (!user?.email) continue
 
-      // Get user's contacts
+      // Get user's contacts with tags for richer context
       const { data: contacts } = await supabase
         .from("contacts")
-        .select("id, name, company, how_we_met, last_contact_date, created_at")
+        .select("id, name, company, job_title, how_we_met, next_steps, last_contact_date, created_at, follow_up_needed")
         .eq("created_by", user_id)
+        .is("archived_at", null)
 
       if (!contacts || contacts.length === 0) continue
 
       // Need at least 5 contacts for digest to be useful
       if (contacts.length < 5) continue
+
+      // Get recent activities for context (last 30 days)
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      const { data: recentActivities } = await supabase
+        .from("contact_activities")
+        .select("contact_id, type, content, occurred_at")
+        .eq("user_id", user_id)
+        .gte("occurred_at", thirtyDaysAgo)
+        .order("occurred_at", { ascending: false })
+
+      // Map activities by contact_id for quick lookup
+      const activityMap = new Map<string, { type: string; content: string; occurred_at: string }>()
+      for (const a of recentActivities || []) {
+        if (!activityMap.has(a.contact_id)) {
+          activityMap.set(a.contact_id, a)
+        }
+      }
 
       // Get ALL digest history for this user (to count total suggestions per contact)
       const { data: allDigests } = await supabase
@@ -103,7 +142,8 @@ export async function GET(request: Request) {
           // Deprioritize contacts shown many times — add penalty per suggestion
           const varietyPenalty = timesShown * 15
           const adjustedScore = health.score + varietyPenalty
-          return { ...c, health, adjustedScore, timesShown }
+          const lastActivity = activityMap.get(c.id) || null
+          return { ...c, health, adjustedScore, timesShown, lastActivity }
         })
 
       if (eligible.length === 0) continue
@@ -138,11 +178,29 @@ export async function GET(request: Request) {
 
       if (picks.length === 0) continue
 
+      // Compute network stats for the email
+      const healthBreakdown = contacts.reduce(
+        (acc, c) => {
+          const h = calculateHealthScore(c.last_contact_date, c.created_at)
+          acc[h.level] = (acc[h.level] || 0) + 1
+          return acc
+        },
+        {} as Record<string, number>
+      )
+
+      const followUpCount = contacts.filter((c) => c.follow_up_needed).length
+
       // Send email
       const userName =
         user.user_metadata?.full_name || user.email.split("@")[0]
 
-      await sendDigestEmail(user.email, userName, picks)
+      await sendDigestEmail(user.email, userName, picks, {
+        totalContacts: contacts.length,
+        healthBreakdown,
+        followUpCount,
+        isPro,
+        isWeekly: frequency === "weekly",
+      })
 
       // Record in digest_history
       for (const contact of picks) {
@@ -158,7 +216,9 @@ export async function GET(request: Request) {
     log("info", "Daily digest completed", {
       action: "cron.daily_digest",
       route: "/api/cron/daily-digest",
-      userCount: proUsers.length,
+      userCount: allUserIds.length,
+      proUsers: proUserIds.size,
+      freeUsers: allUserIds.length - proUserIds.size,
       emailsSent,
       skipped,
     })

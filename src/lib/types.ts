@@ -93,7 +93,7 @@ export const PLAN_LIMITS = {
     canImport: false,
     canSemanticSearch: true,
     semanticSearchLimit: 5, // per month
-    canDigest: false,
+    canDigest: true, // weekly only (Pro gets daily)
     canCalendarSync: false,
   },
   pro: {

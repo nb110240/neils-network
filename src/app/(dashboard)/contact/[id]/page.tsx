@@ -26,6 +26,7 @@ import { useToast } from "@/components/ui/toast"
 import { formatDate, getInitials } from "@/lib/utils"
 import { TagManager } from "@/components/tag-manager"
 import { DraftMessageButton } from "@/components/draft-message-button"
+import { MeetingPrepButton } from "@/components/meeting-prep-button"
 import {
   ArrowLeft,
   Building2,
@@ -371,6 +372,7 @@ export default function ContactDetailPage({
             <Edit2 className="mr-2 h-4 w-4" />
             Edit
           </Button>
+          <MeetingPrepButton contactId={id} />
           <Button variant="outline" size="sm" onClick={() => setShowMeetingDialog(true)}>
             <MessageSquarePlus className="mr-2 h-4 w-4" />
             Add Activity

@@ -39,7 +39,7 @@ function mockSupabase(contacts: Partial<Contact>[]) {
         }),
       }),
     }),
-  } as any
+  } as unknown as Parameters<typeof findDuplicates>[0]
 }
 
 describe("findDuplicates", () => {
@@ -175,7 +175,7 @@ describe("findDuplicates", () => {
           }),
         }),
       }),
-    } as any
+    } as unknown as Parameters<typeof findDuplicates>[0]
     const results = await findDuplicates(supabase, "user-1", {
       name: "Alice",
     })

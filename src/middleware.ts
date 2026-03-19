@@ -34,7 +34,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Protected routes - redirect to login if not authenticated
-  const protectedPaths = ["/dashboard", "/search", "/contact", "/add", "/import", "/contacts", "/settings", "/scan", "/dev", "/support", "/graph"]
+  const protectedPaths = ["/dashboard", "/search", "/contact", "/add", "/import", "/contacts", "/settings", "/scan", "/dev", "/support", "/graph", "/intros"]
   const isProtectedPath = protectedPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)
   )
@@ -57,6 +57,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Exclude Sentry monitoring tunnel, Next.js internals, and static files
+    "/((?!monitoring|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 }

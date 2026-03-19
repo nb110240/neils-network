@@ -27,6 +27,36 @@ export function OfflineIndicator() {
     setQueueCount(getQueue().length)
   }, [])
 
+  const syncOfflineQueue = useCallback(async (queue: { raw_note: string; queued_at: string }[]) => {
+    setIsSyncing(true)
+
+    // Try sending via service worker first
+    if (navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: "SYNC_OFFLINE_QUEUE",
+        queue,
+      })
+    } else {
+      // Fallback: sync directly
+      for (const item of queue) {
+        try {
+          await fetch("/api/contacts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ raw_note: item.raw_note }),
+          })
+        } catch {
+          break
+        }
+      }
+      saveQueue([])
+      setQueueCount(0)
+      setIsSyncing(false)
+      setSyncDone(true)
+      setTimeout(() => setSyncDone(false), 3000)
+    }
+  }, [])
+
   useEffect(() => {
     setIsOffline(!navigator.onLine)
     updateQueueCount()
@@ -69,37 +99,7 @@ export function OfflineIndicator() {
       window.removeEventListener("offline", handleOffline)
       navigator.serviceWorker?.removeEventListener("message", handleMessage)
     }
-  }, [updateQueueCount])
-
-  async function syncOfflineQueue(queue: { raw_note: string; queued_at: string }[]) {
-    setIsSyncing(true)
-
-    // Try sending via service worker first
-    if (navigator.serviceWorker?.controller) {
-      navigator.serviceWorker.controller.postMessage({
-        type: "SYNC_OFFLINE_QUEUE",
-        queue,
-      })
-    } else {
-      // Fallback: sync directly
-      for (const item of queue) {
-        try {
-          await fetch("/api/contacts", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ raw_note: item.raw_note }),
-          })
-        } catch {
-          break
-        }
-      }
-      saveQueue([])
-      setQueueCount(0)
-      setIsSyncing(false)
-      setSyncDone(true)
-      setTimeout(() => setSyncDone(false), 3000)
-    }
-  }
+  }, [updateQueueCount, syncOfflineQueue])
 
   // Nothing to show
   if (!isOffline && queueCount === 0 && !isSyncing && !syncDone) {

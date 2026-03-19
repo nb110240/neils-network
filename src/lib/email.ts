@@ -12,60 +12,162 @@ function getResend(): Resend {
 interface DigestContact {
   name: string | null
   company: string | null
+  job_title: string | null
   how_we_met: string | null
+  next_steps: string | null
   last_contact_date: string | null
+  follow_up_needed: boolean
   id: string
+  health: { score: number; level: string; label: string }
+  lastActivity?: { type: string; content: string; occurred_at: string } | null
+}
+
+interface DigestStats {
+  totalContacts: number
+  healthBreakdown: Record<string, number>
+  followUpCount: number
+  isPro: boolean
+  isWeekly: boolean
+}
+
+function healthColor(level: string): string {
+  switch (level) {
+    case "green": return "#22c55e"
+    case "yellow": return "#eab308"
+    case "orange": return "#f97316"
+    case "red": return "#ef4444"
+    default: return "#a8a29e"
+  }
+}
+
+function daysSinceText(date: string | null): string {
+  if (!date) return "Never contacted"
+  const days = Math.floor((Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24))
+  if (days === 0) return "Today"
+  if (days === 1) return "Yesterday"
+  if (days < 7) return `${days} days ago`
+  if (days < 30) return `${Math.floor(days / 7)} weeks ago`
+  if (days < 365) return `${Math.floor(days / 30)} months ago`
+  return `${Math.floor(days / 365)}+ years ago`
 }
 
 export async function sendDigestEmail(
   to: string,
   userName: string,
-  contacts: DigestContact[]
+  contacts: DigestContact[],
+  stats?: DigestStats
 ) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  const isPro = stats?.isPro ?? true
+  const isWeekly = stats?.isWeekly ?? false
 
   const contactRows = contacts
     .map((c) => {
       const name = c.name || "Unknown"
-      const company = c.company ? ` at ${c.company}` : ""
-      const lastContact = c.last_contact_date
-        ? new Date(c.last_contact_date).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })
-        : "Never"
-      const context = c.how_we_met
-        ? `<p style="color:#78716c;font-size:13px;margin:4px 0 0">${escapeHtml(c.how_we_met)}</p>`
+      const role = [c.job_title, c.company].filter(Boolean).join(" at ")
+      const lastContact = daysSinceText(c.last_contact_date)
+      const color = healthColor(c.health.level)
+
+      // Build context line
+      let contextLine = ""
+      if (c.lastActivity) {
+        const activityDate = new Date(c.lastActivity.occurred_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+        const snippet = c.lastActivity.content.length > 80
+          ? c.lastActivity.content.slice(0, 80) + "…"
+          : c.lastActivity.content
+        contextLine = `<p style="color:#78716c;font-size:12px;margin:6px 0 0;padding:8px;background:#fafaf9;border-radius:6px">📝 <strong>${c.lastActivity.type}</strong> on ${activityDate}: ${escapeHtml(snippet)}</p>`
+      } else if (c.how_we_met) {
+        const snippet = c.how_we_met.length > 80 ? c.how_we_met.slice(0, 80) + "…" : c.how_we_met
+        contextLine = `<p style="color:#78716c;font-size:12px;margin:6px 0 0">Met: ${escapeHtml(snippet)}</p>`
+      }
+
+      // Next steps reminder
+      const nextStepsLine = c.next_steps
+        ? `<p style="color:#c2410c;font-size:12px;margin:4px 0 0;font-weight:500">→ ${escapeHtml(c.next_steps.length > 60 ? c.next_steps.slice(0, 60) + "…" : c.next_steps)}</p>`
         : ""
+
       return `
         <div style="padding:16px;border:1px solid #e7e5e4;border-radius:12px;margin-bottom:12px">
-          <div>
-            <strong style="font-size:15px">${escapeHtml(name)}</strong><span style="color:#78716c">${escapeHtml(company)}</span>
-            ${context}
-            <p style="color:#a8a29e;font-size:12px;margin:4px 0 0">Last contact: ${lastContact}</p>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color}"></span>
+            <strong style="font-size:15px">${escapeHtml(name)}</strong>
+            <span style="color:#a8a29e;font-size:12px;margin-left:auto">${c.health.label}</span>
           </div>
-          <a href="${appUrl}/contact/${c.id}" style="display:inline-block;margin-top:10px;padding:6px 16px;background:#c2410c;color:white;text-decoration:none;border-radius:8px;font-size:13px;font-weight:500">Log interaction</a>
+          ${role ? `<p style="color:#78716c;font-size:13px;margin:2px 0 0">${escapeHtml(role)}</p>` : ""}
+          <p style="color:#a8a29e;font-size:12px;margin:4px 0 0">Last contact: ${lastContact}</p>
+          ${contextLine}
+          ${nextStepsLine}
+          <div style="margin-top:12px">
+            <a href="${appUrl}/contact/${c.id}" style="display:inline-block;padding:6px 16px;background:#c2410c;color:white;text-decoration:none;border-radius:8px;font-size:13px;font-weight:500">View &amp; follow up</a>
+          </div>
         </div>`
     })
     .join("")
 
+  // Network health summary bar
+  let networkSummary = ""
+  if (stats) {
+    const green = stats.healthBreakdown["green"] || 0
+    const yellow = stats.healthBreakdown["yellow"] || 0
+    const orange = stats.healthBreakdown["orange"] || 0
+    const red = stats.healthBreakdown["red"] || 0
+    const total = stats.totalContacts
+
+    const pct = (n: number) => Math.round((n / total) * 100)
+
+    networkSummary = `
+      <div style="padding:16px;background:#fafaf9;border-radius:12px;margin-bottom:20px">
+        <p style="font-size:13px;font-weight:600;color:#1c1917;margin:0 0 8px">Your Network: ${total} contacts</p>
+        <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;gap:2px">
+          ${green > 0 ? `<div style="flex:${green};background:#22c55e;border-radius:4px"></div>` : ""}
+          ${yellow > 0 ? `<div style="flex:${yellow};background:#eab308;border-radius:4px"></div>` : ""}
+          ${orange > 0 ? `<div style="flex:${orange};background:#f97316;border-radius:4px"></div>` : ""}
+          ${red > 0 ? `<div style="flex:${red};background:#ef4444;border-radius:4px"></div>` : ""}
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:#78716c">
+          <span>🟢 ${green} active (${pct(green)}%)</span>
+          <span>🟡 ${yellow} cooling</span>
+          <span>🔴 ${orange + red} cold</span>
+        </div>
+        ${stats.followUpCount > 0 ? `<p style="font-size:12px;color:#c2410c;margin:8px 0 0;font-weight:500">${stats.followUpCount} follow-up${stats.followUpCount > 1 ? "s" : ""} pending</p>` : ""}
+      </div>`
+  }
+
+  // Upgrade CTA for free users
+  const upgradeCta = !isPro
+    ? `
+      <div style="padding:16px;background:linear-gradient(135deg,#fef3c7,#fff7ed);border:1px solid #f59e0b33;border-radius:12px;margin-top:16px;text-align:center">
+        <p style="font-size:14px;font-weight:600;color:#1c1917;margin:0">Get daily digests with Savvo Pro</p>
+        <p style="font-size:12px;color:#78716c;margin:4px 0 12px">Plus unlimited contacts, AI drafts, network graph, and more.</p>
+        <a href="${appUrl}/pricing" style="display:inline-block;padding:8px 24px;background:#c2410c;color:white;text-decoration:none;border-radius:8px;font-size:13px;font-weight:500">Upgrade to Pro</a>
+      </div>`
+    : ""
+
+  const subjectLine = isWeekly
+    ? `Your weekly network check-in: ${contacts.length} relationships need attention`
+    : `${contacts.length} relationships need your attention`
+
+  const subtitleText = isWeekly
+    ? "Your weekly relationship check-in"
+    : "Your daily relationship check-in"
+
   await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL || "Savvo <digest@savvo.app>",
     to,
-    subject: `${contacts.length} relationships need your attention`,
+    subject: subjectLine,
     html: `
       <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px">
         <div style="text-align:center;margin-bottom:24px">
           <h1 style="font-size:22px;font-weight:600;color:#1c1917;margin:0">Savvo</h1>
-          <p style="color:#78716c;margin:4px 0 0;font-size:14px">Your daily relationship check-in</p>
+          <p style="color:#78716c;margin:4px 0 0;font-size:14px">${subtitleText}</p>
         </div>
         <p style="font-size:15px;color:#1c1917">Hey ${escapeHtml(userName)},</p>
         <p style="font-size:15px;color:#44403c">These relationships could use some attention:</p>
+        ${networkSummary}
         ${contactRows}
+        ${upgradeCta}
         <p style="font-size:13px;color:#a8a29e;text-align:center;margin-top:24px">
-          You're receiving this because you have a Savvo Pro account.<br/>
-          <a href="${appUrl}/dashboard" style="color:#c2410c">Open Savvo</a>
+          <a href="${appUrl}/settings" style="color:#a8a29e">Manage email preferences</a> · <a href="${appUrl}/dashboard" style="color:#c2410c">Open Savvo</a>
         </p>
       </div>
     `,

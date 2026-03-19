@@ -7,7 +7,7 @@ describe("PLAN_LIMITS", () => {
     expect(PLAN_LIMITS.free.canImport).toBe(false)
     expect(PLAN_LIMITS.free.canSemanticSearch).toBe(true)
     expect(PLAN_LIMITS.free.semanticSearchLimit).toBe(5)
-    expect(PLAN_LIMITS.free.canDigest).toBe(false)
+    expect(PLAN_LIMITS.free.canDigest).toBe(true) // Free users get weekly digest
     expect(PLAN_LIMITS.free.canCalendarSync).toBe(false)
   })
 

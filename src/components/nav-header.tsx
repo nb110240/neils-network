@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { LogOut, Plus, Search, LayoutDashboard, Upload, Users, Settings, ScanLine, Code, Menu, X, Network, BookOpen } from "lucide-react"
+import { LogOut, Plus, Search, LayoutDashboard, Upload, Users, Settings, ScanLine, Code, Menu, X, Network, BookOpen, Sparkles } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 const ADMIN_EMAILS = ["neilbajaj72@gmail.com"]
@@ -19,6 +19,7 @@ const navItems = [
   { href: "/scan", label: "Scan", icon: ScanLine },
   { href: "/import", label: "Import", icon: Upload },
   { href: "/graph", label: "Graph", icon: Network },
+  { href: "/intros", label: "Intros", icon: Sparkles },
   { href: "/", label: "Features", icon: BookOpen },
 ]
 

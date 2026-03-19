@@ -37,6 +37,14 @@ export default function DevPage() {
   const [allUsers, setAllUsers] = useState<{ id: string; email: string; plan: string }[]>([])
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
+  const loadUsers = async () => {
+    const res = await fetch("/api/dev/users")
+    if (res.ok) {
+      const data = await res.json()
+      setAllUsers(data.users || [])
+    }
+  }
+
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
@@ -60,14 +68,6 @@ export default function DevPage() {
     }
     init()
   }, [supabase])
-
-  async function loadUsers() {
-    const res = await fetch("/api/dev/users")
-    if (res.ok) {
-      const data = await res.json()
-      setAllUsers(data.users || [])
-    }
-  }
 
   async function togglePlan(targetUserId: string, currentPlan: string) {
     setActionLoading(`plan-${targetUserId}`)

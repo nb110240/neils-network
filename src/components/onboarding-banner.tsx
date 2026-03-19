@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Plus, X } from "lucide-react"
@@ -12,12 +12,10 @@ interface OnboardingBannerProps {
 const STORAGE_KEY = "savvo-onboarding-dismissed"
 
 export function OnboardingBanner({ contactCount }: OnboardingBannerProps) {
-  const [dismissed, setDismissed] = useState(true) // default true to avoid flash
-
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    setDismissed(stored === "true")
-  }, [])
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === "undefined") return true
+    return localStorage.getItem(STORAGE_KEY) === "true"
+  })
 
   if (dismissed || contactCount >= 5) return null
 

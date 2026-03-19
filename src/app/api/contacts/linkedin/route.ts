@@ -1,57 +1,35 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { authenticateRequest, authFailed, badRequestResponse, forbiddenResponse, errorResponse } from "@/lib/api-utils"
 import { checkContactLimit, getUserPlan } from "@/lib/subscription"
-import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
+import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    const rl = await rateLimit(user.id, "create")
-    if (!rl.success) {
-      return NextResponse.json(
-        { message: "Too many requests. Please slow down." },
-        { status: 429, headers: rateLimitHeaders(rl) }
-      )
-    }
+    const auth = await authenticateRequest("create")
+    if (authFailed(auth)) return auth.error
+    const { user, supabase } = auth
 
     // LinkedIn import is Pro only
     const plan = await getUserPlan(user.id)
     if (plan === "free") {
-      return NextResponse.json(
-        { message: "LinkedIn import is a Pro feature. Upgrade to import from LinkedIn." },
-        { status: 403 }
-      )
+      return forbiddenResponse("LinkedIn import is a Pro feature. Upgrade to import from LinkedIn.")
     }
 
     const { allowed, count, limit } = await checkContactLimit(user.id)
     if (!allowed) {
-      return NextResponse.json(
-        { message: `You've reached the ${limit}-contact limit. Upgrade for unlimited.` },
-        { status: 403 }
-      )
+      return forbiddenResponse(`You've reached the ${limit}-contact limit. Upgrade for unlimited.`)
     }
 
     const { url, note } = await request.json()
 
     if (!url || typeof url !== "string") {
-      return NextResponse.json({ message: "LinkedIn URL is required" }, { status: 400 })
+      return badRequestResponse("LinkedIn URL is required")
     }
 
     // Validate it's actually a LinkedIn URL
     const linkedinRegex = /^https?:\/\/(www\.)?linkedin\.com\/in\/[\w-]+\/?$/i
     if (!linkedinRegex.test(url.trim())) {
-      return NextResponse.json(
-        { message: "Please enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/johndoe)" },
-        { status: 400 }
-      )
+      return badRequestResponse("Please enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/johndoe)")
     }
 
     // Check for duplicate by LinkedIn URL
@@ -64,7 +42,7 @@ export async function POST(request: Request) {
 
     if (existing) {
       return NextResponse.json(
-        { message: "This LinkedIn contact already exists in your network", contactId: existing.id },
+        { error: "This LinkedIn contact already exists in your network", contactId: existing.id },
         { status: 409 }
       )
     }
@@ -107,27 +85,14 @@ export async function POST(request: Request) {
       note ? `\nNote: ${note}` : null,
     ].filter(Boolean).join(" ")
 
-    // Generate embedding
-    let embedding = null
-    const openaiKey = process.env.OPENAI_API_KEY
-    if (openaiKey) {
-      try {
-        const res = await fetch("https://api.openai.com/v1/embeddings", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${openaiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ model: "text-embedding-3-small", input: rawNote }),
-        })
-        if (res.ok) {
-          const data = await res.json()
-          embedding = data.data[0].embedding
-        }
-      } catch {
-        // Non-critical
-      }
-    }
+    // Generate embedding using centralized utility
+    const embeddingText = buildContactEmbeddingText({
+      name,
+      company,
+      job_title: jobTitle,
+      raw_note: rawNote,
+    })
+    const embedding = await generateEmbedding(embeddingText)
 
     const { data: contact, error } = await supabase
       .from("contacts")
@@ -149,12 +114,12 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error("LinkedIn contact insert error:", error)
-      return NextResponse.json({ message: "Failed to create contact" }, { status: 500 })
+      return errorResponse("Failed to create contact")
     }
 
     return NextResponse.json({ success: true, contact })
   } catch (error) {
     console.error("LinkedIn import error:", error)
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 })
+    return errorResponse("Internal server error")
   }
 }

@@ -75,6 +75,7 @@ async function extractWithGemini(raw_note: string): Promise<Record<string, unkno
 }
 
 export async function extractContactInfo(raw_note: string): Promise<Record<string, unknown>> {
+  const { validateExtraction } = await import("@/lib/validate-extraction")
   let extracted: Record<string, unknown>
 
   try {
@@ -119,5 +120,6 @@ export async function extractContactInfo(raw_note: string): Promise<Record<strin
     extracted.follow_up_needed = !!extracted.next_steps
   }
 
-  return extracted
+  // Validate AI-extracted fields — strip hallucinated emails, phones, URLs
+  return validateExtraction(extracted)
 }

@@ -1,40 +1,21 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
-import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
+import { authenticateRequest, authFailed, badRequestResponse, errorResponse } from "@/lib/api-utils"
 import { Resend } from "resend"
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    // Rate limit: 3 support messages per hour
-    const rl = await rateLimit(user.id, "auth")
-    if (!rl.success) {
-      return NextResponse.json(
-        { message: "Please wait before sending another message." },
-        { status: 429, headers: rateLimitHeaders(rl) }
-      )
-    }
+    const auth = await authenticateRequest("auth")
+    if (authFailed(auth)) return auth.error
+    const { user } = auth
 
     const { subject, message } = await request.json()
 
     if (!message || typeof message !== "string" || message.trim().length < 5) {
-      return NextResponse.json(
-        { message: "Please write a message (at least 5 characters)" },
-        { status: 400 }
-      )
+      return badRequestResponse("Please write a message (at least 5 characters)")
     }
 
     if (!subject || typeof subject !== "string") {
-      return NextResponse.json(
-        { message: "Please select a topic" },
-        { status: 400 }
-      )
+      return badRequestResponse("Please select a topic")
     }
 
     const resendKey = process.env.RESEND_API_KEY
@@ -65,6 +46,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Support error:", error)
-    return NextResponse.json({ message: "Failed to send message" }, { status: 500 })
+    return errorResponse("Failed to send message")
   }
 }

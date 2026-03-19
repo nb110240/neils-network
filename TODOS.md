@@ -16,6 +16,16 @@ Generated from CEO Review on 2026-03-19.
 - **Effort:** S (human: ~1 day / CC: ~10 min)
 - **Approach:** Create Supabase RPC function (stored procedure) that wraps all deletes in a transaction.
 
+### Add withAuth API wrapper
+- **What:** Centralize auth + rate-limit boilerplate across all 30 API routes into a `withAuth(handler)` wrapper in `lib/api-utils.ts`.
+- **Why:** Same 5-line auth block repeated in every route. If the auth pattern changes, 30 files need updating.
+- **Effort:** S (human: ~2 days / CC: ~15 min)
+- **Approach:** Create wrapper that handles: create Supabase client, get user, check null (401), rate limit check (429). Apply during Batch A while touching routes for other changes.
+
+### Gitignore supabase/.temp/
+- **What:** Add `supabase/.temp/` to `.gitignore` — these are CLI state files accidentally committed.
+- **Effort:** Trivial
+
 ## Quality (P2)
 
 ### Centralize OpenAI client with retry + timeout

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { authenticateRequest, authFailed, badRequestResponse, notFoundResponse, errorResponse } from "@/lib/api-utils"
 import { calculateHealthScore } from "@/lib/health"
-import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
 import { z } from "zod/v4"
 
 const UpdateContactSchema = z.object({
@@ -26,25 +25,12 @@ export async function GET(
     const { id } = await params
 
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-      return NextResponse.json({ message: "Invalid contact ID" }, { status: 400 })
+      return badRequestResponse("Invalid contact ID")
     }
 
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    const rl = await rateLimit(user.id, "general")
-    if (!rl.success) {
-      return NextResponse.json(
-        { message: "Too many requests. Please slow down." },
-        { status: 429, headers: rateLimitHeaders(rl) }
-      )
-    }
+    const auth = await authenticateRequest("general")
+    if (authFailed(auth)) return auth.error
+    const { user, supabase } = auth
 
     const { data: contact, error } = await supabase
       .from("contacts")
@@ -54,7 +40,7 @@ export async function GET(
       .single()
 
     if (error || !contact) {
-      return NextResponse.json({ message: "Contact not found" }, { status: 404 })
+      return notFoundResponse("Contact not found")
     }
 
     return NextResponse.json({
@@ -65,10 +51,7 @@ export async function GET(
     })
   } catch (error) {
     console.error("Error fetching contact:", error)
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    )
+    return errorResponse("Internal server error")
   }
 }
 
@@ -80,34 +63,18 @@ export async function PUT(
     const { id } = await params
 
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-      return NextResponse.json({ message: "Invalid contact ID" }, { status: 400 })
+      return badRequestResponse("Invalid contact ID")
     }
 
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    const rl = await rateLimit(user.id, "general")
-    if (!rl.success) {
-      return NextResponse.json(
-        { message: "Too many requests. Please slow down." },
-        { status: 429, headers: rateLimitHeaders(rl) }
-      )
-    }
+    const auth = await authenticateRequest("general")
+    if (authFailed(auth)) return auth.error
+    const { user, supabase } = auth
 
     const body = await request.json()
 
     const parsed = UpdateContactSchema.safeParse(body)
     if (!parsed.success) {
-      return NextResponse.json(
-        { message: "Invalid input", errors: parsed.error.format() },
-        { status: 400 }
-      )
+      return badRequestResponse("Invalid input")
     }
 
     const updateData: Record<string, unknown> = {}
@@ -131,19 +98,13 @@ export async function PUT(
 
     if (error) {
       console.error("Error updating contact:", error)
-      return NextResponse.json(
-        { message: "Failed to update contact" },
-        { status: 500 }
-      )
+      return errorResponse("Failed to update contact")
     }
 
     return NextResponse.json({ contact })
   } catch (error) {
     console.error("Error updating contact:", error)
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    )
+    return errorResponse("Internal server error")
   }
 }
 
@@ -155,25 +116,12 @@ export async function DELETE(
     const { id } = await params
 
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-      return NextResponse.json({ message: "Invalid contact ID" }, { status: 400 })
+      return badRequestResponse("Invalid contact ID")
     }
 
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    const rl = await rateLimit(user.id, "general")
-    if (!rl.success) {
-      return NextResponse.json(
-        { message: "Too many requests. Please slow down." },
-        { status: 429, headers: rateLimitHeaders(rl) }
-      )
-    }
+    const auth = await authenticateRequest("general")
+    if (authFailed(auth)) return auth.error
+    const { user, supabase } = auth
 
     const { error } = await supabase
       .from("contacts")
@@ -183,18 +131,12 @@ export async function DELETE(
 
     if (error) {
       console.error("Error deleting contact:", error)
-      return NextResponse.json(
-        { message: "Failed to delete contact" },
-        { status: 500 }
-      )
+      return errorResponse("Failed to delete contact")
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error deleting contact:", error)
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    )
+    return errorResponse("Internal server error")
   }
 }

@@ -1,25 +1,11 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
-import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
+import { authenticateRequest, authFailed, errorResponse } from "@/lib/api-utils"
 
 export async function GET() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    const rl = await rateLimit(user.id, "general")
-    if (!rl.success) {
-      return NextResponse.json(
-        { message: "Too many requests. Please slow down." },
-        { status: 429, headers: rateLimitHeaders(rl) }
-      )
-    }
+    const auth = await authenticateRequest("general")
+    if (authFailed(auth)) return auth.error
+    const { user, supabase } = auth
 
     const { data: event } = await supabase
       .from("events")
@@ -50,31 +36,15 @@ export async function GET() {
     })
   } catch (error) {
     console.error("Error fetching active event:", error)
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    )
+    return errorResponse("Internal server error")
   }
 }
 
 export async function DELETE() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    const rl = await rateLimit(user.id, "general")
-    if (!rl.success) {
-      return NextResponse.json(
-        { message: "Too many requests." },
-        { status: 429, headers: rateLimitHeaders(rl) }
-      )
-    }
+    const auth = await authenticateRequest("general")
+    if (authFailed(auth)) return auth.error
+    const { user, supabase } = auth
 
     const { error } = await supabase
       .from("events")
@@ -84,18 +54,12 @@ export async function DELETE() {
 
     if (error) {
       console.error("Error ending event:", error)
-      return NextResponse.json(
-        { message: "Failed to end event" },
-        { status: 500 }
-      )
+      return errorResponse("Failed to end event")
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error ending event:", error)
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    )
+    return errorResponse("Internal server error")
   }
 }

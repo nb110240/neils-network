@@ -1,43 +1,23 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { authenticateRequest, authFailed, badRequestResponse, forbiddenResponse, errorResponse } from "@/lib/api-utils"
 import { getUserPlan, getPlanLimits } from "@/lib/subscription"
-import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
 
 // Step 1: Get Google OAuth URL
 export async function GET() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    const rl = await rateLimit(user.id, "general")
-    if (!rl.success) {
-      return NextResponse.json(
-        { message: "Too many requests. Please slow down." },
-        { status: 429, headers: rateLimitHeaders(rl) }
-      )
-    }
+    const auth = await authenticateRequest("general")
+    if (authFailed(auth)) return auth.error
+    const { user } = auth
 
     const plan = await getUserPlan(user.id)
     const limits = getPlanLimits(plan)
     if (!limits.canImport) {
-      return NextResponse.json(
-        { message: "Import is a Pro feature" },
-        { status: 403 }
-      )
+      return forbiddenResponse("Import is a Pro feature")
     }
 
     const clientId = process.env.GOOGLE_CLIENT_ID
     if (!clientId) {
-      return NextResponse.json(
-        { message: "Google OAuth not configured" },
-        { status: 500 }
-      )
+      return errorResponse("Google OAuth not configured")
     }
 
     const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/import/google/callback`
@@ -54,41 +34,21 @@ export async function GET() {
     return NextResponse.json({ url: authUrl.toString() })
   } catch (error) {
     console.error("Google auth URL error:", error)
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    )
+    return errorResponse("Internal server error")
   }
 }
 
 // Step 2: Import contacts using access token
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    // Rate limit: 5 imports per hour
-    const rl = await rateLimit(user.id, "import")
-    if (!rl.success) {
-      return NextResponse.json(
-        { message: "Too many imports. Please wait before trying again." },
-        { status: 429, headers: rateLimitHeaders(rl) }
-      )
-    }
+    const auth = await authenticateRequest("import")
+    if (authFailed(auth)) return auth.error
+    const { user, supabase } = auth
 
     const { accessToken, selectedContacts } = await request.json()
 
     if (!accessToken) {
-      return NextResponse.json(
-        { message: "Access token required" },
-        { status: 400 }
-      )
+      return badRequestResponse("Access token required")
     }
 
     // Fetch contacts from Google People API
@@ -104,10 +64,7 @@ export async function POST(request: Request) {
     )
 
     if (!response.ok) {
-      return NextResponse.json(
-        { message: "Failed to fetch Google contacts" },
-        { status: 500 }
-      )
+      return errorResponse("Failed to fetch Google contacts")
     }
 
     const data = await response.json()
@@ -145,10 +102,7 @@ export async function POST(request: Request) {
       .filter(Boolean)
 
     if (contacts.length === 0) {
-      return NextResponse.json(
-        { message: "No valid contacts found" },
-        { status: 400 }
-      )
+      return badRequestResponse("No valid contacts found")
     }
 
     const { data: inserted, error } = await supabase
@@ -158,10 +112,7 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error("Google import error:", error)
-      return NextResponse.json(
-        { message: "Failed to import contacts" },
-        { status: 500 }
-      )
+      return errorResponse("Failed to import contacts")
     }
 
     return NextResponse.json({
@@ -171,10 +122,7 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     console.error("Google import error:", error)
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    )
+    return errorResponse("Internal server error")
   }
 }
 

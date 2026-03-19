@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
-import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
+import { authenticateRequest, authFailed, notFoundResponse, badRequestResponse, errorResponse } from "@/lib/api-utils"
 
 export async function GET(
   _request: Request,
@@ -8,22 +7,10 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
 
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    const rl = await rateLimit(user.id, "general")
-    if (!rl.success) {
-      return NextResponse.json(
-        { message: "Too many requests. Please slow down." },
-        { status: 429, headers: rateLimitHeaders(rl) }
-      )
-    }
+    const auth = await authenticateRequest("general")
+    if (authFailed(auth)) return auth.error
+    const { user, supabase } = auth
 
     // Verify contact belongs to user
     const { data: contact } = await supabase
@@ -34,7 +21,7 @@ export async function GET(
       .single()
 
     if (!contact) {
-      return NextResponse.json({ message: "Contact not found" }, { status: 404 })
+      return notFoundResponse("Contact not found")
     }
 
     const { data: contactTags, error } = await supabase
@@ -44,10 +31,7 @@ export async function GET(
 
     if (error) {
       console.error("Error fetching contact tags:", error)
-      return NextResponse.json(
-        { message: "Failed to fetch tags" },
-        { status: 500 }
-      )
+      return errorResponse("Failed to fetch tags")
     }
 
     const tags = (contactTags || []).map((ct: Record<string, unknown>) => ct.tags)
@@ -55,10 +39,7 @@ export async function GET(
     return NextResponse.json({ tags })
   } catch (error) {
     console.error("Error fetching contact tags:", error)
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    )
+    return errorResponse("Internal server error")
   }
 }
 
@@ -68,22 +49,10 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
 
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    const rl = await rateLimit(user.id, "general")
-    if (!rl.success) {
-      return NextResponse.json(
-        { message: "Too many requests. Please slow down." },
-        { status: 429, headers: rateLimitHeaders(rl) }
-      )
-    }
+    const auth = await authenticateRequest("general")
+    if (authFailed(auth)) return auth.error
+    const { user, supabase } = auth
 
     // Verify contact belongs to user
     const { data: contact } = await supabase
@@ -94,17 +63,14 @@ export async function PUT(
       .single()
 
     if (!contact) {
-      return NextResponse.json({ message: "Contact not found" }, { status: 404 })
+      return notFoundResponse("Contact not found")
     }
 
     const body = await request.json()
     const { tagIds } = body
 
     if (!Array.isArray(tagIds)) {
-      return NextResponse.json(
-        { message: "tagIds must be an array" },
-        { status: 400 }
-      )
+      return badRequestResponse("tagIds must be an array")
     }
 
     // Remove all existing tags for this contact
@@ -121,10 +87,7 @@ export async function PUT(
 
       if (error) {
         console.error("Error setting contact tags:", error)
-        return NextResponse.json(
-          { message: "Failed to set tags" },
-          { status: 500 }
-        )
+        return errorResponse("Failed to set tags")
       }
     }
 
@@ -139,9 +102,6 @@ export async function PUT(
     return NextResponse.json({ tags })
   } catch (error) {
     console.error("Error setting contact tags:", error)
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    )
+    return errorResponse("Internal server error")
   }
 }

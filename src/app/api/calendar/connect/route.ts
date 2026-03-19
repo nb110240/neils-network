@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient, createServiceClient } from "@/lib/supabase/server"
+import { authenticateRequest, authFailed, errorResponse, badRequestResponse, forbiddenResponse } from "@/lib/api-utils"
 import { getUserPlan, getPlanLimits } from "@/lib/subscription"
 import { createHmac } from "crypto"
 
@@ -22,24 +23,19 @@ export function verifyState(state: string): string | null {
 // GET: Start OAuth flow — redirect to Google
 export async function GET() {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
+    const auth = await authenticateRequest("general")
+    if (authFailed(auth)) return auth.error
+    const { user } = auth
 
     const plan = await getUserPlan(user.id)
     const limits = getPlanLimits(plan)
     if (!limits.canCalendarSync) {
-      return NextResponse.json(
-        { message: "Calendar sync is a Pro feature. Upgrade to connect your calendar." },
-        { status: 403 }
-      )
+      return forbiddenResponse("Calendar sync is a Pro feature. Upgrade to connect your calendar.")
     }
 
     const clientId = process.env.GOOGLE_CLIENT_ID
     if (!clientId) {
-      return NextResponse.json({ message: "Google OAuth not configured" }, { status: 500 })
+      return errorResponse("Google OAuth not configured")
     }
 
     const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/calendar/connect/callback`
@@ -60,7 +56,7 @@ export async function GET() {
     return NextResponse.json({ url: authUrl.toString() })
   } catch (error) {
     console.error("Calendar connect error:", error)
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 })
+    return errorResponse("Internal server error")
   }
 }
 
@@ -74,12 +70,12 @@ export async function POST(request: Request) {
     const { code, state: userId } = await request.json()
 
     if (!code || !userId) {
-      return NextResponse.json({ message: "Missing code or state" }, { status: 400 })
+      return badRequestResponse("Missing code or state")
     }
 
     // Validate userId matches authenticated user (prevent IDOR)
     if (user && userId !== user.id) {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 })
+      return forbiddenResponse()
     }
 
     const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
@@ -97,7 +93,7 @@ export async function POST(request: Request) {
     if (!tokenRes.ok) {
       const err = await tokenRes.text()
       console.error("Token exchange failed:", err)
-      return NextResponse.json({ message: "Failed to exchange code" }, { status: 500 })
+      return errorResponse("Failed to exchange code")
     }
 
     const tokens = await tokenRes.json()
@@ -117,6 +113,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Calendar token exchange error:", error)
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 })
+    return errorResponse("Internal server error")
   }
 }

@@ -1,18 +1,13 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { authenticateRequest, authFailed, errorResponse } from "@/lib/api-utils"
 import { getUserPlan } from "@/lib/subscription"
 import { createServiceClient } from "@/lib/supabase/server"
 
 export async function GET() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
+    const auth = await authenticateRequest()
+    if (authFailed(auth)) return auth.error
+    const { user } = auth
 
     const plan = await getUserPlan(user.id)
 
@@ -28,6 +23,6 @@ export async function GET() {
     })
   } catch (error) {
     console.error("Settings plan error:", error)
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 })
+    return errorResponse("Internal server error")
   }
 }

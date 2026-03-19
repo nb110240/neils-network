@@ -1,25 +1,11 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
-import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
+import { authenticateRequest, authFailed, badRequestResponse, errorResponse } from "@/lib/api-utils"
 
 export async function GET() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    const rl = await rateLimit(user.id, "general")
-    if (!rl.success) {
-      return NextResponse.json(
-        { message: "Too many requests. Please slow down." },
-        { status: 429, headers: rateLimitHeaders(rl) }
-      )
-    }
+    const auth = await authenticateRequest("general")
+    if (authFailed(auth)) return auth.error
+    const { user, supabase } = auth
 
     const { data: events, error } = await supabase
       .from("events")
@@ -29,10 +15,7 @@ export async function GET() {
 
     if (error) {
       console.error("Error fetching events:", error)
-      return NextResponse.json(
-        { message: "Failed to fetch events" },
-        { status: 500 }
-      )
+      return errorResponse("Failed to fetch events")
     }
 
     const eventsWithCount = (events || []).map((e: Record<string, unknown>) => ({
@@ -45,47 +28,25 @@ export async function GET() {
     return NextResponse.json({ events: eventsWithCount })
   } catch (error) {
     console.error("Error fetching events:", error)
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    )
+    return errorResponse("Internal server error")
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    const rl = await rateLimit(user.id, "general")
-    if (!rl.success) {
-      return NextResponse.json(
-        { message: "Too many requests. Please slow down." },
-        { status: 429, headers: rateLimitHeaders(rl) }
-      )
-    }
+    const auth = await authenticateRequest("general")
+    if (authFailed(auth)) return auth.error
+    const { user, supabase } = auth
 
     const body = await request.json()
     const { name, duration_hours = 4 } = body
 
     if (!name || typeof name !== "string" || name.trim().length === 0) {
-      return NextResponse.json(
-        { message: "Event name is required" },
-        { status: 400 }
-      )
+      return badRequestResponse("Event name is required")
     }
 
     if (typeof duration_hours !== "number" || duration_hours < 0.5 || duration_hours > 24) {
-      return NextResponse.json(
-        { message: "Duration must be between 0.5 and 24 hours" },
-        { status: 400 }
-      )
+      return badRequestResponse("Duration must be between 0.5 and 24 hours")
     }
 
     // Deactivate any currently active events
@@ -112,18 +73,12 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error("Error creating event:", error)
-      return NextResponse.json(
-        { message: "Failed to create event" },
-        { status: 500 }
-      )
+      return errorResponse("Failed to create event")
     }
 
     return NextResponse.json({ event })
   } catch (error) {
     console.error("Error creating event:", error)
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    )
+    return errorResponse("Internal server error")
   }
 }

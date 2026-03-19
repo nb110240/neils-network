@@ -1,86 +1,35 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { authenticateRequest, authFailed, badRequestResponse, forbiddenResponse, errorResponse } from "@/lib/api-utils"
 import { checkSemanticSearchLimit, recordSemanticSearch } from "@/lib/subscription"
 import { calculateHealthScore } from "@/lib/health"
-import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
+import { generateEmbedding } from "@/lib/openai"
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    // Rate limit: 30 searches per minute (embedding generation is expensive)
-    const rl = await rateLimit(user.id, "search")
-    if (!rl.success) {
-      return NextResponse.json(
-        { message: "Too many searches. Please slow down." },
-        { status: 429, headers: rateLimitHeaders(rl) }
-      )
-    }
+    const auth = await authenticateRequest("search")
+    if (authFailed(auth)) return auth.error
+    const { user, supabase } = auth
 
     const body = await request.json()
     const { query, semantic = true } = body
 
     if (!query || typeof query !== "string") {
-      return NextResponse.json(
-        { message: "Query is required" },
-        { status: 400 }
-      )
+      return badRequestResponse("Query is required")
     }
 
     // Check semantic search limit (free: 5/month, pro: unlimited)
     if (semantic) {
       const { allowed, used, limit, plan } = await checkSemanticSearchLimit(user.id)
       if (!allowed) {
-        return NextResponse.json(
-          {
-            message: `You've used all ${limit} semantic searches this month. ${plan === "free" ? "Upgrade to Pro for unlimited searches." : "Limit resets next month."}`,
-            used,
-            limit,
-          },
-          { status: 403 }
+        return forbiddenResponse(
+          `You've used all ${limit} semantic searches this month. ${plan === "free" ? "Upgrade to Pro for unlimited searches." : "Limit resets next month."}`
         )
       }
 
-      const openaiKey = process.env.OPENAI_API_KEY
-      if (!openaiKey) {
-        return NextResponse.json(
-          { message: "OpenAI API key not configured" },
-          { status: 500 }
-        )
+      const queryEmbedding = await generateEmbedding(query)
+      if (!queryEmbedding) {
+        return errorResponse("Failed to generate embedding")
       }
-
-      const embeddingResponse = await fetch(
-        "https://api.openai.com/v1/embeddings",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${openaiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "text-embedding-3-small",
-            input: query,
-          }),
-        }
-      )
-
-      if (!embeddingResponse.ok) {
-        console.error("Failed to generate embedding")
-        return NextResponse.json(
-          { message: "Failed to generate embedding" },
-          { status: 500 }
-        )
-      }
-
-      const embeddingData = await embeddingResponse.json()
-      const queryEmbedding = embeddingData.data[0].embedding
 
       const { data: results, error } = await supabase.rpc("match_contacts", {
         query_embedding: queryEmbedding,
@@ -91,10 +40,7 @@ export async function POST(request: Request) {
 
       if (error) {
         console.error("Semantic search error:", error)
-        return NextResponse.json(
-          { message: "Search failed" },
-          { status: 500 }
-        )
+        return errorResponse("Search failed")
       }
 
       // Record usage after successful search
@@ -124,10 +70,7 @@ export async function POST(request: Request) {
 
       if (error) {
         console.error("Keyword search error:", error)
-        return NextResponse.json(
-          { message: "Search failed" },
-          { status: 500 }
-        )
+        return errorResponse("Search failed")
       }
 
       const resultsWithHealth = (results || []).map((r) => ({
@@ -139,9 +82,6 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     console.error("Search error:", error)
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    )
+    return errorResponse("Internal server error")
   }
 }

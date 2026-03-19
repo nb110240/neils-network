@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/server"
 import { getUserPlan } from "@/lib/subscription"
-import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
+import { authenticateRequest, authFailed, forbiddenResponse, errorResponse } from "@/lib/api-utils"
 
 export async function POST(
   request: Request,
@@ -10,28 +9,15 @@ export async function POST(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
+    const auth = await authenticateRequest("create")
+    if (authFailed(auth)) return auth.error
+    const { user, supabase } = auth
 
     // Pro only
     const plan = await getUserPlan(user.id)
     if (plan === "free") {
-      return NextResponse.json(
-        { message: "AI drafts are a Pro feature. Upgrade to unlock." },
-        { status: 403 }
-      )
-    }
-
-    const rl = await rateLimit(user.id, "create")
-    if (!rl.success) {
-      return NextResponse.json(
-        { message: "Too many requests." },
-        { status: 429, headers: rateLimitHeaders(rl) }
-      )
+      return forbiddenResponse("AI drafts are a Pro feature. Upgrade to unlock.")
     }
 
     // Get the contact
@@ -43,12 +29,12 @@ export async function POST(
       .single()
 
     if (!contact) {
-      return NextResponse.json({ message: "Contact not found" }, { status: 404 })
+      return NextResponse.json({ error: "Contact not found" }, { status: 404 })
     }
 
     const { type } = await request.json()
 
-    const userName = user.user_metadata?.full_name || user.email?.split("@")[0] || "there"
+    const userName = user.email?.split("@")[0] || "there"
 
     let prompt: string
 
@@ -157,7 +143,7 @@ Requirements:
     })
 
     if (!response.ok) {
-      return NextResponse.json({ message: "Failed to generate draft" }, { status: 500 })
+      return errorResponse("Failed to generate draft")
     }
 
     const data = await response.json()
@@ -166,6 +152,6 @@ Requirements:
     return NextResponse.json({ draft, type })
   } catch (error) {
     console.error("Draft error:", error)
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 })
+    return errorResponse("Internal server error")
   }
 }

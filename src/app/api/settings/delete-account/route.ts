@@ -1,32 +1,30 @@
 import { NextResponse } from "next/server"
-import { createClient, createServiceClient } from "@/lib/supabase/server"
+import { authenticateRequest, authFailed, errorResponse } from "@/lib/api-utils"
+import { createServiceClient } from "@/lib/supabase/server"
 
 export async function DELETE() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
+    const auth = await authenticateRequest()
+    if (authFailed(auth)) return auth.error
+    const { user, supabase } = auth
 
     const serviceSupabase = await createServiceClient()
-    const userId = user.id
 
-    // Delete all user data in order (respecting potential foreign keys)
-    await serviceSupabase.from("digest_history").delete().eq("user_id", userId)
-    await serviceSupabase.from("search_usage").delete().eq("user_id", userId)
-    await serviceSupabase.from("integrations").delete().eq("user_id", userId)
-    await serviceSupabase.from("contacts").delete().eq("created_by", userId)
-    await serviceSupabase.from("subscriptions").delete().eq("user_id", userId)
+    // Delete all user data atomically via RPC (runs in a single transaction)
+    const { error: rpcError } = await serviceSupabase.rpc("delete_user_account", {
+      target_user_id: user.id,
+    })
 
-    // Delete the auth user
-    const { error: deleteError } = await serviceSupabase.auth.admin.deleteUser(userId)
+    if (rpcError) {
+      console.error("Failed to delete user data:", rpcError)
+      return errorResponse("Failed to delete account data")
+    }
+
+    // Delete the auth user (must be done separately — auth schema)
+    const { error: deleteError } = await serviceSupabase.auth.admin.deleteUser(user.id)
     if (deleteError) {
       console.error("Failed to delete auth user:", deleteError)
-      return NextResponse.json({ message: "Failed to delete account" }, { status: 500 })
+      return errorResponse("Failed to delete account")
     }
 
     // Sign out the session
@@ -35,6 +33,6 @@ export async function DELETE() {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Delete account error:", error)
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 })
+    return errorResponse("Internal server error")
   }
 }

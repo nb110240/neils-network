@@ -1,41 +1,21 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { authenticateRequest, authFailed, badRequestResponse, errorResponse, forbiddenResponse } from "@/lib/api-utils"
 import { extractContactInfo } from "@/lib/extract-contact"
 import { checkContactLimit } from "@/lib/subscription"
 import { calculateHealthScore } from "@/lib/health"
-import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
+import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    // Rate limit: 20 contact creations per minute (AI extraction is expensive)
-    const rl = await rateLimit(user.id, "create")
-    if (!rl.success) {
-      return NextResponse.json(
-        { message: "Too many requests. Please slow down." },
-        { status: 429, headers: rateLimitHeaders(rl) }
-      )
-    }
+    const auth = await authenticateRequest("create")
+    if (authFailed(auth)) return auth.error
+    const { user, supabase } = auth
 
     // Check contact limit based on plan
     const { allowed, plan, count, limit } = await checkContactLimit(user.id)
     if (!allowed) {
-      return NextResponse.json(
-        {
-          message: `You've reached the ${limit}-contact limit on the free plan. Upgrade to Pro for unlimited contacts.`,
-          plan,
-          count,
-          limit,
-        },
-        { status: 403 }
+      return forbiddenResponse(
+        `You've reached the ${limit}-contact limit on the free plan. Upgrade to Pro for unlimited contacts.`
       )
     }
 
@@ -43,49 +23,26 @@ export async function POST(request: Request) {
     const { raw_note } = body
 
     if (!raw_note || typeof raw_note !== "string") {
-      return NextResponse.json(
-        { message: "raw_note is required" },
-        { status: 400 }
-      )
+      return badRequestResponse("raw_note is required")
     }
 
     if (raw_note.trim().length < 3) {
-      return NextResponse.json(
-        { message: "Please write a bit more about this contact" },
-        { status: 400 }
-      )
+      return badRequestResponse("Please write a bit more about this contact")
     }
 
-    // Extract contact info directly via OpenAI (no n8n dependency)
+    // Extract contact info via AI
     const extracted = await extractContactInfo(raw_note)
 
     // Generate embedding for semantic search
-    let embedding = null
-    const openaiKey = process.env.OPENAI_API_KEY
-    if (openaiKey) {
-      try {
-        const embeddingText = `${extracted.name || ""} ${extracted.company || ""} ${extracted.job_title || ""} ${raw_note}`
-        const embeddingRes = await fetch("https://api.openai.com/v1/embeddings", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${openaiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "text-embedding-3-small",
-            input: embeddingText,
-          }),
-        })
-        if (embeddingRes.ok) {
-          const embeddingData = await embeddingRes.json()
-          embedding = embeddingData.data[0].embedding
-        }
-      } catch {
-        // Embedding generation failed — non-critical, contact still saves
-      }
-    }
+    const embeddingText = buildContactEmbeddingText({
+      name: extracted.name as string | null,
+      company: extracted.company as string | null,
+      job_title: extracted.job_title as string | null,
+      raw_note,
+    })
+    const embedding = await generateEmbedding(embeddingText)
 
-    // Insert contact into database
+    // Insert contact
     const { data: contact, error } = await supabase
       .from("contacts")
       .insert({
@@ -100,9 +57,9 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error("Error inserting contact:", error)
-      return NextResponse.json(
-        { message: error.message?.includes("Free plan limit") ? error.message : "Failed to save contact" },
-        { status: error.message?.includes("Free plan limit") ? 403 : 500 }
+      return errorResponse(
+        error.message?.includes("Free plan limit") ? error.message : "Failed to save contact",
+        error.message?.includes("Free plan limit") ? 403 : 500
       )
     }
 
@@ -134,38 +91,18 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      contact,
-    })
+    return NextResponse.json({ success: true, contact })
   } catch (error) {
     console.error("Error creating contact:", error)
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    )
+    return errorResponse("Internal server error")
   }
 }
 
 export async function GET() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    // Rate limit: 60 requests per minute
-    const rl = await rateLimit(user.id, "general")
-    if (!rl.success) {
-      return NextResponse.json(
-        { message: "Too many requests. Please slow down." },
-        { status: 429, headers: rateLimitHeaders(rl) }
-      )
-    }
+    const auth = await authenticateRequest()
+    if (authFailed(auth)) return auth.error
+    const { user, supabase } = auth
 
     const { data: contacts, error } = await supabase
       .from("contacts")
@@ -175,13 +112,9 @@ export async function GET() {
 
     if (error) {
       console.error("Error fetching contacts:", error)
-      return NextResponse.json(
-        { message: "Failed to fetch contacts" },
-        { status: 500 }
-      )
+      return errorResponse("Failed to fetch contacts")
     }
 
-    // Add health scores to each contact
     const contactsWithHealth = (contacts || []).map((contact) => ({
       ...contact,
       health: calculateHealthScore(contact.last_contact_date, contact.created_at),
@@ -190,9 +123,6 @@ export async function GET() {
     return NextResponse.json({ contacts: contactsWithHealth })
   } catch (error) {
     console.error("Error fetching contacts:", error)
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    )
+    return errorResponse("Internal server error")
   }
 }

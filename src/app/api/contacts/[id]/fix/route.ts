@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { authenticateRequest, authFailed, notFoundResponse, errorResponse } from "@/lib/api-utils"
 import { extractContactInfo } from "@/lib/extract-contact"
-import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
+import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 
 export async function POST(
   _request: Request,
@@ -9,23 +9,10 @@ export async function POST(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
 
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    // Rate limit: uses create limiter since this calls OpenAI
-    const rl = await rateLimit(user.id, "create")
-    if (!rl.success) {
-      return NextResponse.json(
-        { message: "Too many requests. Please slow down." },
-        { status: 429, headers: rateLimitHeaders(rl) }
-      )
-    }
+    const auth = await authenticateRequest("create")
+    if (authFailed(auth)) return auth.error
+    const { user, supabase } = auth
 
     const { data: contact, error } = await supabase
       .from("contacts")
@@ -35,26 +22,39 @@ export async function POST(
       .single()
 
     if (error || !contact) {
-      return NextResponse.json({ message: "Contact not found" }, { status: 404 })
+      return notFoundResponse("Contact not found")
     }
 
     const extracted = await extractContactInfo(contact.raw_note)
 
+    // Re-generate embedding with extracted fields
+    const embeddingText = buildContactEmbeddingText({
+      name: extracted.name as string | null,
+      company: extracted.company as string | null,
+      job_title: extracted.job_title as string | null,
+      raw_note: contact.raw_note,
+    })
+    const embedding = await generateEmbedding(embeddingText)
+
+    const updateData = embedding
+      ? { ...extracted, embedding }
+      : extracted
+
     const { data: fixed, error: updateError } = await supabase
       .from("contacts")
-      .update(extracted)
+      .update(updateData)
       .eq("id", id)
       .eq("created_by", user.id)
       .select()
       .single()
 
     if (updateError) {
-      return NextResponse.json({ message: "Failed to update contact" }, { status: 500 })
+      return errorResponse("Failed to update contact")
     }
 
     return NextResponse.json({ contact: fixed })
   } catch (error) {
     console.error("Error fixing contact:", error)
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 })
+    return errorResponse("Internal server error")
   }
 }

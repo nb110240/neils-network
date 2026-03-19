@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
-import { rateLimit } from "@/lib/rate-limit"
+import { authenticateRequest, authFailed, errorResponse } from "@/lib/api-utils"
 
 function escapeCsvField(value: string | null): string {
   if (!value) return ""
@@ -13,19 +12,9 @@ function escapeCsvField(value: string | null): string {
 
 export async function GET() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    const rl = await rateLimit(user.id, "general")
-    if (!rl.success) {
-      return NextResponse.json({ message: "Too many requests" }, { status: 429 })
-    }
+    const auth = await authenticateRequest("general")
+    if (authFailed(auth)) return auth.error
+    const { user, supabase } = auth
 
     const { data: contacts, error } = await supabase
       .from("contacts")
@@ -35,7 +24,7 @@ export async function GET() {
 
     if (error) {
       console.error("Export contacts error:", error)
-      return NextResponse.json({ message: "Failed to export contacts" }, { status: 500 })
+      return errorResponse("Failed to export contacts")
     }
 
     const headers = ["Name", "Email", "Phone", "Company", "Job Title", "Website", "How We Met", "Last Contact Date"]
@@ -66,6 +55,6 @@ export async function GET() {
     })
   } catch (error) {
     console.error("Export contacts error:", error)
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 })
+    return errorResponse("Internal server error")
   }
 }

@@ -12,10 +12,23 @@ export interface Contact {
   last_contact_date: string | null
   raw_note: string
   embedding?: number[]
+  embedding_status: "pending" | "complete" | "failed"
   source: string
   created_by: string
   created_at: string
   updated_at: string
+  archived_at: string | null
+}
+
+export interface ContactActivity {
+  id: string
+  contact_id: string
+  user_id: string
+  type: "meeting" | "note" | "call" | "email" | "other"
+  content: string
+  occurred_at: string
+  follow_up_needed: boolean
+  created_at: string
 }
 
 export interface ContactFormData {

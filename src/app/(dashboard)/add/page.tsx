@@ -4,15 +4,28 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/components/ui/toast"
-import { Loader2, Sparkles, Lightbulb, User, Building2, MessageSquare, Calendar } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Loader2, Plus, Linkedin, Crown, ScanLine, Check, Edit2 } from "lucide-react"
+import Link from "next/link"
 
 export default function AddContactPage() {
   const router = useRouter()
   const { addToast } = useToast()
   const [rawNote, setRawNote] = useState("")
+  const [linkedinUrl, setLinkedinUrl] = useState("")
+  const [linkedinNote, setLinkedinNote] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isLinkedinLoading, setIsLinkedinLoading] = useState(false)
+  const [linkedinSuccess, setLinkedinSuccess] = useState<{ id: string; name: string } | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,37 +64,138 @@ export default function AddContactPage() {
     }
   }
 
+  const handleLinkedinImport = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!linkedinUrl.trim()) return
+
+    setIsLinkedinLoading(true)
+
+    try {
+      const response = await fetch("/api/contacts/linkedin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: linkedinUrl, note: linkedinNote }),
+      })
+
+      const data = await response.json()
+
+      if (response.status === 409) {
+        addToast({
+          title: "Already in your network",
+          description: data.message,
+        })
+        if (data.contactId) router.push(`/contact/${data.contactId}`)
+        return
+      }
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to import from LinkedIn")
+      }
+
+      setLinkedinSuccess({
+        id: data.contact.id,
+        name: data.contact.name || "Contact",
+      })
+    } catch (error) {
+      addToast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to import from LinkedIn",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLinkedinLoading(false)
+    }
+  }
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div className="animate-fade-in">
+      <div>
         <h1 className="text-4xl font-normal tracking-tight">Add Contact</h1>
         <p className="text-muted-foreground mt-1 text-lg">
-          Describe who you met and AI will organize the details.
+          Describe who you met or paste a LinkedIn URL.
         </p>
       </div>
 
-      <Card className="glass shadow-refined-lg animate-fade-in stagger-1 opacity-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[var(--copper)]/5 via-transparent to-transparent pointer-events-none" />
-        <CardHeader className="relative">
-          <CardTitle className="flex items-center gap-3 text-xl font-normal">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--copper)] to-[var(--copper-light)] flex items-center justify-center shadow-md">
-              <Sparkles className="h-5 w-5 text-white" />
+      {/* LinkedIn Import */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-3 text-lg font-normal">
+            <div className="w-9 h-9 rounded-lg bg-[#0a66c2] flex items-center justify-center">
+              <Linkedin className="h-4 w-4 text-white" />
             </div>
-            AI-Powered Entry
+            Add from LinkedIn
           </CardTitle>
-          <CardDescription className="text-base mt-2">
-            Write naturally about the person you met. Include any details you remember
-            and our AI will automatically extract and organize the information.
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLinkedinImport} className="space-y-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Input
+                placeholder="https://linkedin.com/in/johndoe"
+                value={linkedinUrl}
+                onChange={(e) => setLinkedinUrl(e.target.value)}
+                className="flex-1 h-11"
+              />
+              <Button
+                type="submit"
+                disabled={isLinkedinLoading || !linkedinUrl.trim()}
+                variant="outline"
+                className="h-11"
+              >
+                {isLinkedinLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Import"
+                )}
+              </Button>
+            </div>
+            <Input
+              placeholder="Add context: met at AI Summit, she's in product (optional)"
+              value={linkedinNote}
+              onChange={(e) => setLinkedinNote(e.target.value)}
+              className="h-11"
+            />
+          </form>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              Name extracted from URL — add context for richer details
+              <Link href="/pricing" className="inline-flex items-center gap-1 text-[var(--copper)] font-medium hover:underline">
+                <Crown className="h-3 w-3" /> Pro
+              </Link>
+            </p>
+            <Link href="/scan" className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--copper)] hover:underline">
+              <ScanLine className="h-3 w-3" />
+              Scan QR code
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Divider */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-dashed" />
+        </div>
+        <div className="relative flex justify-center">
+          <span className="bg-background px-3 text-sm text-muted-foreground font-medium">or write a note</span>
+        </div>
+      </div>
+
+      {/* Natural language entry */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl font-normal">Describe who you met</CardTitle>
+          <CardDescription className="text-base mt-1">
+            Write naturally — name, company, how you met, anything you want to remember.
           </CardDescription>
         </CardHeader>
-        <CardContent className="relative">
+        <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <Textarea
-              placeholder="Example: Met Sarah Chen at the AI conference last Tuesday. She's the VP of Engineering at TechCorp (sarah.chen@techcorp.com). We talked about their new machine learning platform and she mentioned they're hiring. Should follow up next week to send my portfolio."
+              placeholder={`Example: Met John Doe at the AI Summit. He's VP of Engineering at SersweAI. We talked about their platform and he mentioned they're hiring. Should follow up next week.`}
               value={rawNote}
               onChange={(e) => setRawNote(e.target.value)}
-              rows={8}
-              className="resize-none text-base leading-relaxed transition-all focus:shadow-md"
+              rows={6}
+              className="resize-none text-base leading-relaxed"
             />
             <div className="flex justify-end gap-3">
               <Button
@@ -94,16 +208,16 @@ export default function AddContactPage() {
               <Button
                 type="submit"
                 disabled={isLoading || !rawNote.trim()}
-                className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 shadow-md hover:shadow-lg border-0"
+                className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
+                    Saving...
                   </>
                 ) : (
                   <>
-                    <Sparkles className="mr-2 h-4 w-4" />
+                    <Plus className="mr-2 h-4 w-4" />
                     Add Contact
                   </>
                 )}
@@ -113,34 +227,43 @@ export default function AddContactPage() {
         </CardContent>
       </Card>
 
-      <Card className="glass shadow-refined animate-fade-in stagger-2 opacity-0">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-medium flex items-center gap-2">
-            <Lightbulb className="h-4 w-4 text-amber-500" />
-            Tips for better results
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 text-sm text-muted-foreground">
-            <div className="flex items-start gap-3">
-              <User className="h-4 w-4 mt-0.5 text-[var(--copper)]/60" />
-              <span>Full name and contact information (email, phone)</span>
-            </div>
-            <div className="flex items-start gap-3">
-              <Building2 className="h-4 w-4 mt-0.5 text-[var(--copper)]/60" />
-              <span>Company name and job title</span>
-            </div>
-            <div className="flex items-start gap-3">
-              <MessageSquare className="h-4 w-4 mt-0.5 text-[var(--copper)]/60" />
-              <span>Context: where you met, topics discussed, shared interests</span>
-            </div>
-            <div className="flex items-start gap-3">
-              <Calendar className="h-4 w-4 mt-0.5 text-[var(--copper)]/60" />
-              <span>Follow-up actions or things to remember</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* LinkedIn Success Dialog */}
+      <Dialog open={!!linkedinSuccess} onOpenChange={(open) => { if (!open) setLinkedinSuccess(null) }}>
+        <DialogContent className="sm:max-w-md max-w-[calc(100vw-2rem)]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+                <Check className="h-4 w-4 text-white" />
+              </div>
+              Contact added!
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            <strong>{linkedinSuccess?.name}</strong> has been added to your network from LinkedIn. Add more details like how you met, their role, or any follow-up notes to make this contact more useful.
+          </p>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setLinkedinSuccess(null)
+                setLinkedinUrl("")
+                setLinkedinNote("")
+              }}
+            >
+              Add Another
+            </Button>
+            <Button
+              onClick={() => {
+                if (linkedinSuccess) router.push(`/contact/${linkedinSuccess.id}`)
+              }}
+              className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+            >
+              <Edit2 className="mr-2 h-4 w-4" />
+              Edit & Add Details
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

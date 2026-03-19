@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/toast"
-import { Loader2, Sparkles } from "lucide-react"
+import { Loader2, Mail } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -24,6 +24,8 @@ export default function LoginPage() {
   const { addToast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
+  const [isForgotPassword, setIsForgotPassword] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
 
@@ -65,6 +67,26 @@ export default function LoginPage() {
     }
   }
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      })
+      if (error) throw error
+      setResetSent(true)
+    } catch (error) {
+      addToast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send reset link",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleGoogleAuth = async () => {
     setIsLoading(true)
     try {
@@ -85,18 +107,79 @@ export default function LoginPage() {
     }
   }
 
+  // Forgot password view
+  if (isForgotPassword) {
+    return (
+      <div className="animate-fade-in-scale">
+        <Card className="shadow-refined-lg border-0 overflow-hidden">
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-3xl font-normal text-[var(--copper)]">Savvo</CardTitle>
+            <CardDescription className="text-base mt-2">
+              {resetSent
+                ? "Check your email for a password reset link"
+                : "Enter your email to reset your password"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 relative pt-2">
+            {resetSent ? (
+              <div className="text-center space-y-4 py-4">
+                <div className="mx-auto w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center">
+                  <Mail className="h-6 w-6 text-emerald-600" />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  We sent a password reset link to <strong>{email}</strong>. Check your inbox and follow the link to reset your password.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email" className="text-sm font-medium">Email</Label>
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="h-11 transition-all focus:shadow-md"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full h-11 text-base font-medium bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 transition-all shadow-md hover:shadow-lg border-0"
+                  disabled={isLoading}
+                >
+                  {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                  Send Reset Link
+                </Button>
+              </form>
+            )}
+          </CardContent>
+          <CardFooter className="flex justify-center pb-6 relative">
+            <button
+              type="button"
+              onClick={() => {
+                setIsForgotPassword(false)
+                setResetSent(false)
+              }}
+              className="text-sm text-muted-foreground hover:text-[var(--copper)] transition-colors font-medium"
+            >
+              Back to sign in
+            </button>
+          </CardFooter>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="animate-fade-in-scale">
-      <Card className="glass shadow-refined-lg border-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[var(--copper)]/5 via-transparent to-transparent pointer-events-none" />
-        <CardHeader className="text-center relative pb-2">
-          <div className="mx-auto mb-4 w-12 h-12 rounded-2xl bg-gradient-to-br from-[var(--copper)] to-[var(--copper-light)] flex items-center justify-center shadow-lg">
-            <Sparkles className="h-6 w-6 text-white" />
-          </div>
-          <CardTitle className="text-3xl font-normal">Networking</CardTitle>
+      <Card className="shadow-refined-lg border-0 overflow-hidden">
+        <CardHeader className="text-center pb-2">
+          <CardTitle className="text-3xl font-normal text-[var(--copper)]">Savvo</CardTitle>
           <CardDescription className="text-base mt-2">
             {isSignUp
-              ? "Create an account to manage your connections"
+              ? "Keep every connection alive. Create your account."
               : "Welcome back. Sign in to continue."}
           </CardDescription>
         </CardHeader>
@@ -155,7 +238,18 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                {!isSignUp && (
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotPassword(true)}
+                    className="text-xs text-muted-foreground hover:text-[var(--copper)] transition-colors"
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
               <Input
                 id="password"
                 type="password"

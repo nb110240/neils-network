@@ -1,6 +1,7 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { DM_Sans, DM_Serif_Display, Geist_Mono } from "next/font/google"
 import { ToastProvider } from "@/components/ui/toast"
+import { ServiceWorkerRegistrar } from "@/components/sw-registrar"
 import "./globals.css"
 
 const dmSans = DM_Sans({
@@ -21,8 +22,25 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Networking",
-  description: "Personal networking contact management",
+  title: "Savvo",
+  description: "Keep every connection alive. AI-powered relationship manager.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Savvo",
+  },
+  icons: {
+    icon: "/favicon.png",
+    apple: "/icons/apple-touch-icon.png",
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor: "#c2410c",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 }
 
 export default function RootLayout({
@@ -36,6 +54,7 @@ export default function RootLayout({
         className={`${dmSans.variable} ${dmSerif.variable} ${geistMono.variable} antialiased`}
       >
         <ToastProvider>{children}</ToastProvider>
+        <ServiceWorkerRegistrar />
       </body>
     </html>
   )

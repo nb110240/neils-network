@@ -49,3 +49,65 @@ export interface DashboardStats {
   followUpsNeeded: number
   recentContacts: Contact[]
 }
+
+// Health score types
+export type HealthLevel = "green" | "yellow" | "orange" | "red"
+
+export interface HealthScore {
+  score: number
+  level: HealthLevel
+  label: string
+}
+
+// Subscription types
+export type PlanType = "free" | "pro" | "team"
+
+export interface Subscription {
+  id: string
+  user_id: string
+  stripe_customer_id: string | null
+  stripe_subscription_id: string | null
+  plan: PlanType
+  status: string
+  current_period_end: string | null
+  created_at: string
+}
+
+// Plan limits
+export const PLAN_LIMITS = {
+  free: {
+    maxContacts: 50,
+    canImport: false,
+    canSemanticSearch: true,
+    semanticSearchLimit: 5, // per month
+    canDigest: false,
+    canCalendarSync: false,
+  },
+  pro: {
+    maxContacts: Infinity,
+    canImport: true,
+    canSemanticSearch: true,
+    semanticSearchLimit: Infinity,
+    canDigest: true,
+    canCalendarSync: true,
+  },
+  team: {
+    maxContacts: Infinity,
+    canImport: true,
+    canSemanticSearch: true,
+    semanticSearchLimit: Infinity,
+    canDigest: true,
+    canCalendarSync: true,
+  },
+} as const
+
+// Import types
+export interface ImportColumnMapping {
+  [csvColumn: string]: keyof ContactFormData | "skip"
+}
+
+export interface ImportPreview {
+  headers: string[]
+  rows: Record<string, string>[]
+  totalRows: number
+}

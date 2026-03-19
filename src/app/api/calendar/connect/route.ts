@@ -1,0 +1,122 @@
+import { NextResponse } from "next/server"
+import { createClient, createServiceClient } from "@/lib/supabase/server"
+import { getUserPlan, getPlanLimits } from "@/lib/subscription"
+import { createHmac } from "crypto"
+
+// Sign state to prevent IDOR — attacker can't forge a valid state for another user
+function signState(userId: string): string {
+  const secret = process.env.CRON_SECRET || process.env.NEXTAUTH_SECRET || "fallback-secret"
+  const sig = createHmac("sha256", secret).update(userId).digest("hex").slice(0, 16)
+  return `${userId}.${sig}`
+}
+
+export function verifyState(state: string): string | null {
+  const [userId, sig] = state.split(".")
+  if (!userId || !sig) return null
+  const secret = process.env.CRON_SECRET || process.env.NEXTAUTH_SECRET || "fallback-secret"
+  const expected = createHmac("sha256", secret).update(userId).digest("hex").slice(0, 16)
+  if (sig !== expected) return null
+  return userId
+}
+
+// GET: Start OAuth flow — redirect to Google
+export async function GET() {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    }
+
+    const plan = await getUserPlan(user.id)
+    const limits = getPlanLimits(plan)
+    if (!limits.canCalendarSync) {
+      return NextResponse.json(
+        { message: "Calendar sync is a Pro feature. Upgrade to connect your calendar." },
+        { status: 403 }
+      )
+    }
+
+    const clientId = process.env.GOOGLE_CLIENT_ID
+    if (!clientId) {
+      return NextResponse.json({ message: "Google OAuth not configured" }, { status: 500 })
+    }
+
+    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/calendar/connect/callback`
+    const scopes = [
+      "https://www.googleapis.com/auth/calendar.readonly",
+      "https://www.googleapis.com/auth/userinfo.email",
+    ].join(" ")
+
+    const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth")
+    authUrl.searchParams.set("client_id", clientId)
+    authUrl.searchParams.set("redirect_uri", redirectUri)
+    authUrl.searchParams.set("response_type", "code")
+    authUrl.searchParams.set("scope", scopes)
+    authUrl.searchParams.set("access_type", "offline")
+    authUrl.searchParams.set("prompt", "consent")
+    authUrl.searchParams.set("state", signState(user.id))
+
+    return NextResponse.json({ url: authUrl.toString() })
+  } catch (error) {
+    console.error("Calendar connect error:", error)
+    return NextResponse.json({ message: "Internal server error" }, { status: 500 })
+  }
+}
+
+// POST: Exchange code for tokens (internal use only)
+export async function POST(request: Request) {
+  try {
+    // Verify the caller is authenticated
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    const { code, state: userId } = await request.json()
+
+    if (!code || !userId) {
+      return NextResponse.json({ message: "Missing code or state" }, { status: 400 })
+    }
+
+    // Validate userId matches authenticated user (prevent IDOR)
+    if (user && userId !== user.id) {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 })
+    }
+
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/calendar/connect/callback`,
+        grant_type: "authorization_code",
+      }),
+    })
+
+    if (!tokenRes.ok) {
+      const err = await tokenRes.text()
+      console.error("Token exchange failed:", err)
+      return NextResponse.json({ message: "Failed to exchange code" }, { status: 500 })
+    }
+
+    const tokens = await tokenRes.json()
+
+    const serviceSupabase = await createServiceClient()
+    await serviceSupabase.from("integrations").upsert(
+      {
+        user_id: userId,
+        provider: "google_calendar",
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token || null,
+        token_expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
+      },
+      { onConflict: "user_id,provider" }
+    )
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Calendar token exchange error:", error)
+    return NextResponse.json({ message: "Internal server error" }, { status: 500 })
+  }
+}

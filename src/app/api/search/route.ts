@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { checkSemanticSearchLimit, recordSemanticSearch } from "@/lib/subscription"
+import { calculateHealthScore } from "@/lib/health"
+import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
 
 export async function POST(request: Request) {
   try {
@@ -12,6 +15,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
+    // Rate limit: 30 searches per minute (embedding generation is expensive)
+    const rl = await rateLimit(user.id, "search")
+    if (!rl.success) {
+      return NextResponse.json(
+        { message: "Too many searches. Please slow down." },
+        { status: 429, headers: rateLimitHeaders(rl) }
+      )
+    }
+
     const body = await request.json()
     const { query, semantic = true } = body
 
@@ -22,8 +34,20 @@ export async function POST(request: Request) {
       )
     }
 
+    // Check semantic search limit (free: 5/month, pro: unlimited)
     if (semantic) {
-      // Semantic search using embeddings
+      const { allowed, used, limit, plan } = await checkSemanticSearchLimit(user.id)
+      if (!allowed) {
+        return NextResponse.json(
+          {
+            message: `You've used all ${limit} semantic searches this month. ${plan === "free" ? "Upgrade to Pro for unlimited searches." : "Limit resets next month."}`,
+            used,
+            limit,
+          },
+          { status: 403 }
+        )
+      }
+
       const openaiKey = process.env.OPENAI_API_KEY
       if (!openaiKey) {
         return NextResponse.json(
@@ -32,7 +56,6 @@ export async function POST(request: Request) {
         )
       }
 
-      // Generate embedding for the query
       const embeddingResponse = await fetch(
         "https://api.openai.com/v1/embeddings",
         {
@@ -42,7 +65,7 @@ export async function POST(request: Request) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "text-embedding-ada-002",
+            model: "text-embedding-3-small",
             input: query,
           }),
         }
@@ -59,7 +82,6 @@ export async function POST(request: Request) {
       const embeddingData = await embeddingResponse.json()
       const queryEmbedding = embeddingData.data[0].embedding
 
-      // Call the match_contacts function
       const { data: results, error } = await supabase.rpc("match_contacts", {
         query_embedding: queryEmbedding,
         match_threshold: 0.5,
@@ -75,18 +97,28 @@ export async function POST(request: Request) {
         )
       }
 
-      return NextResponse.json({ results: results || [] })
+      // Record usage after successful search
+      await recordSemanticSearch(user.id)
+
+      const resultsWithHealth = (results || []).map((r: Record<string, string>) => ({
+        ...r,
+        health: calculateHealthScore(r.last_contact_date, r.created_at),
+      }))
+
+      return NextResponse.json({ results: resultsWithHealth })
     } else {
       // Keyword search using ILIKE
-      const searchPattern = `%${query}%`
+      const sanitized = query.replace(/[%_\\,().*]/g, (c) => `\\${c}`)
+      const searchPattern = `%${sanitized}%`
+
+      const searchFields = ["name", "email", "company", "job_title", "how_we_met", "raw_note"]
+      const orFilter = searchFields.map((f) => `${f}.ilike.${searchPattern}`).join(",")
 
       const { data: results, error } = await supabase
         .from("contacts")
         .select("*")
         .eq("created_by", user.id)
-        .or(
-          `name.ilike.${searchPattern},email.ilike.${searchPattern},company.ilike.${searchPattern},job_title.ilike.${searchPattern},how_we_met.ilike.${searchPattern},raw_note.ilike.${searchPattern}`
-        )
+        .or(orFilter)
         .order("created_at", { ascending: false })
         .limit(20)
 
@@ -98,7 +130,12 @@ export async function POST(request: Request) {
         )
       }
 
-      return NextResponse.json({ results: results || [] })
+      const resultsWithHealth = (results || []).map((r) => ({
+        ...r,
+        health: calculateHealthScore(r.last_contact_date, r.created_at),
+      }))
+
+      return NextResponse.json({ results: resultsWithHealth })
     }
   } catch (error) {
     console.error("Search error:", error)

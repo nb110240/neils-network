@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Driftless — Never let a relationship drift</title>
+<meta name="description" content="AI-powered relationship manager that keeps your network alive. Type natural language notes, get structured contacts, health scores, and daily nudges to stay connected.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --copper: #c2410c;
+    --copper-light: #ea580c;
+    --copper-glow: #c2410c22;
+    --ink: #1c1917;
+    --ink-soft: #44403c;
+    --ink-muted: #78716c;
+    --sand: #faf9f7;
+    --sand-dark: #f5f0eb;
+    --warm-white: #fefcfa;
+    --border: #e7e5e4;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    color: var(--ink);
+    background: var(--sand);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3 { font-family: 'DM Serif Display', Georgia, serif; font-weight: 400; }
+
+  a { color: inherit; text-decoration: none; }
+
+  /* ── Nav ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    padding: 1rem 2rem;
+    background: rgba(250, 249, 247, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner {
+    max-width: 1120px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-logo {
+    display: flex; align-items: center; gap: 0.65rem;
+    font-family: 'DM Serif Display', serif; font-size: 1.35rem; color: var(--ink);
+  }
+  .nav-logo-mark {
+    width: 32px; height: 32px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--copper), var(--copper-light));
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px var(--copper-glow);
+  }
+  .nav-logo-mark svg { width: 16px; height: 16px; }
+  .nav-links { display: flex; gap: 2rem; align-items: center; }
+  .nav-links a { font-size: 0.9rem; color: var(--ink-muted); transition: color 0.2s; }
+  .nav-links a:hover { color: var(--ink); }
+  .btn {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.7rem 1.5rem; border-radius: 10px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600;
+    border: none; cursor: pointer; transition: all 0.25s ease;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--copper), var(--copper-light));
+    color: #fff; box-shadow: 0 4px 16px var(--copper-glow);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px #c2410c33; }
+  .btn-outline {
+    background: transparent; border: 1.5px solid var(--border); color: var(--ink);
+  }
+  .btn-outline:hover { border-color: var(--copper); color: var(--copper); }
+  .btn-large { padding: 0.9rem 2rem; font-size: 1rem; border-radius: 12px; }
+
+  /* ── Hero ── */
+  .hero {
+    min-height: 100vh; display: flex; align-items: center;
+    padding: 8rem 2rem 6rem;
+    position: relative;
+  }
+  .hero::before {
+    content: ''; position: absolute; top: -10%; right: -15%;
+    width: 700px; height: 700px;
+    background: radial-gradient(circle, var(--copper-glow) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-inner {
+    max-width: 1120px; margin: 0 auto; width: 100%;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center;
+  }
+  .hero-text { position: relative; z-index: 1; }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.4rem 1rem; border-radius: 100px;
+    background: var(--warm-white); border: 1px solid var(--border);
+    font-size: 0.8rem; color: var(--ink-muted); margin-bottom: 1.5rem;
+  }
+  .hero-badge-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #22c55e; animation: pulse-dot 2s infinite;
+  }
+  @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .hero h1 {
+    font-size: clamp(2.8rem, 5vw, 4.2rem);
+    line-height: 1.08; letter-spacing: -0.03em;
+    color: var(--ink); margin-bottom: 1.25rem;
+  }
+  .hero h1 em {
+    font-style: normal; color: var(--copper);
+  }
+  .hero-sub {
+    font-size: 1.15rem; line-height: 1.65; color: var(--ink-soft);
+    max-width: 440px; margin-bottom: 2rem;
+  }
+  .hero-ctas { display: flex; gap: 1rem; flex-wrap: wrap; }
+
+  /* Hero visual */
+  .hero-visual { position: relative; z-index: 1; }
+  .hero-card {
+    background: var(--warm-white); border: 1px solid var(--border);
+    border-radius: 16px; padding: 1.75rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06);
+    transform: rotate(1deg);
+  }
+  .hero-card-header {
+    display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;
+  }
+  .hero-avatar {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: linear-gradient(135deg, #fecaca, #fde68a);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 0.95rem; color: var(--copper);
+  }
+  .hero-card-name { font-weight: 600; font-size: 1rem; }
+  .hero-card-role { font-size: 0.8rem; color: var(--ink-muted); }
+  .hero-card-meta {
+    display: flex; flex-direction: column; gap: 0.6rem;
+    padding-top: 1rem; border-top: 1px solid var(--border);
+  }
+  .hero-card-row {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.85rem;
+  }
+  .hero-card-label { color: var(--ink-muted); }
+  .health-pill {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.2rem 0.65rem; border-radius: 100px; font-size: 0.75rem; font-weight: 600;
+  }
+  .health-green { background: #dcfce7; color: #15803d; }
+  .health-yellow { background: #fef9c3; color: #a16207; }
+  .health-red { background: #fee2e2; color: #dc2626; }
+  .health-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .health-green .health-dot { background: #22c55e; }
+  .health-yellow .health-dot { background: #eab308; }
+  .health-red .health-dot { background: #ef4444; }
+
+  .hero-float-card {
+    position: absolute; background: var(--warm-white); border: 1px solid var(--border);
+    border-radius: 12px; padding: 0.85rem 1.1rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    font-size: 0.82rem;
+  }
+  .hero-float-1 { top: -30px; left: -30px; transform: rotate(-3deg); z-index: 2; }
+  .hero-float-2 { bottom: -16px; right: -20px; transform: rotate(2deg); }
+  .hero-float-1 span { color: var(--copper); font-weight: 600; }
+  .hero-float-2 span { color: #dc2626; font-weight: 600; }
+
+  /* ── Section base ── */
+  section { padding: 6rem 2rem; }
+  .section-inner { max-width: 1120px; margin: 0 auto; }
+  .section-label {
+    font-size: 0.78rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--copper); margin-bottom: 0.75rem;
+  }
+  .section-title {
+    font-size: clamp(2rem, 3.5vw, 2.8rem);
+    line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 1rem;
+  }
+  .section-sub {
+    font-size: 1.05rem; line-height: 1.6; color: var(--ink-soft); max-width: 520px;
+  }
+
+  /* ── How it works ── */
+  .how { background: var(--warm-white); }
+  .how-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 2.5rem; margin-top: 3.5rem;
+  }
+  .how-step { position: relative; }
+  .how-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 4rem; line-height: 1; color: var(--copper);
+    opacity: 0.15; margin-bottom: -0.5rem;
+  }
+  .how-step h3 { font-size: 1.3rem; margin-bottom: 0.6rem; }
+  .how-step p { font-size: 0.92rem; line-height: 1.6; color: var(--ink-soft); }
+  .how-example {
+    margin-top: 1rem; padding: 0.85rem 1rem;
+    background: var(--sand); border-radius: 10px;
+    font-size: 0.82rem; color: var(--ink-muted);
+    font-style: italic; border-left: 3px solid var(--copper);
+  }
+
+  /* ── Features ── */
+  .features-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem; margin-top: 3.5rem;
+  }
+  .feature-card {
+    padding: 2rem; border-radius: 14px;
+    background: var(--warm-white); border: 1px solid var(--border);
+    transition: all 0.3s ease;
+  }
+  .feature-card:hover {
+    border-color: #c2410c44;
+    box-shadow: 0 8px 32px var(--copper-glow);
+    transform: translateY(-2px);
+  }
+  .feature-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 1.25rem; font-size: 1.3rem;
+  }
+  .feature-card h3 { font-size: 1.15rem; margin-bottom: 0.5rem; }
+  .feature-card p { font-size: 0.88rem; line-height: 1.6; color: var(--ink-soft); }
+
+  /* ── Pricing ── */
+  .pricing { background: var(--warm-white); }
+  .pricing-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem; max-width: 720px; margin: 3rem auto 0;
+  }
+  .pricing-card {
+    padding: 2.5rem; border-radius: 16px;
+    background: var(--sand); border: 1.5px solid var(--border);
+    position: relative;
+  }
+  .pricing-card.featured {
+    background: var(--ink); color: #fafaf9;
+    border-color: var(--ink);
+    box-shadow: 0 8px 40px rgba(28,25,23,0.2);
+  }
+  .pricing-card.featured .pricing-label,
+  .pricing-card.featured .pricing-feature { color: #a8a29e; }
+  .pricing-card.featured .pricing-check { color: var(--copper-light); }
+  .pricing-ribbon {
+    position: absolute; top: -12px; right: 20px;
+    background: var(--copper); color: #fff;
+    font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; padding: 0.35rem 0.9rem; border-radius: 100px;
+  }
+  .pricing-plan { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; }
+  .pricing-price {
+    font-family: 'DM Serif Display', serif;
+    font-size: 3rem; line-height: 1; margin-bottom: 0.25rem;
+  }
+  .pricing-price span { font-family: 'DM Sans'; font-size: 1rem; font-weight: 400; opacity: 0.6; }
+  .pricing-label { font-size: 0.85rem; color: var(--ink-muted); margin-bottom: 1.75rem; }
+  .pricing-features {
+    list-style: none; display: flex; flex-direction: column; gap: 0.7rem;
+    margin-bottom: 2rem;
+  }
+  .pricing-features li {
+    display: flex; align-items: flex-start; gap: 0.6rem; font-size: 0.88rem;
+  }
+  .pricing-check { color: var(--copper); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .pricing-feature { color: var(--ink-soft); }
+  .pricing-card.featured .btn-primary {
+    background: #fff; color: var(--ink);
+    box-shadow: none;
+  }
+  .pricing-card.featured .btn-primary:hover { background: #f5f5f4; }
+
+  /* ── CTA ── */
+  .final-cta {
+    text-align: center; padding: 7rem 2rem;
+  }
+  .final-cta h2 { margin-bottom: 1rem; }
+  .final-cta p {
+    font-size: 1.1rem; color: var(--ink-soft);
+    max-width: 480px; margin: 0 auto 2rem;
+  }
+
+  /* ── Footer ── */
+  footer {
+    padding: 2.5rem 2rem; border-top: 1px solid var(--border);
+    text-align: center; font-size: 0.82rem; color: var(--ink-muted);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .hero-inner { grid-template-columns: 1fr; gap: 3rem; }
+    .hero-visual { order: -1; }
+    .hero-float-1 { left: 0; }
+    .hero-float-2 { right: 0; }
+    .how-grid, .features-grid { grid-template-columns: 1fr; }
+    .pricing-grid { grid-template-columns: 1fr; }
+    .nav-links a:not(.btn) { display: none; }
+  }
+
+  /* ── Entrance animations ── */
+  .reveal {
+    opacity: 0; transform: translateY(24px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <div class="nav-logo-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+      </div>
+      Driftless
+    </a>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#cta" class="btn btn-primary">Get Started Free</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-text">
+      <div class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        AI-powered relationship manager
+      </div>
+      <h1>Never let a relationship <em>drift</em></h1>
+      <p class="hero-sub">Type what you remember about someone. Driftless extracts the details, tracks relationship health, and nudges you before connections go cold.</p>
+      <div class="hero-ctas">
+        <a href="#cta" class="btn btn-primary btn-large">Start free &mdash; 50 contacts</a>
+        <a href="#how" class="btn btn-outline btn-large">See how it works</a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="hero-float-1 hero-float-card">
+        <span>3 relationships</span> need attention
+      </div>
+      <div class="hero-card">
+        <div class="hero-card-header">
+          <div class="hero-avatar">JD</div>
+          <div>
+            <div class="hero-card-name">John Doe</div>
+            <div class="hero-card-role">VP of Engineering at SersweAI</div>
+          </div>
+        </div>
+        <div class="hero-card-meta">
+          <div class="hero-card-row">
+            <span class="hero-card-label">How we met</span>
+            <span>AI Summit 2026</span>
+          </div>
+          <div class="hero-card-row">
+            <span class="hero-card-label">Health</span>
+            <span class="health-pill health-green"><span class="health-dot"></span> Active</span>
+          </div>
+          <div class="hero-card-row">
+            <span class="hero-card-label">Next step</span>
+            <span>Grab coffee next week</span>
+          </div>
+        </div>
+      </div>
+      <div class="hero-float-2 hero-float-card">
+        <span>2 contacts</span> going cold
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section class="how" id="how">
+  <div class="section-inner">
+    <div class="section-label reveal">How it works</div>
+    <h2 class="section-title reveal">Three steps. No forms.</h2>
+    <p class="section-sub reveal">Driftless replaces spreadsheets and forgotten business cards. Just talk about the people you meet.</p>
+    <div class="how-grid">
+      <div class="how-step reveal reveal-delay-1">
+        <div class="how-num">01</div>
+        <h3>Write what you remember</h3>
+        <p>No forms, no fields. Type a quick note like you'd text a friend.</p>
+        <div class="how-example">"Met John Doe at AI Summit, he's VP of Engineering at SersweAI, wants to grab coffee next week"</div>
+      </div>
+      <div class="how-step reveal reveal-delay-2">
+        <div class="how-num">02</div>
+        <h3>AI extracts everything</h3>
+        <p>Name, company, role, how you met, next steps &mdash; all structured automatically. Plus a semantic embedding for intelligent search.</p>
+      </div>
+      <div class="how-step reveal reveal-delay-3">
+        <div class="how-num">03</div>
+        <h3>Stay connected effortlessly</h3>
+        <p>Health scores show which relationships are fading. Daily emails nudge you to reach out before it's too late.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features">
+  <div class="section-inner">
+    <div class="section-label reveal">Features</div>
+    <h2 class="section-title reveal">Everything your network needs</h2>
+    <p class="section-sub reveal">Built for people who meet a lot of people and want to keep every relationship alive.</p>
+    <div class="features-grid">
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background: #fef3c7;">&#x1f9e0;</div>
+        <h3>Natural Language Input</h3>
+        <p>Just type what you remember. AI parses name, company, context, and next steps from freeform text.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon" style="background: #dcfce7;">&#x1f7e2;</div>
+        <h3>Health Scores</h3>
+        <p>Every contact gets a color-coded score. Green means active. Red means you're about to lose touch. No relationship slips through.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon" style="background: #ede9fe;">&#x1f50d;</div>
+        <h3>Semantic Search</h3>
+        <p>"Who do I know in healthcare AI?" Search by meaning, not just keywords. Find the right person in seconds.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background: #fee2e2;">&#x1f4e8;</div>
+        <h3>Daily Digest</h3>
+        <p>Every morning: "These 3 relationships need attention." Each with context and a one-click link to log an interaction.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon" style="background: #e0f2fe;">&#x1f4e5;</div>
+        <h3>CSV & Gmail Import</h3>
+        <p>Bring your existing network in seconds. Upload a CSV or pull directly from Google Contacts. Auto-maps columns.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon" style="background: #fce7f3;">&#x1f525;</div>
+        <h3>"Going Cold" Dashboard</h3>
+        <p>See every fading relationship at a glance. Sorted by urgency. One click to reconnect.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background: #f0fdf4;">&#x1f4c5;</div>
+        <h3>Google Calendar Sync</h3>
+        <p>Had a 1:1 coffee chat or meeting? Driftless detects it and adds the person as a contact automatically. Your network grows while you work.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing -->
+<section class="pricing" id="pricing">
+  <div class="section-inner" style="text-align: center;">
+    <div class="section-label reveal">Pricing</div>
+    <h2 class="section-title reveal" style="margin-left: auto; margin-right: auto;">Start free. Upgrade when you need more.</h2>
+    <p class="section-sub reveal" style="margin-left: auto; margin-right: auto;">No credit card required. No time limit on free.</p>
+    <div class="pricing-grid">
+      <div class="pricing-card reveal reveal-delay-1">
+        <div class="pricing-plan">Free</div>
+        <div class="pricing-price">$0 <span>/month</span></div>
+        <div class="pricing-label">For getting started</div>
+        <ul class="pricing-features">
+          <li><span class="pricing-check">&#10003;</span> <span class="pricing-feature">50 contacts</span></li>
+          <li><span class="pricing-check">&#10003;</span> <span class="pricing-feature">Health scores</span></li>
+          <li><span class="pricing-check">&#10003;</span> <span class="pricing-feature">Natural language input</span></li>
+          <li><span class="pricing-check">&#10003;</span> <span class="pricing-feature">5 semantic searches / month</span></li>
+          <li><span class="pricing-check" style="opacity: 0.25;">&#10007;</span> <span class="pricing-feature" style="opacity: 0.45;">Import (CSV & Gmail)</span></li>
+          <li><span class="pricing-check" style="opacity: 0.25;">&#10007;</span> <span class="pricing-feature" style="opacity: 0.45;">Google Calendar sync</span></li>
+          <li><span class="pricing-check" style="opacity: 0.25;">&#10007;</span> <span class="pricing-feature" style="opacity: 0.45;">Daily digest emails</span></li>
+        </ul>
+        <a href="#cta" class="btn btn-outline" style="width: 100%; justify-content: center;">Get started</a>
+      </div>
+      <div class="pricing-card featured reveal reveal-delay-2">
+        <div class="pricing-ribbon">Most popular</div>
+        <div class="pricing-plan">Pro</div>
+        <div class="pricing-price">$8 <span>/month</span></div>
+        <div class="pricing-label">or $75/year (save 22%)</div>
+        <ul class="pricing-features">
+          <li><span class="pricing-check">&#10003;</span> <span class="pricing-feature">Unlimited contacts</span></li>
+          <li><span class="pricing-check">&#10003;</span> <span class="pricing-feature">Health scores</span></li>
+          <li><span class="pricing-check">&#10003;</span> <span class="pricing-feature">Natural language input</span></li>
+          <li><span class="pricing-check">&#10003;</span> <span class="pricing-feature">Unlimited semantic search</span></li>
+          <li><span class="pricing-check">&#10003;</span> <span class="pricing-feature">CSV & Gmail import</span></li>
+          <li><span class="pricing-check">&#10003;</span> <span class="pricing-feature">Google Calendar sync</span></li>
+          <li><span class="pricing-check">&#10003;</span> <span class="pricing-feature">Daily digest emails</span></li>
+        </ul>
+        <a href="#cta" class="btn btn-primary" style="width: 100%; justify-content: center;">Start free, upgrade anytime</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Final CTA -->
+<section class="final-cta" id="cta">
+  <div class="section-inner">
+    <h2 class="section-title reveal" style="max-width: none;">Your network is your net worth.<br>Stop letting it decay.</h2>
+    <p class="reveal">Join founders, VCs, and connectors who use Driftless to keep every relationship alive.</p>
+    <a href="#" class="btn btn-primary btn-large reveal">Get Started Free</a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <p>&copy; 2026 Driftless. Built for people who care about people.</p>
+</footer>
+
+<script>
+// Reveal on scroll
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+}, { threshold: 0.15 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>

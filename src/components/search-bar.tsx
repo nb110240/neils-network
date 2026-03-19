@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Search, Loader2, Sparkles } from "lucide-react"
+import { Search, Loader2 } from "lucide-react"
 
 interface SearchBarProps {
   onSearch: (query: string, semantic: boolean) => void
@@ -27,7 +27,7 @@ export function SearchBar({ onSearch, isLoading }: SearchBarProps) {
   )
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-3">
       <div className="flex gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -35,13 +35,13 @@ export function SearchBar({ onSearch, isLoading }: SearchBarProps) {
             placeholder="Search by name, company, or describe who you're looking for..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="pl-11 h-12 text-base shadow-refined transition-all focus:shadow-refined-lg"
+            className="pl-11 h-12 text-base transition-all focus:shadow-md"
           />
         </div>
         <Button
           type="submit"
           disabled={isLoading || !query.trim()}
-          className="h-12 px-6 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 shadow-md hover:shadow-lg border-0"
+          className="h-12 px-6 min-w-[80px] bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -56,9 +56,8 @@ export function SearchBar({ onSearch, isLoading }: SearchBarProps) {
           checked={semantic}
           onCheckedChange={setSemantic}
         />
-        <Label htmlFor="semantic-search" className="text-sm text-muted-foreground flex items-center gap-2 cursor-pointer">
-          <Sparkles className="h-3.5 w-3.5 text-[var(--copper)]" />
-          Semantic search (AI-powered natural language matching)
+        <Label htmlFor="semantic-search" className="text-sm text-muted-foreground cursor-pointer">
+          Smart search (find by meaning, not just keywords)
         </Label>
       </div>
     </form>

@@ -8,7 +8,33 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient()
-    await supabase.auth.exchangeCodeForSession(code)
+    const { data } = await supabase.auth.exchangeCodeForSession(code)
+
+    // Send welcome email for new users (created within last 60 seconds)
+    if (data?.user) {
+      const createdAt = new Date(data.user.created_at).getTime()
+      const now = Date.now()
+      const isNewUser = now - createdAt < 60_000
+
+      if (isNewUser) {
+        try {
+          await fetch(`${origin}/api/auth/welcome`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-internal-secret": process.env.CRON_SECRET || "",
+            },
+            body: JSON.stringify({
+              email: data.user.email,
+              name: data.user.user_metadata?.full_name || null,
+            }),
+          })
+        } catch {
+          // Welcome email is non-critical, don't block redirect
+          console.error("Failed to send welcome email")
+        }
+      }
+    }
   }
 
   return NextResponse.redirect(`${origin}/dashboard`)

@@ -79,13 +79,28 @@ export function sanitizeForPrompt(text: string | null | undefined, maxLength: nu
 }
 
 // ─── Dev endpoint secret verification ───
+// Allows access if either: (1) valid DEV_SECRET header, or (2) authenticated admin user
+// This lets the dev dashboard work from the browser while still protecting against
+// unauthenticated API calls
 
-export function verifyDevSecret(request: Request): NextResponse | null {
+export async function verifyDevAccess(request: Request): Promise<NextResponse | null> {
+  // Path 1: secret header (for programmatic access)
   const secret = request.headers.get("x-dev-secret")
-  if (secret !== process.env.DEV_SECRET) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  if (secret && secret === process.env.DEV_SECRET) {
+    return null
   }
-  return null
+
+  // Path 2: authenticated admin session (for browser access)
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user?.email) {
+    const { isAdmin } = await import("@/lib/admin")
+    if (isAdmin(user.email)) {
+      return null
+    }
+  }
+
+  return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 }
 
 // ─── Standard error responses ───

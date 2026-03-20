@@ -1,18 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createClient, createServiceClient } from "@/lib/supabase/server"
-import { isAdmin } from "@/lib/admin"
-import { verifyDevSecret } from "@/lib/api-utils"
+import { verifyDevAccess } from "@/lib/api-utils"
 
 export async function POST(request: NextRequest) {
   try {
-    const devError = verifyDevSecret(request)
+    const devError = await verifyDevAccess(request)
     if (devError) return devError
 
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user || !isAdmin(user.email)) {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 })
+    if (!user) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
     const serviceSupabase = await createServiceClient()

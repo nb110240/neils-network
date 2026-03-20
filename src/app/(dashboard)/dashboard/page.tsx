@@ -51,8 +51,9 @@ export default async function DashboardPage() {
 
   const { data: allContacts } = await supabase
     .from("contacts")
-    .select("*")
+    .select("id, name, email, phone, company, job_title, website, how_we_met, next_steps, follow_up_needed, last_contact_date, raw_note, source, created_by, created_at, updated_at, archived_at, embedding_status")
     .eq("created_by", user.id)
+    .is("archived_at", null)
     .order("created_at", { ascending: false })
 
   // Calculate health scores for all contacts
@@ -133,9 +134,11 @@ export default async function DashboardPage() {
     .filter((c) => {
       const createdAt = new Date(c.created_at).getTime()
       if (createdAt < sevenDaysAgo) return false
-      // Not yet followed up: last_contact_date is null or equals created_at
+      // Not yet followed up: last_contact_date is null or within 1 minute of created_at
       if (!c.last_contact_date) return true
-      return c.last_contact_date === c.created_at
+      const lastContact = new Date(c.last_contact_date).getTime()
+      const created = new Date(c.created_at).getTime()
+      return Math.abs(lastContact - created) < 60_000
     })
     .slice(0, 4)
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -30,6 +30,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [signUpSent, setSignUpSent] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
+  const resendIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Clean up interval on unmount
+  useEffect(() => {
+    return () => {
+      if (resendIntervalRef.current) clearInterval(resendIntervalRef.current)
+    }
+  }, [])
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -137,10 +145,15 @@ export default function LoginPage() {
                 try {
                   await supabase.auth.resend({ type: "signup", email })
                   addToast({ title: "Email resent", description: "Check your inbox for the confirmation link." })
+                  if (resendIntervalRef.current) clearInterval(resendIntervalRef.current)
                   setResendCooldown(60)
-                  const interval = setInterval(() => {
+                  resendIntervalRef.current = setInterval(() => {
                     setResendCooldown((prev) => {
-                      if (prev <= 1) { clearInterval(interval); return 0 }
+                      if (prev <= 1) {
+                        if (resendIntervalRef.current) clearInterval(resendIntervalRef.current)
+                        resendIntervalRef.current = null
+                        return 0
+                      }
                       return prev - 1
                     })
                   }, 1000)

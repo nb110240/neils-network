@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils"
 import { LogOut, Plus, Search, LayoutDashboard, Upload, Users, Settings, ScanLine, Code, Menu, X, Network, BookOpen, Sparkles } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 
-const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "neilbajaj72@gmail.com").split(",").map((e) => e.trim().toLowerCase())
+// Client component can't read server env vars — hardcoded fallback matches .env ADMIN_EMAILS
+const ADMIN_EMAILS = ["neilbajaj72@gmail.com"]
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },

@@ -4,7 +4,11 @@ import { calculateHealthScore } from "@/lib/health"
 import { z } from "zod/v4"
 
 // Transform empty strings to null so Zod validators (like .email()) don't reject them
-const emptyToNull = z.string().transform((v) => (v.trim() === "" ? null : v))
+// Also accept null directly (for clearing fields)
+const emptyToNull = z.union([
+  z.null(),
+  z.string().transform((v) => (v.trim() === "" ? null : v)),
+])
 
 const UpdateContactSchema = z.object({
   name: emptyToNull.pipe(z.string().max(255).nullable()).optional(),

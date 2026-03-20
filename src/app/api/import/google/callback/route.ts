@@ -1,13 +1,25 @@
 import { NextResponse } from "next/server"
+import { cookies } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
 
 export async function GET(request: Request) {
   const url = new URL(request.url)
   const code = url.searchParams.get("code")
+  const state = url.searchParams.get("state")
   const error = url.searchParams.get("error")
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
 
   if (error || !code) {
+    return NextResponse.redirect(`${appUrl}/import?google=error`)
+  }
+
+  // CSRF verification: check state matches what we set in the cookie
+  const cookieStore = await cookies()
+  const storedState = cookieStore.get("google_import_state")?.value
+  cookieStore.delete("google_import_state")
+
+  if (!state || !storedState || state !== storedState) {
+    console.error("Google import callback: state mismatch (CSRF protection)")
     return NextResponse.redirect(`${appUrl}/import?google=error`)
   }
 

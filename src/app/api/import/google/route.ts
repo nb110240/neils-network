@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
+import { randomBytes } from "crypto"
 import { authenticateRequest, authFailed, badRequestResponse, forbiddenResponse, errorResponse } from "@/lib/api-utils"
-import { getUserPlan, getPlanLimits } from "@/lib/subscription"
+import { getUserPlan, getPlanLimits, checkContactLimit } from "@/lib/subscription"
 
 // Step 1: Get Google OAuth URL
 export async function GET() {
@@ -21,6 +22,17 @@ export async function GET() {
       return errorResponse("Google OAuth not configured")
     }
 
+    // CSRF protection: generate random state and store in httpOnly cookie
+    const state = randomBytes(32).toString("hex")
+    const cookieStore = await cookies()
+    cookieStore.set("google_import_state", state, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 600, // 10 minutes
+    })
+
     const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/import/google/callback`
     const scope = "https://www.googleapis.com/auth/contacts.readonly"
 
@@ -31,6 +43,7 @@ export async function GET() {
     authUrl.searchParams.set("scope", scope)
     authUrl.searchParams.set("access_type", "offline")
     authUrl.searchParams.set("prompt", "consent")
+    authUrl.searchParams.set("state", state)
 
     return NextResponse.json({ url: authUrl.toString() })
   } catch (error) {
@@ -113,9 +126,17 @@ export async function POST(request: Request) {
       return badRequestResponse("No valid contacts found")
     }
 
+    // Enforce contact limit for free users
+    const { allowed, count, limit } = await checkContactLimit(user.id)
+    if (!allowed) {
+      return forbiddenResponse(`You've reached the ${limit}-contact limit. Upgrade to Pro for unlimited contacts.`)
+    }
+    const remaining = limit === Infinity ? contacts.length : Math.max(0, limit - (count || 0))
+    const contactsToInsert = contacts.slice(0, remaining)
+
     const { data: inserted, error } = await supabase
       .from("contacts")
-      .insert(contacts)
+      .insert(contactsToInsert)
       .select()
 
     if (error) {

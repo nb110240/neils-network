@@ -46,7 +46,6 @@ export default function ImportPage() {
 
   const [mode, setMode] = useState<"choose" | "csv" | "gmail">("choose")
   const [googleReady, setGoogleReady] = useState(false)
-  const [googleContacts, setGoogleContacts] = useState<{ name: string; email: string | null; company: string | null }[]>([])
   const [isGoogleImporting, setIsGoogleImporting] = useState(false)
   const [googleImportedCount, setGoogleImportedCount] = useState(0)
   const [step, setStep] = useState<"upload" | "map" | "importing" | "done">("upload")

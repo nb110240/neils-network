@@ -217,6 +217,17 @@ export default async function DashboardPage() {
       {(totalContacts || 0) > 0 && (totalContacts || 0) < 5 && (
         <OnboardingBanner contactCount={totalContacts || 0} />
       )}
+      {/* Contact limit warning for free users approaching 50 */}
+      {plan === "free" && (totalContacts || 0) >= 45 && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3 flex items-center justify-between gap-4">
+          <p className="text-sm text-amber-800 dark:text-amber-300">
+            {(totalContacts || 0)}/50 contacts used. {50 - (totalContacts || 0) === 0 ? "You've hit the limit." : `${50 - (totalContacts || 0)} remaining.`}
+          </p>
+          <Button size="sm" asChild className="shrink-0 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0 text-xs h-7">
+            <Link href="/pricing">Upgrade to Pro</Link>
+          </Button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-start justify-between animate-fade-in">
         <div>

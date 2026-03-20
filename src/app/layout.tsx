@@ -22,9 +22,23 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Savvo",
-  description: "Keep every connection alive. AI-powered relationship manager.",
+  title: "Savvo — AI Relationship Manager",
+  description: "Keep every connection alive. Type what you remember, get structured contacts, health scores, and daily nudges to stay connected.",
   manifest: "/manifest.json",
+  metadataBase: new URL("https://savvo.app"),
+  openGraph: {
+    title: "Savvo — Never Let a Relationship Drift",
+    description: "AI-powered relationship manager. Type what you remember about someone — Savvo extracts the details, tracks relationship health, and nudges you before connections go cold.",
+    url: "https://savvo.app",
+    siteName: "Savvo",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Savvo — AI Relationship Manager",
+    description: "Keep every connection alive. Health scores, daily digests, and AI-powered follow-ups.",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

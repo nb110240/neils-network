@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 import { LogOut, Plus, Search, LayoutDashboard, Upload, Users, Settings, ScanLine, Code, Menu, X, Network, BookOpen, Sparkles } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 
-const ADMIN_EMAILS = ["neilbajaj72@gmail.com"]
+const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "neilbajaj72@gmail.com").split(",").map((e) => e.trim().toLowerCase())
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -64,6 +64,7 @@ export function NavHeader() {
             className="mr-2 sm:hidden touch-target text-muted-foreground hover:text-foreground"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileMenuOpen}
           >
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>

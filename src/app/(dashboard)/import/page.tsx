@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useRef, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -40,10 +40,15 @@ function guessField(header: string): string {
 
 export default function ImportPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { addToast } = useToast()
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [mode, setMode] = useState<"choose" | "csv" | "gmail">("choose")
+  const [googleToken, setGoogleToken] = useState<string | null>(null)
+  const [googleContacts, setGoogleContacts] = useState<{ name: string; email: string | null; company: string | null }[]>([])
+  const [isGoogleImporting, setIsGoogleImporting] = useState(false)
+  const [googleImportedCount, setGoogleImportedCount] = useState(0)
   const [step, setStep] = useState<"upload" | "map" | "importing" | "done">("upload")
   const [headers, setHeaders] = useState<string[]>([])
   const [previewRows, setPreviewRows] = useState<Record<string, string>[]>([])
@@ -52,6 +57,57 @@ export default function ImportPage() {
   const [file, setFile] = useState<File | null>(null)
   const [importedCount, setImportedCount] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
+
+  // Handle Google OAuth callback
+  useEffect(() => {
+    const googleStatus = searchParams.get("google")
+    const token = searchParams.get("token")
+
+    if (googleStatus === "error") {
+      addToast({ title: "Google Import Failed", description: "Could not connect to Google. Please try again.", variant: "destructive" })
+    } else if (googleStatus === "ready" && token) {
+      setGoogleToken(token)
+      setMode("gmail")
+      // Auto-fetch Google Contacts
+      fetch("https://people.googleapis.com/v1/people/me/connections?" + new URLSearchParams({
+        personFields: "names,emailAddresses,organizations",
+        pageSize: "500",
+      }), { headers: { Authorization: `Bearer ${token}` } })
+        .then((res) => res.ok ? res.json() : Promise.reject("Failed to fetch"))
+        .then((data) => {
+          const contacts = (data.connections || [])
+            .map((p: { names?: { displayName: string }[]; emailAddresses?: { value: string }[]; organizations?: { name: string }[] }) => ({
+              name: p.names?.[0]?.displayName || null,
+              email: p.emailAddresses?.[0]?.value || null,
+              company: p.organizations?.[0]?.name || null,
+            }))
+            .filter((c: { name: string | null }) => c.name)
+          setGoogleContacts(contacts)
+        })
+        .catch(() => addToast({ title: "Error", description: "Failed to load Google Contacts", variant: "destructive" }))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleGoogleImportContacts = async () => {
+    if (!googleToken) return
+    setIsGoogleImporting(true)
+    try {
+      const res = await fetch("/api/import/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessToken: googleToken }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message)
+      setGoogleImportedCount(data.imported)
+      setStep("done")
+    } catch (error) {
+      addToast({ title: "Import failed", description: error instanceof Error ? error.message : "Something went wrong", variant: "destructive" })
+    } finally {
+      setIsGoogleImporting(false)
+    }
+  }
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
@@ -198,6 +254,47 @@ export default function ImportPage() {
         </div>
       )}
 
+      {/* Google Contacts preview */}
+      {mode === "gmail" && googleContacts.length > 0 && step !== "done" && (
+        <Card className="glass shadow-refined animate-fade-in">
+          <CardHeader>
+            <CardTitle className="text-lg font-normal">
+              Google Contacts ({googleContacts.length} found)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="max-h-64 overflow-y-auto space-y-1 rounded-lg border p-2">
+              {googleContacts.slice(0, 20).map((c, i) => (
+                <div key={i} className="flex items-center justify-between px-3 py-2 rounded hover:bg-muted/50 text-sm">
+                  <span className="font-medium">{c.name}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {[c.company, c.email].filter(Boolean).join(" \u00B7 ")}
+                  </span>
+                </div>
+              ))}
+              {googleContacts.length > 20 && (
+                <p className="text-xs text-muted-foreground text-center py-2">
+                  and {googleContacts.length - 20} more...
+                </p>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => { setMode("choose"); setGoogleContacts([]) }}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+                onClick={handleGoogleImportContacts}
+                disabled={isGoogleImporting}
+              >
+                {isGoogleImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                Import {googleContacts.length} Contacts
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* CSV: Upload */}
       {mode === "csv" && step === "upload" && (
         <Card className="glass shadow-refined animate-fade-in">
@@ -329,7 +426,7 @@ export default function ImportPage() {
               <Check className="h-7 w-7 text-emerald-600" />
             </div>
             <p className="text-xl font-normal">
-              {importedCount} contacts imported!
+              {importedCount || googleImportedCount} contacts imported!
             </p>
             <p className="text-sm text-muted-foreground mt-1">
               Embeddings are being generated in the background for semantic search

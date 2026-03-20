@@ -53,6 +53,7 @@ export async function GET(
       .select("*")
       .eq("contact_id", id)
       .order("occurred_at", { ascending: false })
+      .limit(50)
 
     if (error) {
       console.error("Error fetching activities:", error)

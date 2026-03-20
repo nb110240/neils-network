@@ -28,6 +28,7 @@ export default function LoginPage() {
   const [resetSent, setResetSent] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [signUpSent, setSignUpSent] = useState(false)
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -43,10 +44,7 @@ export default function LoginPage() {
           },
         })
         if (error) throw error
-        addToast({
-          title: "Check your email",
-          description: "We sent you a confirmation link to verify your account.",
-        })
+        setSignUpSent(true)
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -105,6 +103,61 @@ export default function LoginPage() {
       })
       setIsLoading(false)
     }
+  }
+
+  // Sign-up confirmation view
+  if (signUpSent) {
+    return (
+      <div className="animate-fade-in-scale">
+        <Card className="shadow-refined-lg border-0 overflow-hidden">
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-3xl font-normal text-[var(--copper)]">Savvo</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-2">
+            <div className="text-center space-y-4 py-4">
+              <div className="mx-auto w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center">
+                <Mail className="h-6 w-6 text-emerald-600" />
+              </div>
+              <h2 className="text-lg font-medium">Check your email</h2>
+              <p className="text-sm text-muted-foreground">
+                We sent a confirmation link to <strong>{email}</strong>. Click the link to verify your account and get started.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Didn&apos;t receive it? Check your spam folder.
+              </p>
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col gap-2 pb-6">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                setIsLoading(true)
+                try {
+                  await supabase.auth.resend({ type: "signup", email })
+                  addToast({ title: "Email resent", description: "Check your inbox for the confirmation link." })
+                } catch {
+                  addToast({ title: "Error", description: "Failed to resend email", variant: "destructive" })
+                } finally {
+                  setIsLoading(false)
+                }
+              }}
+              disabled={isLoading}
+            >
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Resend verification email
+            </Button>
+            <button
+              type="button"
+              onClick={() => { setSignUpSent(false); setIsSignUp(false) }}
+              className="text-sm text-muted-foreground hover:text-[var(--copper)] transition-colors font-medium"
+            >
+              Back to sign in
+            </button>
+          </CardFooter>
+        </Card>
+      </div>
+    )
   }
 
   // Forgot password view

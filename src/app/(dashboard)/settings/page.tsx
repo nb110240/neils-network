@@ -293,9 +293,14 @@ export default function SettingsPage() {
               </div>
               <p className="text-sm text-muted-foreground mt-0.5">
                 {plan === "pro"
-                  ? `Unlimited contacts \u00B7 ${contactCount} in your network`
+                  ? `${contactCount} contacts in your network`
                   : `${contactCount}/50 contacts \u00B7 Upgrade for unlimited`}
               </p>
+              {plan === "pro" && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Unlimited contacts \u00B7 CSV &amp; Gmail import \u00B7 Calendar sync \u00B7 Daily digest \u00B7 AI drafts &amp; prep
+                </p>
+              )}
             </div>
             {plan === "pro" ? (
               <Button

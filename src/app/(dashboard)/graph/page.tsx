@@ -6,7 +6,7 @@ import * as d3 from "d3"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Crown, ArrowLeft } from "lucide-react"
+import { Crown, ArrowLeft, Network } from "lucide-react"
 import Link from "next/link"
 
 interface ContactNode {
@@ -331,9 +331,19 @@ export default function GraphPage() {
       {contacts.length === 0 ? (
         <Card className="shadow-refined">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <p className="text-muted-foreground text-center">
-              Add contacts and tag them to see your relationship graph.
+            <div className="w-14 h-14 rounded-2xl bg-[var(--copper)]/10 flex items-center justify-center mb-4">
+              <Network className="h-6 w-6 text-[var(--copper)]" />
+            </div>
+            <h3 className="text-xl font-normal mb-2">Your network graph</h3>
+            <p className="text-muted-foreground text-center max-w-sm">
+              Add contacts and tag them to visualize your network. Tags create connections between people — the more you tag, the richer the graph.
             </p>
+            <Button
+              className="mt-6 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 shadow-md border-0"
+              asChild
+            >
+              <Link href="/add">Add Your First Contact</Link>
+            </Button>
           </CardContent>
         </Card>
       ) : (

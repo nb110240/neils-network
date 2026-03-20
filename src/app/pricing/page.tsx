@@ -64,7 +64,8 @@ export default function PricingPage() {
     : null
   const perMonth = billing === "monthly" ? price : Math.round((price / 12) * 100) / 100
   const monthlyEquivalent = isLaunchPromo ? 5 : 8
-  const savings = billing === "yearly" ? Math.round((1 - price / (monthlyEquivalent * 12)) * 100) : 0
+  const yearlySavings = Math.round((1 - (isLaunchPromo ? 50 : 75) / ((isLaunchPromo ? 5 : 8) * 12)) * 100)
+  const savings = billing === "yearly" ? yearlySavings : 0
 
   return (
     <div className="min-h-screen bg-background">
@@ -108,7 +109,7 @@ export default function PricingPage() {
             >
               Yearly
               <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-                Save {savings}%
+                Save {yearlySavings}%
               </span>
             </button>
           </div>

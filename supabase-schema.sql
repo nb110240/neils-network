@@ -1,4 +1,4 @@
--- Driftless - Supabase Database Schema
+-- Savvo - Supabase Database Schema
 -- Run this in your Supabase SQL Editor
 
 -- Enable pgvector extension for semantic search

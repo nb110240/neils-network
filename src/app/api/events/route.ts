@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { authenticateRequest, authFailed, badRequestResponse, errorResponse } from "@/lib/api-utils"
+import { authenticateRequest, authFailed, badRequestResponse, errorResponse, isValidUUID } from "@/lib/api-utils"
 
 export async function GET() {
   try {
@@ -12,6 +12,7 @@ export async function GET() {
       .select("*, contacts:contacts(count)")
       .eq("created_by", user.id)
       .order("created_at", { ascending: false })
+      .limit(100)
 
     if (error) {
       console.error("Error fetching events:", error)
@@ -79,6 +80,39 @@ export async function POST(request: Request) {
     return NextResponse.json({ event })
   } catch (error) {
     console.error("Error creating event:", error)
+    return errorResponse("Internal server error")
+  }
+}
+
+// PATCH: Deactivate an event
+export async function PATCH(request: Request) {
+  try {
+    const auth = await authenticateRequest("general")
+    if (authFailed(auth)) return auth.error
+    const { user, supabase } = auth
+
+    const { eventId } = await request.json()
+
+    if (!eventId || !isValidUUID(eventId)) {
+      return badRequestResponse("Valid event ID is required")
+    }
+
+    const { data: event, error } = await supabase
+      .from("events")
+      .update({ is_active: false })
+      .eq("id", eventId)
+      .eq("created_by", user.id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error deactivating event:", error)
+      return errorResponse("Failed to deactivate event")
+    }
+
+    return NextResponse.json({ event })
+  } catch (error) {
+    console.error("Error deactivating event:", error)
     return errorResponse("Internal server error")
   }
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createServiceClient } from "@/lib/supabase/server"
 import { createClient } from "@/lib/supabase/server"
+import { getUserPlan } from "@/lib/subscription"
 
 // Manual sync: user triggers from dashboard
 export async function POST() {
@@ -41,6 +42,10 @@ export async function GET(request: Request) {
 
     let synced = 0
     for (const { user_id } of integrations) {
+      // Skip users who have downgraded from Pro
+      const plan = await getUserPlan(user_id)
+      if (plan === "free") continue
+
       const { data: { user } } = await supabase.auth.admin.getUserById(user_id)
       if (!user?.email) continue
 

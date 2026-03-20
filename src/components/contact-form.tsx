@@ -45,7 +45,8 @@ export function ContactForm({ contact, onCancel }: ContactFormProps) {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to update contact")
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || "Failed to update contact")
       }
 
       addToast({
@@ -54,10 +55,10 @@ export function ContactForm({ contact, onCancel }: ContactFormProps) {
       })
       router.refresh()
       onCancel()
-    } catch {
+    } catch (err) {
       addToast({
         title: "Error",
-        description: "Failed to update contact",
+        description: err instanceof Error ? err.message : "Failed to update contact",
         variant: "destructive",
       })
     } finally {

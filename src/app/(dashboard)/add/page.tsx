@@ -116,6 +116,63 @@ export default function AddContactPage() {
         </p>
       </div>
 
+      {/* Natural language entry — primary method */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl font-normal">Describe who you met</CardTitle>
+          <CardDescription className="text-base mt-1">
+            Just type what you remember. AI extracts name, company, role, and next steps automatically.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Textarea
+              placeholder={`Example: Met John Doe at the AI Summit. He's VP of Engineering at SersweAI. We talked about their platform and he mentioned they're hiring. Should follow up next week.`}
+              value={rawNote}
+              onChange={(e) => setRawNote(e.target.value)}
+              rows={6}
+              className="resize-none text-base leading-relaxed"
+            />
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isLoading || !rawNote.trim()}
+                className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Contact
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Divider */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-dashed" />
+        </div>
+        <div className="relative flex justify-center">
+          <span className="bg-background px-3 text-sm text-muted-foreground font-medium">or import from LinkedIn</span>
+        </div>
+      </div>
+
       {/* LinkedIn Import */}
       <Card>
         <CardHeader className="pb-3">
@@ -167,63 +224,6 @@ export default function AddContactPage() {
               Scan QR code
             </Link>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Divider */}
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-dashed" />
-        </div>
-        <div className="relative flex justify-center">
-          <span className="bg-background px-3 text-sm text-muted-foreground font-medium">or write a note</span>
-        </div>
-      </div>
-
-      {/* Natural language entry */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl font-normal">Describe who you met</CardTitle>
-          <CardDescription className="text-base mt-1">
-            Write naturally — name, company, how you met, anything you want to remember.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Textarea
-              placeholder={`Example: Met John Doe at the AI Summit. He's VP of Engineering at SersweAI. We talked about their platform and he mentioned they're hiring. Should follow up next week.`}
-              value={rawNote}
-              onChange={(e) => setRawNote(e.target.value)}
-              rows={6}
-              className="resize-none text-base leading-relaxed"
-            />
-            <div className="flex justify-end gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.back()}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isLoading || !rawNote.trim()}
-                className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Contact
-                  </>
-                )}
-              </Button>
-            </div>
-          </form>
         </CardContent>
       </Card>
 

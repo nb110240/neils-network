@@ -18,7 +18,7 @@ export async function GET() {
 
     const { data: contacts, error } = await supabase
       .from("contacts")
-      .select("name, email, phone, company, job_title, website, how_we_met, last_contact_date")
+      .select("name, email, phone, company, job_title, website, how_we_met, next_steps, follow_up_needed, last_contact_date, raw_note, source, created_at")
       .eq("created_by", user.id)
       .order("name", { ascending: true })
 
@@ -27,7 +27,7 @@ export async function GET() {
       return errorResponse("Failed to export contacts")
     }
 
-    const headers = ["Name", "Email", "Phone", "Company", "Job Title", "Website", "How We Met", "Last Contact Date"]
+    const headers = ["Name", "Email", "Phone", "Company", "Job Title", "Website", "How We Met", "Next Steps", "Follow-up Needed", "Last Contact Date", "Notes", "Source", "Added On"]
     const csvRows = [headers.join(",")]
 
     for (const contact of contacts || []) {
@@ -39,7 +39,12 @@ export async function GET() {
         escapeCsvField(contact.job_title),
         escapeCsvField(contact.website),
         escapeCsvField(contact.how_we_met),
+        escapeCsvField(contact.next_steps),
+        contact.follow_up_needed ? "Yes" : "No",
         escapeCsvField(contact.last_contact_date),
+        escapeCsvField(contact.raw_note),
+        escapeCsvField(contact.source),
+        escapeCsvField(contact.created_at ? new Date(contact.created_at).toISOString().split("T")[0] : null),
       ]
       csvRows.push(row.join(","))
     }

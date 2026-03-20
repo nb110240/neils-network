@@ -8,15 +8,15 @@ import { getUserPlan } from "@/lib/subscription"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ContactCard } from "@/components/contact-card"
-import { FollowUpList } from "@/components/follow-up-list"
-import { HealthBadge } from "@/components/health-badge"
+import { ReachOutList, type ReachOutContact } from "@/components/reach-out-list"
+import { NewRelationships } from "@/components/new-relationships"
 import { CalendarConnectButton } from "@/components/calendar-connect-button"
 import { ManageSubscriptionButton } from "@/components/manage-subscription-button"
 import { UpgradeToast } from "@/components/upgrade-toast"
 import { EventModeBanner } from "@/components/event-mode-banner"
 import { StartEventButton } from "@/components/start-event-button"
 import { OnboardingBanner } from "@/components/onboarding-banner"
-import { Plus, Users, AlertCircle, ArrowRight, ThermometerSnowflake, Crown, Mail } from "lucide-react"
+import { Plus, Users, AlertCircle, ArrowRight, ThermometerSnowflake, Crown, Mail, HandHeart } from "lucide-react"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -49,14 +49,6 @@ export default async function DashboardPage() {
     .select("*", { count: "exact", head: true })
     .eq("created_by", user.id)
 
-  const { data: followUps } = await supabase
-    .from("contacts")
-    .select("*")
-    .eq("created_by", user.id)
-    .eq("follow_up_needed", true)
-    .order("created_at", { ascending: false })
-    .limit(5)
-
   const { data: allContacts } = await supabase
     .from("contacts")
     .select("*")
@@ -69,10 +61,83 @@ export default async function DashboardPage() {
     health: calculateHealthScore(c.last_contact_date, c.created_at),
   }))
 
-  // Contacts going cold (orange or red)
-  const goingCold = contactsWithHealth.filter(
-    (c) => c.health.level === "orange" || c.health.level === "red"
-  )
+  // --- Reach Out Today: unified prioritized list ---
+  const now = Date.now()
+  const daysSince = (dateStr: string | null, fallback: string) => {
+    const ref = dateStr || fallback
+    return Math.floor((now - new Date(ref).getTime()) / (1000 * 60 * 60 * 24))
+  }
+
+  const formatDaysAgo = (days: number): string => {
+    if (days <= 0) return "Today"
+    if (days === 1) return "Yesterday"
+    if (days < 30) return `${days} days ago`
+    const months = Math.floor(days / 30)
+    return months === 1 ? "1 month ago" : `${months} months ago`
+  }
+
+  // Priority 1: follow_up_needed contacts, oldest last_contact_date first
+  const followUpContacts: ReachOutContact[] = contactsWithHealth
+    .filter((c) => c.follow_up_needed)
+    .sort((a, b) => {
+      const aDate = new Date(a.last_contact_date || a.created_at).getTime()
+      const bDate = new Date(b.last_contact_date || b.created_at).getTime()
+      return aDate - bDate
+    })
+    .map((c) => ({ ...c, reason: "Follow-up needed" }))
+
+  // Priority 2: orange or red health, oldest first (exclude already in follow-ups)
+  const followUpIds = new Set(followUpContacts.map((c) => c.id))
+  const coldContacts: ReachOutContact[] = contactsWithHealth
+    .filter((c) => !followUpIds.has(c.id) && (c.health.level === "orange" || c.health.level === "red"))
+    .sort((a, b) => {
+      const aDate = new Date(a.last_contact_date || a.created_at).getTime()
+      const bDate = new Date(b.last_contact_date || b.created_at).getTime()
+      return aDate - bDate
+    })
+    .map((c) => ({
+      ...c,
+      reason: formatDaysAgo(daysSince(c.last_contact_date, c.created_at)),
+    }))
+
+  // Combine priority 1 + 2
+  let reachOutContacts = [...followUpContacts, ...coldContacts]
+
+  // Priority 3: yellow + 45+ days, only if list < 5
+  if (reachOutContacts.length < 5) {
+    const existingIds = new Set(reachOutContacts.map((c) => c.id))
+    const coolingContacts: ReachOutContact[] = contactsWithHealth
+      .filter((c) => {
+        if (existingIds.has(c.id)) return false
+        if (c.health.level !== "yellow") return false
+        return daysSince(c.last_contact_date, c.created_at) >= 45
+      })
+      .sort((a, b) => {
+        const aDate = new Date(a.last_contact_date || a.created_at).getTime()
+        const bDate = new Date(b.last_contact_date || b.created_at).getTime()
+        return aDate - bDate
+      })
+      .map((c) => ({
+        ...c,
+        reason: formatDaysAgo(daysSince(c.last_contact_date, c.created_at)),
+      }))
+    reachOutContacts = [...reachOutContacts, ...coolingContacts]
+  }
+
+  const reachOutTotal = reachOutContacts.length
+  const reachOutCapped = reachOutContacts.slice(0, 8)
+
+  // --- New in Your Network: added in last 7 days, not yet followed up ---
+  const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000
+  const newContacts = contactsWithHealth
+    .filter((c) => {
+      const createdAt = new Date(c.created_at).getTime()
+      if (createdAt < sevenDaysAgo) return false
+      // Not yet followed up: last_contact_date is null or equals created_at
+      if (!c.last_contact_date) return true
+      return c.last_contact_date === c.created_at
+    })
+    .slice(0, 4)
 
   const recentContacts = contactsWithHealth.slice(0, 6)
   const isEmpty = (allContacts || []).length === 0
@@ -200,11 +265,11 @@ export default async function DashboardPage() {
 
         <Card className="shadow-refined">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Follow-ups</CardTitle>
-            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">Reach Out</CardTitle>
+            <HandHeart className="h-4 w-4 text-[var(--copper)]" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-normal whitespace-nowrap">{followUps?.length || 0}</div>
+            <div className="text-3xl font-normal whitespace-nowrap">{reachOutTotal}</div>
             <p className="text-sm text-muted-foreground mt-1">
               need attention
             </p>
@@ -217,7 +282,9 @@ export default async function DashboardPage() {
             <ThermometerSnowflake className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-normal whitespace-nowrap">{goingCold.length}</div>
+            <div className="text-3xl font-normal whitespace-nowrap">
+              {contactsWithHealth.filter((c) => c.health.level === "orange" || c.health.level === "red").length}
+            </div>
             <p className="text-sm text-muted-foreground mt-1">
               going cold
             </p>
@@ -250,59 +317,13 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      {/* Going Cold Alert */}
-      {goingCold.length > 0 && (
-        <Card className="shadow-refined border-red-200 dark:border-red-900/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3 text-lg font-normal">
-              <div className="h-8 w-8 rounded-lg bg-red-500/10 flex items-center justify-center">
-                <ThermometerSnowflake className="h-4 w-4 text-red-500" />
-              </div>
-              Relationships Going Cold
-              <span className="inline-flex items-center rounded-full bg-red-500 px-2.5 py-0.5 text-xs font-semibold text-white">
-                {goingCold.length}
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            {goingCold.slice(0, 5).map((contact) => (
-              <Link
-                key={contact.id}
-                href={`/contact/${contact.id}`}
-                className="flex items-center justify-between p-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/10 transition-all group"
-              >
-                <div className="min-w-0 flex-1">
-                  <span className="font-medium group-hover:text-[var(--copper)] transition-colors flex items-center gap-2">
-                    {contact.name || "Unknown Contact"}
-                    <HealthBadge health={contact.health} />
-                  </span>
-                  <p className="text-sm text-muted-foreground">
-                    {contact.company || ""}
-                    {contact.last_contact_date
-                      ? ` \u00B7 Last contact: ${new Date(contact.last_contact_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-                      : " \u00B7 Never contacted"}
-                  </p>
-                </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-              </Link>
-            ))}
-            {goingCold.length > 5 && (
-              <div className="pt-2 text-center">
-                <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
-                  <Link href="/contacts">View all {goingCold.length} cold contacts</Link>
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* New in Your Network */}
+      {newContacts.length > 0 && (
+        <NewRelationships contacts={newContacts} />
       )}
 
-      {/* Follow-ups */}
-      {followUps && followUps.length > 0 && (
-        <div>
-          <FollowUpList contacts={followUps as Contact[]} />
-        </div>
-      )}
+      {/* Reach Out Today */}
+      <ReachOutList contacts={reachOutCapped} plan={plan} total={reachOutTotal} />
 
       {/* Recent Contacts */}
       <div className="space-y-4">

@@ -71,11 +71,14 @@ export function isValidUUID(id: string): boolean {
 
 export function sanitizeForPrompt(text: string | null | undefined, maxLength: number = 300): string {
   if (!text) return "None"
-  return text
+  const cleaned = text
     .slice(0, maxLength)
     .replace(/```/g, "")
     .replace(/\bsystem\b\s*:/gi, "")
     .replace(/\b(ignore|disregard|forget)\b\s+(all\s+)?(previous|above|prior)\b/gi, "[filtered]")
+    .replace(/<\/?[a-z_]+>/gi, "") // strip XML/HTML tags to prevent delimiter escape
+    .replace(/\b(IMPORTANT|INSTRUCTION|RULE|OVERRIDE)\s*:/gi, "[filtered]")
+  return `<user_data>${cleaned}</user_data>`
 }
 
 // ─── Dev endpoint secret verification ───

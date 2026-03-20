@@ -64,7 +64,15 @@ const cronLimiter = () =>
     prefix: "rl:cron",
   })
 
-export type RateLimitType = "general" | "create" | "search" | "import" | "auth" | "cron"
+// AI/LLM: 5 per minute (OpenAI calls are expensive)
+const aiLimiter = () =>
+  new Ratelimit({
+    redis: getRedis(),
+    limiter: Ratelimit.slidingWindow(5, "1 m"),
+    prefix: "rl:ai",
+  })
+
+export type RateLimitType = "general" | "create" | "search" | "import" | "auth" | "cron" | "ai"
 
 const limiters: Record<RateLimitType, () => Ratelimit> = {
   general: generalLimiter,
@@ -73,6 +81,7 @@ const limiters: Record<RateLimitType, () => Ratelimit> = {
   import: importLimiter,
   auth: authLimiter,
   cron: cronLimiter,
+  ai: aiLimiter,
 }
 
 export interface RateLimitResult {

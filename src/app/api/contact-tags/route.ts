@@ -19,10 +19,22 @@ export async function GET(request: Request) {
       return NextResponse.json({ contactTags: [] })
     }
 
+    // Verify all contacts belong to the authenticated user
+    const { data: ownedContacts } = await supabase
+      .from("contacts")
+      .select("id")
+      .in("id", contactIds)
+      .eq("created_by", auth.user.id)
+
+    const ownedIds = (ownedContacts || []).map((c) => c.id)
+    if (ownedIds.length === 0) {
+      return NextResponse.json({ contactTags: [] })
+    }
+
     const { data: contactTags, error } = await supabase
       .from("contact_tags")
       .select("contact_id, tag_id")
-      .in("contact_id", contactIds)
+      .in("contact_id", ownedIds)
 
     if (error) {
       console.error("Error fetching contact tags:", error)

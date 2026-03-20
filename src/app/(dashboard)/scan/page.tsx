@@ -51,6 +51,12 @@ export default function ScanPage() {
     setImportedContact(null)
 
     try {
+      // Request camera permission explicitly first
+      await navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+        // Stop the stream immediately — we just needed the permission grant
+        stream.getTracks().forEach((track) => track.stop())
+      })
+
       const { Html5Qrcode } = await import("html5-qrcode")
       const scanner = new Html5Qrcode("qr-reader")
       html5QrCodeRef.current = scanner
@@ -70,9 +76,9 @@ export default function ScanPage() {
         },
         () => {} // ignore scan failures (happens every frame without a QR)
       )
-    } catch (err) {
+    } catch {
       setIsScanning(false)
-      setError("Camera access denied. Please allow camera access or paste the URL manually.")
+      setError("Camera access was blocked. Please allow camera access in your browser settings, then try again — or paste the URL below.")
     }
   }
 

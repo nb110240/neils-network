@@ -27,9 +27,21 @@ export async function POST(request: Request) {
       return badRequestResponse("LinkedIn URL is required")
     }
 
-    // Validate it's actually a LinkedIn URL
-    const linkedinRegex = /^https?:\/\/(www\.)?linkedin\.com\/in\/[\w-]+\/?$/i
-    if (!linkedinRegex.test(url.trim())) {
+    // Validate it's actually a LinkedIn URL (strip tracking params first)
+    let cleanUrl = url.trim()
+    try {
+      const parsed = new URL(cleanUrl)
+      if (!parsed.hostname.match(/^(www\.)?linkedin\.com$/i)) {
+        return badRequestResponse("Please enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/johndoe)")
+      }
+      // Strip query params and hash — keep only the path
+      cleanUrl = `${parsed.origin}${parsed.pathname}`.replace(/\/+$/, "")
+    } catch {
+      return badRequestResponse("Please enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/johndoe)")
+    }
+
+    const linkedinRegex = /^https?:\/\/(www\.)?linkedin\.com\/in\/[\w-]+$/i
+    if (!linkedinRegex.test(cleanUrl)) {
       return badRequestResponse("Please enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/johndoe)")
     }
 
@@ -38,7 +50,7 @@ export async function POST(request: Request) {
       .from("contacts")
       .select("id")
       .eq("created_by", user.id)
-      .ilike("website", `%${url.trim().replace(/\/$/, "")}%`)
+      .ilike("website", `%${cleanUrl.replace(/\/$/, "")}%`)
       .single()
 
     if (existing) {
@@ -49,7 +61,7 @@ export async function POST(request: Request) {
     }
 
     // Extract name from LinkedIn URL slug
-    const slug = url.trim().replace(/\/$/, "").split("/").pop() || ""
+    const slug = cleanUrl.replace(/\/$/, "").split("/").pop() || ""
     const nameParts = slug
       .replace(/-\d+$/, "") // remove trailing numbers like -123
       .split("-")
@@ -67,7 +79,7 @@ export async function POST(request: Request) {
     if (note && typeof note === "string" && note.trim().length > 3) {
       try {
         const { extractContactInfo } = await import("@/lib/extract-contact")
-        const extracted = await extractContactInfo(`${extractedName} - LinkedIn: ${url}\n${note}`)
+        const extracted = await extractContactInfo(`${extractedName} - LinkedIn: ${cleanUrl}\n${note}`)
         name = (extracted.name as string) || extractedName
         company = extracted.company as string | null
         jobTitle = extracted.job_title as string | null
@@ -80,16 +92,17 @@ export async function POST(request: Request) {
     }
 
     const rawNote = [
-      `Added from LinkedIn: ${url.trim()}`,
+      `Added from LinkedIn: ${cleanUrl}`,
       name || extractedName,
       company ? `at ${company}` : null,
       note ? `\nNote: ${note}` : null,
     ].filter(Boolean).join(" ")
 
-    // Broader dedup check (name, email, phone, company)
+    // Broader dedup check (name, email, phone, company, LinkedIn URL)
     const duplicates = (await findDuplicates(supabase, user.id, {
       name,
       company,
+      website: cleanUrl,
     })).filter((d) => d.score >= 0.6)
 
     // Generate embedding using centralized utility
@@ -109,7 +122,7 @@ export async function POST(request: Request) {
         name,
         company,
         job_title: jobTitle,
-        website: url.trim(),
+        website: cleanUrl,
         how_we_met: howWeMet,
         next_steps: nextSteps,
         follow_up_needed: followUpNeeded,

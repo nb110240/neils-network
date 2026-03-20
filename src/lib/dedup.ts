@@ -25,6 +25,15 @@ function normalizePhone(phone: string): string {
  * Find potential duplicate contacts for the given fields among the user's
  * active (non-archived) contacts. Returns matches sorted by score descending.
  */
+/**
+ * Extract the LinkedIn username slug from a URL for comparison.
+ */
+function extractLinkedInSlug(url: string | null): string | null {
+  if (!url) return null
+  const match = url.match(/linkedin\.com\/in\/([\w-]+)/i)
+  return match ? match[1].toLowerCase() : null
+}
+
 export async function findDuplicates(
   supabase: SupabaseClient,
   userId: string,
@@ -33,6 +42,7 @@ export async function findDuplicates(
     email?: string | null
     phone?: string | null
     company?: string | null
+    website?: string | null
   }
 ): Promise<DuplicateMatch[]> {
   // Fetch all active contacts for this user (single query)
@@ -56,6 +66,16 @@ export async function findDuplicates(
   for (const contact of contacts as Contact[]) {
     let bestScore = 0
     let bestReason = ""
+
+    // Same LinkedIn profile → 1.0
+    const inputLinkedIn = extractLinkedInSlug(fields.website || null)
+    if (inputLinkedIn && contact.website) {
+      const existingLinkedIn = extractLinkedInSlug(contact.website)
+      if (existingLinkedIn && inputLinkedIn === existingLinkedIn) {
+        bestScore = 1.0
+        bestReason = "Same LinkedIn profile"
+      }
+    }
 
     // Exact email match → 1.0
     if (inputEmail && contact.email) {

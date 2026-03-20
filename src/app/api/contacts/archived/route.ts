@@ -13,6 +13,7 @@ export async function GET() {
       .eq("created_by", user.id)
       .not("archived_at", "is", null)
       .order("archived_at", { ascending: false })
+      .limit(200)
 
     if (error) {
       console.error("Error fetching archived contacts:", error)

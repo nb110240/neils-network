@@ -17,9 +17,10 @@ interface DraftMessageButtonProps {
   contactId: string
   contactName: string
   plan: string
+  variant?: "full" | "icon"
 }
 
-export function DraftMessageButton({ contactId, contactName, plan }: DraftMessageButtonProps) {
+export function DraftMessageButton({ contactId, contactName, plan, variant = "full" }: DraftMessageButtonProps) {
   const { addToast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -64,6 +65,15 @@ export function DraftMessageButton({ contactId, contactName, plan }: DraftMessag
   }
 
   if (plan === "free") {
+    if (variant === "icon") {
+      return (
+        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+          <Link href={`/contact/${contactId}`}>
+            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+          </Link>
+        </Button>
+      )
+    }
     return (
       <div className="flex gap-2">
         <Button variant="outline" size="sm" asChild>
@@ -74,6 +84,69 @@ export function DraftMessageButton({ contactId, contactName, plan }: DraftMessag
           </Link>
         </Button>
       </div>
+    )
+  }
+
+  if (variant === "icon") {
+    return (
+      <>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-[var(--copper)] hover:bg-[var(--copper)]/10"
+          onClick={() => generateDraft("followup")}
+        >
+          <MessageSquare className="h-4 w-4" />
+        </Button>
+
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogContent className="sm:max-w-lg max-w-[calc(100vw-2rem)]">
+            <DialogHeader>
+              <DialogTitle>
+                {draftType === "meeting"
+                  ? `Meeting request for ${contactName}`
+                  : `Follow-up for ${contactName}`}
+              </DialogTitle>
+            </DialogHeader>
+
+            {isLoading ? (
+              <div className="flex flex-col items-center py-8">
+                <Loader2 className="h-6 w-6 text-[var(--copper)] animate-spin mb-3" />
+                <p className="text-sm text-muted-foreground">Drafting your message...</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl bg-muted/50 text-sm leading-relaxed whitespace-pre-wrap">
+                  {draft}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Edit as needed, then copy and send via email, LinkedIn, or text.
+                </p>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsOpen(false)}>
+                Close
+              </Button>
+              {draft && (
+                <>
+                  <Button variant="outline" onClick={() => generateDraft(draftType)}>
+                    Regenerate
+                  </Button>
+                  <Button onClick={copyToClipboard} className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0">
+                    {copied ? (
+                      <><Check className="mr-2 h-4 w-4" /> Copied</>
+                    ) : (
+                      <><Copy className="mr-2 h-4 w-4" /> Copy Message</>
+                    )}
+                  </Button>
+                </>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
     )
   }
 

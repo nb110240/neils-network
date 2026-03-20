@@ -119,6 +119,30 @@ export async function POST(request: Request) {
       })
       break
     }
+
+    case "invoice.payment_failed": {
+      const invoice = event.data.object as unknown as { subscription: string; customer: string; attempt_count: number }
+      log("error", "Payment failed", {
+        action: "stripe.payment_failed",
+        route: "/api/stripe/webhook",
+        subscriptionId: invoice.subscription,
+        customerId: invoice.customer,
+        attemptCount: invoice.attempt_count,
+      })
+      // After 3 failed attempts, downgrade to free
+      if (invoice.attempt_count >= 3 && invoice.subscription) {
+        await supabase
+          .from("subscriptions")
+          .update({ status: "past_due", plan: "free" })
+          .eq("stripe_subscription_id", invoice.subscription)
+        log("info", "Downgraded to free after 3 failed payment attempts", {
+          action: "stripe.auto_downgrade",
+          route: "/api/stripe/webhook",
+          subscriptionId: invoice.subscription,
+        })
+      }
+      break
+    }
   }
 
   return NextResponse.json({ received: true })

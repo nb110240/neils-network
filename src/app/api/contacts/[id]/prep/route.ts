@@ -15,7 +15,7 @@ export async function POST(
       return badRequestResponse("Invalid contact ID")
     }
 
-    const auth = await authenticateRequest("general")
+    const auth = await authenticateRequest("ai")
     if (authFailed(auth)) return auth.error
     const { user, supabase } = auth
 

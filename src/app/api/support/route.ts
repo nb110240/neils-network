@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { authenticateRequest, authFailed, badRequestResponse, errorResponse } from "@/lib/api-utils"
 import { Resend } from "resend"
+import { escapeHtml, emailLayout } from "@/lib/email"
 
 export async function POST(request: Request) {
   try {
@@ -21,25 +22,31 @@ export async function POST(request: Request) {
     const resendKey = process.env.RESEND_API_KEY
     if (resendKey) {
       const resend = new Resend(resendKey)
+
+      const body = `
+        <p style="font-size:16px;font-weight:600;color:#1c1917;margin:0 0 16px">New Support Message</p>
+        <div style="padding:16px;border:1px solid #e7e5e4;border-radius:12px;background:white;margin-bottom:16px">
+          <table style="width:100%;border-collapse:collapse;font-size:14px">
+            <tr><td style="padding:8px 0;color:#78716c;width:80px">From</td><td style="padding:8px 0">${escapeHtml(user.email || "")}</td></tr>
+            <tr><td style="padding:8px 0;color:#78716c">User ID</td><td style="padding:8px 0;font-family:monospace;font-size:12px">${user.id}</td></tr>
+            <tr><td style="padding:8px 0;color:#78716c">Topic</td><td style="padding:8px 0">${escapeHtml(subject)}</td></tr>
+          </table>
+        </div>
+        <div style="padding:16px;background:white;border:1px solid #e7e5e4;border-radius:12px;font-size:14px;line-height:1.6;white-space:pre-wrap">${escapeHtml(message)}</div>
+      `
+
       await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL || "Savvo <support@savvo.app>",
         to: "neilbajaj72@gmail.com",
         subject: `[Savvo Support] ${subject}`,
-        html: `
-          <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:520px;padding:24px">
-            <h2 style="font-size:18px;color:#1c1917;margin:0 0 16px">New Support Message</h2>
-            <table style="width:100%;border-collapse:collapse;font-size:14px">
-              <tr><td style="padding:8px 0;color:#78716c;width:80px">From</td><td style="padding:8px 0">${user.email}</td></tr>
-              <tr><td style="padding:8px 0;color:#78716c">User ID</td><td style="padding:8px 0;font-family:monospace;font-size:12px">${user.id}</td></tr>
-              <tr><td style="padding:8px 0;color:#78716c">Topic</td><td style="padding:8px 0">${subject}</td></tr>
-            </table>
-            <div style="margin-top:16px;padding:16px;background:#faf9f7;border-radius:8px;font-size:14px;line-height:1.6;white-space:pre-wrap">${message.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
-          </div>
-        `,
+        html: emailLayout({
+          subtitle: "Support Message",
+          body,
+          showUnsubscribe: false,
+        }),
         replyTo: user.email || undefined,
       })
     } else {
-      // Fallback: log to console if Resend not configured
       console.log("SUPPORT MESSAGE:", { from: user.email, subject, message })
     }
 

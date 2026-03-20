@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { Resend } from "resend"
+import { escapeHtml, emailLayout } from "@/lib/email"
 
 let _resend: Resend | null = null
 
@@ -8,15 +9,6 @@ function getResend(): Resend {
     _resend = new Resend(process.env.RESEND_API_KEY)
   }
   return _resend
-}
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;")
 }
 
 export async function POST(request: Request) {
@@ -36,47 +28,59 @@ export async function POST(request: Request) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
     const userName = name || "there"
 
+    const body = `
+      <p style="margin:0 0 4px">Hey ${escapeHtml(userName)},</p>
+      <p style="color:#44403c;margin:0 0 24px">
+        Welcome to Savvo! Here's how to get the most out of it:
+      </p>
+
+      <div style="padding:16px 18px;border:1px solid #e7e5e4;border-radius:12px;margin-bottom:12px;background:white">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#c2410c;color:white;font-size:12px;font-weight:600;flex-shrink:0">1</span>
+          <strong style="font-size:14px;color:#1c1917">Add your first contact</strong>
+        </div>
+        <p style="color:#78716c;font-size:13px;margin:0;padding-left:34px">
+          Paste your meeting notes and we'll extract name, company, role, and context automatically.
+        </p>
+      </div>
+
+      <div style="padding:16px 18px;border:1px solid #e7e5e4;border-radius:12px;margin-bottom:12px;background:white">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#c2410c;color:white;font-size:12px;font-weight:600;flex-shrink:0">2</span>
+          <strong style="font-size:14px;color:#1c1917">Watch your health scores</strong>
+        </div>
+        <p style="color:#78716c;font-size:13px;margin:0;padding-left:34px">
+          Every contact gets a health score. Green means active, red means going cold. We'll nudge you before relationships drift.
+        </p>
+      </div>
+
+      <div style="padding:16px 18px;border:1px solid #e7e5e4;border-radius:12px;margin-bottom:12px;background:white">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#c2410c;color:white;font-size:12px;font-weight:600;flex-shrink:0">3</span>
+          <strong style="font-size:14px;color:#1c1917">Search by context</strong>
+        </div>
+        <p style="color:#78716c;font-size:13px;margin:0;padding-left:34px">
+          "Who was that person at the fintech conference?" — search your network by what you remember, not just names.
+        </p>
+      </div>
+
+      <div style="text-align:center;margin-top:28px">
+        <a href="${appUrl}/add" style="display:inline-block;padding:12px 32px;background:#c2410c;color:white;text-decoration:none;border-radius:8px;font-size:14px;font-weight:500">
+          Add your first contact
+        </a>
+      </div>
+    `
+
     await getResend().emails.send({
       from: process.env.RESEND_FROM_EMAIL || "Savvo <hello@savvo.app>",
       to: email,
       subject: "Welcome to Savvo",
-      html: `
-        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px">
-          <div style="text-align:center;margin-bottom:24px">
-            <h1 style="font-size:22px;font-weight:600;color:#1c1917;margin:0">Savvo</h1>
-            <p style="color:#78716c;margin:4px 0 0;font-size:14px">Keep every connection alive.</p>
-          </div>
-          <p style="font-size:15px;color:#1c1917">Hey ${escapeHtml(userName)},</p>
-          <p style="font-size:15px;color:#44403c;line-height:1.6">
-            Welcome to Savvo! Here's how to get started:
-          </p>
-          <div style="margin:20px 0">
-            <div style="padding:14px 16px;border:1px solid #e7e5e4;border-radius:12px;margin-bottom:10px">
-              <strong style="font-size:14px;color:#1c1917">1. Add your first contact</strong>
-              <p style="color:#78716c;font-size:13px;margin:4px 0 0">
-                Paste your meeting notes and we'll extract everything automatically.
-              </p>
-            </div>
-            <div style="padding:14px 16px;border:1px solid #e7e5e4;border-radius:12px;margin-bottom:10px">
-              <strong style="font-size:14px;color:#1c1917">2. Try semantic search</strong>
-              <p style="color:#78716c;font-size:13px;margin:4px 0 0">
-                Search your network by context, not just names.
-              </p>
-            </div>
-            <div style="padding:14px 16px;border:1px solid #e7e5e4;border-radius:12px">
-              <strong style="font-size:14px;color:#1c1917">3. Check your health scores</strong>
-              <p style="color:#78716c;font-size:13px;margin:4px 0 0">
-                We'll track your relationships and nudge you when someone's going cold.
-              </p>
-            </div>
-          </div>
-          <div style="text-align:center;margin-top:24px">
-            <a href="${appUrl}/dashboard" style="display:inline-block;padding:10px 28px;background:#c2410c;color:white;text-decoration:none;border-radius:8px;font-size:14px;font-weight:500">
-              Open Savvo
-            </a>
-          </div>
-        </div>
-      `,
+      html: emailLayout({
+        subtitle: "Keep every connection alive",
+        body,
+        appUrl,
+        showUnsubscribe: false,
+      }),
     })
 
     return NextResponse.json({ success: true })

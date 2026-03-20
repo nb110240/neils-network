@@ -151,34 +151,74 @@ export async function sendDigestEmail(
     ? "Your weekly relationship check-in"
     : "Your daily relationship check-in"
 
+  const bodyContent = `
+    <p style="margin:0 0 4px">Hey ${escapeHtml(userName)},</p>
+    <p style="color:#44403c;margin:0 0 20px">These relationships could use some attention:</p>
+    ${networkSummary}
+    ${contactRows}
+    ${upgradeCta}
+  `
+
   await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL || "Savvo <digest@savvo.app>",
     to,
     subject: subjectLine,
-    html: `
-      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px">
-        <div style="text-align:center;margin-bottom:24px">
-          <h1 style="font-size:22px;font-weight:600;color:#1c1917;margin:0">Savvo</h1>
-          <p style="color:#78716c;margin:4px 0 0;font-size:14px">${subtitleText}</p>
-        </div>
-        <p style="font-size:15px;color:#1c1917">Hey ${escapeHtml(userName)},</p>
-        <p style="font-size:15px;color:#44403c">These relationships could use some attention:</p>
-        ${networkSummary}
-        ${contactRows}
-        ${upgradeCta}
-        <p style="font-size:13px;color:#a8a29e;text-align:center;margin-top:24px">
-          <a href="${appUrl}/settings" style="color:#a8a29e">Manage email preferences</a> · <a href="${appUrl}/dashboard" style="color:#c2410c">Open Savvo</a>
-        </p>
-      </div>
-    `,
+    html: emailLayout({
+      subtitle: subtitleText,
+      body: bodyContent,
+      appUrl,
+    }),
   })
 }
 
-function escapeHtml(str: string): string {
+export function escapeHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;")
+}
+
+/**
+ * Shared branded email layout for all Savvo emails.
+ * Wraps content in a consistent header, body, and footer.
+ */
+export function emailLayout(options: {
+  subtitle?: string
+  body: string
+  appUrl?: string
+  showUnsubscribe?: boolean
+}): string {
+  const appUrl = options.appUrl || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#faf9f7">
+  <div style="max-width:560px;margin:0 auto;padding:32px 16px">
+    <!-- Header -->
+    <div style="text-align:center;padding:24px 0 20px;border-bottom:1px solid #e7e5e4;margin-bottom:24px">
+      <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:26px;font-weight:400;color:#c2410c;margin:0;letter-spacing:0.5px">Savvo</h1>
+      ${options.subtitle ? `<p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#78716c;margin:6px 0 0;font-size:13px;letter-spacing:0.3px">${options.subtitle}</p>` : ""}
+    </div>
+
+    <!-- Body -->
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1c1917;font-size:15px;line-height:1.6">
+      ${options.body}
+    </div>
+
+    <!-- Footer -->
+    <div style="border-top:1px solid #e7e5e4;margin-top:32px;padding-top:20px;text-align:center">
+      <p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:12px;color:#a8a29e;margin:0">
+        <a href="${appUrl}/dashboard" style="color:#c2410c;text-decoration:none;font-weight:500">Open Savvo</a>
+        ${options.showUnsubscribe !== false ? ` · <a href="${appUrl}/settings" style="color:#a8a29e;text-decoration:none">Email preferences</a>` : ""}
+      </p>
+      <p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:11px;color:#d6d3d1;margin:8px 0 0">
+        Savvo · Your network is your net worth
+      </p>
+    </div>
+  </div>
+</body>
+</html>`
 }

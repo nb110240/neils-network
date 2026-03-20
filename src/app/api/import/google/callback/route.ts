@@ -40,11 +40,17 @@ export async function GET(request: Request) {
 
     const tokens = await tokenRes.json()
 
-    // Redirect to import page with access token as a short-lived query param
-    // The import page will use this token to fetch and preview contacts
-    return NextResponse.redirect(
-      `${appUrl}/import?google=ready&token=${encodeURIComponent(tokens.access_token)}`
-    )
+    // Store the access token in a secure httpOnly cookie — never expose in URL
+    const response = NextResponse.redirect(`${appUrl}/import?google=ready`)
+    response.cookies.set("google_import_token", tokens.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 300, // 5 minutes — token is short-lived
+    })
+
+    return response
   } catch (err) {
     console.error("Google import callback error:", err)
     return NextResponse.redirect(`${appUrl}/import?google=error`)

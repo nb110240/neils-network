@@ -45,7 +45,7 @@ export default function ImportPage() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [mode, setMode] = useState<"choose" | "csv" | "gmail">("choose")
-  const [googleToken, setGoogleToken] = useState<string | null>(null)
+  const [googleReady, setGoogleReady] = useState(false)
   const [googleContacts, setGoogleContacts] = useState<{ name: string; email: string | null; company: string | null }[]>([])
   const [isGoogleImporting, setIsGoogleImporting] = useState(false)
   const [googleImportedCount, setGoogleImportedCount] = useState(0)
@@ -58,48 +58,30 @@ export default function ImportPage() {
   const [importedCount, setImportedCount] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
 
-  // Handle Google OAuth callback
+  // Handle Google OAuth callback — token is in httpOnly cookie, not URL
   useEffect(() => {
     const googleStatus = searchParams.get("google")
-    const token = searchParams.get("token")
 
     if (googleStatus === "error") {
       addToast({ title: "Google Import Failed", description: "Could not connect to Google. Please try again.", variant: "destructive" })
-    } else if (googleStatus === "ready" && token) {
-      setGoogleToken(token)
+    } else if (googleStatus === "ready") {
+      setGoogleReady(true)
       setMode("gmail")
-      // Auto-fetch Google Contacts
-      fetch("https://people.googleapis.com/v1/people/me/connections?" + new URLSearchParams({
-        personFields: "names,emailAddresses,organizations",
-        pageSize: "500",
-      }), { headers: { Authorization: `Bearer ${token}` } })
-        .then((res) => res.ok ? res.json() : Promise.reject("Failed to fetch"))
-        .then((data) => {
-          const contacts = (data.connections || [])
-            .map((p: { names?: { displayName: string }[]; emailAddresses?: { value: string }[]; organizations?: { name: string }[] }) => ({
-              name: p.names?.[0]?.displayName || null,
-              email: p.emailAddresses?.[0]?.value || null,
-              company: p.organizations?.[0]?.name || null,
-            }))
-            .filter((c: { name: string | null }) => c.name)
-          setGoogleContacts(contacts)
-        })
-        .catch(() => addToast({ title: "Error", description: "Failed to load Google Contacts", variant: "destructive" }))
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleGoogleImportContacts = async () => {
-    if (!googleToken) return
     setIsGoogleImporting(true)
     try {
+      // Token is read from httpOnly cookie server-side — never exposed to client
       const res = await fetch("/api/import/google", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accessToken: googleToken }),
+        body: JSON.stringify({}),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.message)
+      if (!res.ok) throw new Error(data.error || data.message)
       setGoogleImportedCount(data.imported)
       setStep("done")
     } catch (error) {
@@ -254,32 +236,20 @@ export default function ImportPage() {
         </div>
       )}
 
-      {/* Google Contacts preview */}
-      {mode === "gmail" && googleContacts.length > 0 && step !== "done" && (
+      {/* Google Contacts import confirmation */}
+      {mode === "gmail" && googleReady && step !== "done" && (
         <Card className="glass shadow-refined animate-fade-in">
           <CardHeader>
             <CardTitle className="text-lg font-normal">
-              Google Contacts ({googleContacts.length} found)
+              Google Contacts Ready
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="max-h-64 overflow-y-auto space-y-1 rounded-lg border p-2">
-              {googleContacts.slice(0, 20).map((c, i) => (
-                <div key={i} className="flex items-center justify-between px-3 py-2 rounded hover:bg-muted/50 text-sm">
-                  <span className="font-medium">{c.name}</span>
-                  <span className="text-muted-foreground text-xs">
-                    {[c.company, c.email].filter(Boolean).join(" \u00B7 ")}
-                  </span>
-                </div>
-              ))}
-              {googleContacts.length > 20 && (
-                <p className="text-xs text-muted-foreground text-center py-2">
-                  and {googleContacts.length - 20} more...
-                </p>
-              )}
-            </div>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Your Google account is connected. Click import to bring your contacts into Savvo.
+            </p>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => { setMode("choose"); setGoogleContacts([]) }}>
+              <Button variant="outline" onClick={() => { setMode("choose"); setGoogleReady(false) }}>
                 Cancel
               </Button>
               <Button
@@ -288,7 +258,7 @@ export default function ImportPage() {
                 disabled={isGoogleImporting}
               >
                 {isGoogleImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                Import {googleContacts.length} Contacts
+                Import Contacts
               </Button>
             </div>
           </CardContent>

@@ -29,6 +29,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [signUpSent, setSignUpSent] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -136,16 +137,23 @@ export default function LoginPage() {
                 try {
                   await supabase.auth.resend({ type: "signup", email })
                   addToast({ title: "Email resent", description: "Check your inbox for the confirmation link." })
+                  setResendCooldown(60)
+                  const interval = setInterval(() => {
+                    setResendCooldown((prev) => {
+                      if (prev <= 1) { clearInterval(interval); return 0 }
+                      return prev - 1
+                    })
+                  }, 1000)
                 } catch {
                   addToast({ title: "Error", description: "Failed to resend email", variant: "destructive" })
                 } finally {
                   setIsLoading(false)
                 }
               }}
-              disabled={isLoading}
+              disabled={isLoading || resendCooldown > 0}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Resend verification email
+              {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend verification email"}
             </Button>
             <button
               type="button"

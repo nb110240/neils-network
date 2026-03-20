@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { cookies } from "next/headers"
 import { authenticateRequest, authFailed, badRequestResponse, forbiddenResponse, errorResponse } from "@/lib/api-utils"
 import { getUserPlan, getPlanLimits } from "@/lib/subscription"
 
@@ -45,11 +46,18 @@ export async function POST(request: Request) {
     if (authFailed(auth)) return auth.error
     const { user, supabase } = auth
 
-    const { accessToken, selectedContacts } = await request.json()
-
+    // Read token from secure httpOnly cookie (set by callback route)
+    const cookieStore = await cookies()
+    const accessToken = cookieStore.get("google_import_token")?.value
     if (!accessToken) {
-      return badRequestResponse("Access token required")
+      return badRequestResponse("Google authorization expired. Please reconnect.")
     }
+
+    // Clear the token cookie after use (single-use)
+    cookieStore.delete("google_import_token")
+
+    const body = await request.json().catch(() => ({}))
+    const { selectedContacts } = body as { selectedContacts?: string[] }
 
     // Fetch contacts from Google People API
     const response = await fetch(

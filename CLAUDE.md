@@ -30,3 +30,26 @@ Startup founders, VCs, and professional networkers who meet many people weekly a
 4. **Relationship-first hierarchy.** People's names, health status, and context always dominate the visual hierarchy. Metadata (dates, IDs, technical details) stays quiet. The interface should feel like looking at your network, not a database.
 
 5. **Delight through speed.** Fast interactions are delightful interactions. Optimistic UI updates, instant navigation, staggered reveals that feel snappy not slow. The app should feel faster than the user expects.
+
+## Quality Gates
+
+Before shipping any feature:
+
+1. **`npx tsc --noEmit`** — must pass (runs automatically via post-edit hook)
+2. **`npx vitest run`** — all tests must pass
+3. **Test with real-world inputs** — e.g. LinkedIn URLs from "Share Profile", not hand-typed clean URLs
+4. **Check cross-feature conflicts** — if adding security headers, verify they don't break existing features (camera, iframes, etc.)
+5. **Write an integration test** for any new user-facing flow in `src/__tests__/integration/`
+
+Before deploying:
+
+6. **`npx next build`** — must pass (catches SSR issues like missing Suspense boundaries)
+7. **Run `.claude/hooks/post-deploy-smoke.sh`** after `vercel --prod` to verify the deploy
+
+## Testing
+
+- Run: `npx vitest run`
+- Test directory: `src/__tests__/`
+- Integration tests: `src/__tests__/integration/` — test real user flows with real-world inputs
+- When fixing a bug, write a regression test that reproduces the bug first
+- When adding a feature, write at least one integration test for the happy path

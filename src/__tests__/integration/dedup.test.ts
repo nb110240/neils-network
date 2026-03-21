@@ -3,8 +3,8 @@ import { describe, it, expect } from "vitest"
 // Mirror the LinkedIn slug extraction from dedup.ts
 function extractLinkedInSlug(url: string | null): string | null {
   if (!url) return null
-  const match = url.match(/linkedin\.com\/in\/([\w-]+)/i)
-  return match ? match[1].toLowerCase() : null
+  const match = url.match(/(?:\/\/|\.)(www\.)?linkedin\.com\/in\/([\w-]+)/i)
+  return match ? match[2].toLowerCase() : null
 }
 
 describe("Contact deduplication", () => {
@@ -30,6 +30,10 @@ describe("Contact deduplication", () => {
 
     it("handles company LinkedIn URLs (should not match /in/)", () => {
       expect(extractLinkedInSlug("https://linkedin.com/company/google")).toBeNull()
+    })
+
+    it("rejects domains that end with linkedin.com (e.g. notlinkedin.com)", () => {
+      expect(extractLinkedInSlug("https://notlinkedin.com/in/johndoe")).toBeNull()
     })
   })
 })

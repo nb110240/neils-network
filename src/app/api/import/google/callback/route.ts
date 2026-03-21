@@ -52,9 +52,9 @@ export async function GET(request: Request) {
 
     const tokens = await tokenRes.json()
 
-    // Store the access token in a secure httpOnly cookie — never expose in URL
+    // Store the access token in a secure httpOnly cookie bound to this user
     const response = NextResponse.redirect(`${appUrl}/import?google=ready`)
-    response.cookies.set("google_import_token", tokens.access_token, {
+    response.cookies.set("google_import_token", JSON.stringify({ token: tokens.access_token, userId: user.id }), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

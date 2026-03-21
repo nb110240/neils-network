@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Suspense } from "react"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/server"
-import { Contact } from "@/lib/types"
+import type { Contact } from "@/lib/types"
 import { calculateHealthScore } from "@/lib/health"
 import { getUserPlan } from "@/lib/subscription"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,7 +16,7 @@ import { UpgradeToast } from "@/components/upgrade-toast"
 import { EventModeBanner } from "@/components/event-mode-banner"
 import { StartEventButton } from "@/components/start-event-button"
 import { OnboardingBanner } from "@/components/onboarding-banner"
-import { Plus, Users, AlertCircle, ArrowRight, ThermometerSnowflake, Crown, Mail, HandHeart } from "lucide-react"
+import { Plus, Users, ArrowRight, ThermometerSnowflake, Crown, Mail, HandHeart } from "lucide-react"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -63,7 +63,7 @@ export default async function DashboardPage() {
   }))
 
   // --- Reach Out Today: unified prioritized list ---
-  const now = Date.now()
+  const now = new Date().getTime()
   const daysSince = (dateStr: string | null, fallback: string) => {
     const ref = dateStr || fallback
     return Math.floor((now - new Date(ref).getTime()) / (1000 * 60 * 60 * 24))
@@ -352,7 +352,7 @@ export default async function DashboardPage() {
         </div>
         {recentContacts && recentContacts.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {recentContacts.map((contact, index) => (
+            {recentContacts.map((contact) => (
               <div key={contact.id}>
                 <ContactCard contact={contact} />
               </div>

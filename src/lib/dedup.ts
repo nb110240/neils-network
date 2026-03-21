@@ -30,8 +30,8 @@ function normalizePhone(phone: string): string {
  */
 function extractLinkedInSlug(url: string | null): string | null {
   if (!url) return null
-  const match = url.match(/linkedin\.com\/in\/([\w-]+)/i)
-  return match ? match[1].toLowerCase() : null
+  const match = url.match(/(?:\/\/|\.)(www\.)?linkedin\.com\/in\/([\w-]+)/i)
+  return match ? match[2].toLowerCase() : null
 }
 
 export async function findDuplicates(

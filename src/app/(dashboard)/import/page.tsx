@@ -409,7 +409,7 @@ function ImportPageInner() {
               Embeddings are being generated in the background for semantic search
             </p>
             <div className="flex gap-3 mt-6">
-              <Button variant="outline" onClick={() => { setStep("upload"); setFile(null); setMode("choose") }}>
+              <Button variant="outline" onClick={() => { setStep("upload"); setFile(null); setMode("choose"); setImportedCount(0); setGoogleImportedCount(0) }}>
                 Import More
               </Button>
               <Button

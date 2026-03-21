@@ -61,9 +61,23 @@ export async function POST(request: Request) {
 
     // Read token from secure httpOnly cookie (set by callback route)
     const cookieStore = await cookies()
-    const accessToken = cookieStore.get("google_import_token")?.value
-    if (!accessToken) {
+    const tokenCookie = cookieStore.get("google_import_token")?.value
+    if (!tokenCookie) {
       return badRequestResponse("Google authorization expired. Please reconnect.")
+    }
+
+    // Verify the token belongs to the authenticated user (prevents shared-browser token reuse)
+    let accessToken: string
+    try {
+      const parsed = JSON.parse(tokenCookie)
+      if (parsed.userId !== user.id) {
+        cookieStore.delete("google_import_token")
+        return forbiddenResponse("Google authorization was for a different account. Please reconnect.")
+      }
+      accessToken = parsed.token
+    } catch {
+      cookieStore.delete("google_import_token")
+      return badRequestResponse("Invalid Google authorization. Please reconnect.")
     }
 
     // Clear the token cookie after use (single-use)

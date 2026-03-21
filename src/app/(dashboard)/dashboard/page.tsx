@@ -218,7 +218,7 @@ export default async function DashboardPage() {
       <EventModeBanner />
       {/* Onboarding banner for new users (1-4 contacts) */}
       {(totalContacts || 0) > 0 && (totalContacts || 0) < 5 && (
-        <OnboardingBanner contactCount={totalContacts || 0} />
+        <OnboardingBanner contactCount={totalContacts || 0} plan={plan} />
       )}
       {/* Contact limit warning for free users approaching 50 */}
       {plan === "free" && (totalContacts || 0) >= 45 && (
@@ -232,14 +232,14 @@ export default async function DashboardPage() {
         </div>
       )}
       {/* Header */}
-      <div className="flex items-start justify-between animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 animate-fade-in">
         <div>
           <h1 className="text-4xl font-normal tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground mt-1 text-lg">
             Welcome back. Here&apos;s your network overview.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           {plan === "pro" && (
             <CalendarConnectButton isConnected={calendarConnected} />
           )}

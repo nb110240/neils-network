@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useState, useRef, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,11 +19,20 @@ import { useToast } from "@/components/ui/toast"
 import { Loader2, Mail } from "lucide-react"
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageInner />
+    </Suspense>
+  )
+}
+
+function LoginPageInner() {
   const router = useRouter()
   const supabase = createClient()
   const { addToast } = useToast()
+  const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
-  const [isSignUp, setIsSignUp] = useState(false)
+  const [isSignUp, setIsSignUp] = useState(searchParams.get("mode") === "signup")
   const [isForgotPassword, setIsForgotPassword] = useState(false)
   const [resetSent, setResetSent] = useState(false)
   const [email, setEmail] = useState("")
@@ -334,6 +343,9 @@ export default function LoginPage() {
                 minLength={6}
                 className="h-11 transition-all focus:shadow-md"
               />
+              {isSignUp && (
+                <p className="text-xs text-muted-foreground">At least 6 characters</p>
+              )}
             </div>
             <Button
               type="submit"

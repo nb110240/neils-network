@@ -1,21 +1,25 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Contact, SearchResult } from "@/lib/types"
 import { SearchBar } from "@/components/search-bar"
 import { ContactCard } from "@/components/contact-card"
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Search } from "lucide-react"
+import { Search, Crown } from "lucide-react"
 
 export default function SearchPage() {
   const [results, setResults] = useState<SearchResult[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
 
   const handleSearch = async (query: string, semantic: boolean) => {
     setIsLoading(true)
     setHasSearched(true)
+    setSearchError(null)
 
     try {
       const response = await fetch("/api/search", {
@@ -25,6 +29,12 @@ export default function SearchPage() {
       })
 
       if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        if (response.status === 403 && data.error) {
+          setSearchError(data.error)
+          setResults([])
+          return
+        }
         throw new Error("Search failed")
       }
 
@@ -69,7 +79,24 @@ export default function SearchPage() {
         </div>
       )}
 
-      {!isLoading && hasSearched && results.length === 0 && (
+      {!isLoading && searchError && (
+        <Card className="border-amber-200 dark:border-amber-800">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-950/30 flex items-center justify-center mb-4">
+              <Crown className="h-5 w-5 text-amber-600" />
+            </div>
+            <h3 className="text-lg font-normal mb-1">Search limit reached</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-sm">
+              {searchError}
+            </p>
+            <Button size="sm" asChild className="mt-4 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0">
+              <Link href="/pricing">Upgrade to Pro</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoading && hasSearched && results.length === 0 && !searchError && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">

@@ -185,7 +185,7 @@ function MarketingPage() {
           <div className="flex items-center gap-4 sm:gap-6">
             <Link href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Features</Link>
             <Link href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Pricing</Link>
-            <Link href="/login" className="inline-flex items-center px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity">
+            <Link href="/login?mode=signup" className="inline-flex items-center px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity">
               Get Started
             </Link>
           </div>
@@ -203,7 +203,7 @@ function MarketingPage() {
               Type what you remember about someone. Savvo extracts the details, tracks relationship health, and nudges you before connections go cold.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
-              <Link href="/login" className="inline-flex items-center px-6 py-3 rounded-xl text-base font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity">
+              <Link href="/login?mode=signup" className="inline-flex items-center px-6 py-3 rounded-xl text-base font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity">
                 Start free — 50 contacts
               </Link>
               <Link href="#how" className="inline-flex items-center px-6 py-3 rounded-xl text-base font-medium border border-border hover:border-[var(--copper)]/30 transition-colors">
@@ -298,7 +298,7 @@ function MarketingPage() {
                   <li key={f} className="flex items-center gap-2 text-muted-foreground/50"><span className="font-bold">&#10007;</span> {f}</li>
                 ))}
               </ul>
-              <Link href="/login" className="block text-center py-2.5 rounded-lg border font-medium text-sm hover:bg-muted/50 transition-colors">Get started</Link>
+              <Link href="/login?mode=signup" className="block text-center py-2.5 rounded-lg border font-medium text-sm hover:bg-muted/50 transition-colors">Get started</Link>
             </div>
             <div className="p-6 rounded-2xl border border-[var(--copper)]/30 relative">
               <div className="absolute -top-3 right-4 bg-[var(--copper)] text-white text-xs font-semibold uppercase tracking-wide px-3 py-1 rounded-full">Most popular</div>
@@ -310,7 +310,7 @@ function MarketingPage() {
                   <li key={f} className="flex items-center gap-2"><span className="text-emerald-500 font-bold">&#10003;</span> {f}</li>
                 ))}
               </ul>
-              <Link href="/login" className="block text-center py-2.5 rounded-lg bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white font-medium text-sm hover:opacity-90 transition-opacity">Start free, upgrade anytime</Link>
+              <Link href="/login?mode=signup" className="block text-center py-2.5 rounded-lg bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white font-medium text-sm hover:opacity-90 transition-opacity">Start free, upgrade anytime</Link>
             </div>
           </div>
           <p className="text-center text-sm text-muted-foreground mt-6">
@@ -322,7 +322,7 @@ function MarketingPage() {
       <section className="py-12 sm:py-20 px-4 sm:px-6 text-center">
         <h2 className="text-3xl tracking-tight mb-3">Your network is your net worth.<br />Stop letting it decay.</h2>
         <p className="text-muted-foreground mb-6 max-w-md mx-auto">Join founders, VCs, and connectors who use Savvo to keep every connection alive.</p>
-        <Link href="/login" className="inline-flex items-center px-6 py-3 rounded-xl text-base font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity">
+        <Link href="/login?mode=signup" className="inline-flex items-center px-6 py-3 rounded-xl text-base font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity">
           Get Started Free
         </Link>
       </section>

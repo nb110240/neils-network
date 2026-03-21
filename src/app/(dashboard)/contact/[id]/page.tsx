@@ -674,8 +674,9 @@ export default function ContactDetailPage({
                           <button
                             onClick={() => handleDeleteActivity(activity.id)}
                             disabled={deletingActivityId === activity.id}
-                            className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                            className="ml-auto sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
                             title="Delete activity"
+                            aria-label="Delete activity"
                           >
                             {deletingActivityId === activity.id ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />

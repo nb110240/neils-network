@@ -7,11 +7,12 @@ import { Plus, X } from "lucide-react"
 
 interface OnboardingBannerProps {
   contactCount: number
+  plan?: string
 }
 
 const STORAGE_KEY = "savvo-onboarding-dismissed"
 
-export function OnboardingBanner({ contactCount }: OnboardingBannerProps) {
+export function OnboardingBanner({ contactCount, plan }: OnboardingBannerProps) {
   const [dismissed, setDismissed] = useState(() => {
     if (typeof window === "undefined") return true
     return localStorage.getItem(STORAGE_KEY) === "true"
@@ -34,7 +35,9 @@ export function OnboardingBanner({ contactCount }: OnboardingBannerProps) {
             Getting started: {contactCount}/5 contacts added
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Add {5 - contactCount} more to unlock daily digest emails.
+            {plan === "pro"
+              ? `Add ${5 - contactCount} more to unlock daily digest emails.`
+              : `Add ${5 - contactCount} more to see health scores in action.`}
           </p>
           {/* Progress bar */}
           <div className="mt-2 h-1.5 w-full max-w-xs rounded-full bg-stone-200 dark:bg-stone-800 overflow-hidden">

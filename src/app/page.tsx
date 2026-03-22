@@ -4,6 +4,16 @@ import Link from "next/link"
 import type { PlanType } from "@/lib/types"
 
 export default async function Home() {
+  // Check for auth cookie before making a network call to Supabase
+  // This avoids a ~500ms+ getUser() roundtrip for logged-out visitors
+  const { cookies } = await import("next/headers")
+  const cookieStore = await cookies()
+  const hasAuthCookie = cookieStore.getAll().some((c) => c.name.includes("auth-token"))
+
+  if (!hasAuthCookie) {
+    return <MarketingPage />
+  }
+
   const supabase = await createClient()
   const {
     data: { user },

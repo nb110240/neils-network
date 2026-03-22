@@ -84,7 +84,15 @@ export default function ScanPage() {
 
   function stopScanner() {
     if (html5QrCodeRef.current) {
-      (html5QrCodeRef.current as { stop: () => Promise<void> }).stop().catch(() => {})
+      const scanner = html5QrCodeRef.current as { stop: () => Promise<void>; isScanning?: boolean; getState?: () => number }
+      // Only stop if scanner is actually running (state 2 = scanning)
+      try {
+        if (scanner.getState?.() === 2) {
+          scanner.stop().catch(() => {})
+        }
+      } catch {
+        // Scanner not in a stoppable state — ignore
+      }
     }
     setIsScanning(false)
   }
@@ -92,7 +100,14 @@ export default function ScanPage() {
   useEffect(() => {
     return () => {
       if (html5QrCodeRef.current) {
-        (html5QrCodeRef.current as { stop: () => Promise<void> }).stop().catch(() => {})
+        const scanner = html5QrCodeRef.current as { stop: () => Promise<void>; getState?: () => number }
+        try {
+          if (scanner.getState?.() === 2) {
+            scanner.stop().catch(() => {})
+          }
+        } catch {
+          // Already stopped or not started — ignore
+        }
       }
     }
   }, [])

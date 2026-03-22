@@ -209,7 +209,7 @@ function MarketingPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link href="/login?mode=signup" className="inline-flex items-center px-6 py-3 rounded-xl text-base font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity">
-                Start free — 50 contacts
+                Start free
               </Link>
               <Link href="#how" className="inline-flex items-center px-6 py-3 rounded-xl text-base font-medium border border-border hover:border-[var(--copper)]/30 transition-colors">
                 See how it works
@@ -323,6 +323,7 @@ function MarketingPage() {
           <h2 className="text-3xl tracking-tight mb-3">What the app actually looks like</h2>
           <p className="text-muted-foreground mb-10 max-w-lg">No guessing. Here&apos;s what you&apos;ll use every day.</p>
 
+          {/* Row 1: Dashboard + Add Contact */}
           <div className="grid md:grid-cols-2 gap-6">
             {/* Dashboard mock */}
             <div className="rounded-2xl border shadow-refined p-5">
@@ -350,6 +351,7 @@ function MarketingPage() {
                     </div>
                   ))}
                 </div>
+                <p className="text-xs text-muted-foreground pt-1">Every morning, Savvo tells you exactly who needs attention — prioritized by urgency so you always know where to start.</p>
               </div>
             </div>
 
@@ -364,7 +366,7 @@ function MarketingPage() {
                   &ldquo;Met Sarah Chen at the Founders Dinner last night. She&apos;s a partner at Sequoia focused on B2B SaaS. We talked about the CRM space and she mentioned they&apos;re looking at AI-native tools. Should send her our deck next week.&rdquo;
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">&#8595; AI extracts</span>
+                  <span className="text-xs text-muted-foreground">&#8595; AI extracts automatically</span>
                   <div className="flex-1 h-px bg-border" />
                 </div>
                 <div className="rounded-lg bg-muted/50 p-3 space-y-1.5 text-sm">
@@ -375,14 +377,111 @@ function MarketingPage() {
                   <div className="flex justify-between"><span className="text-muted-foreground">Next step</span><span>Send deck next week</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Follow-up</span><span className="text-amber-600 font-medium">Yes</span></div>
                 </div>
+                <p className="text-xs text-muted-foreground pt-1">No forms. No fields. Just write what you&apos;d text a friend — AI handles the rest in seconds.</p>
               </div>
             </div>
           </div>
 
-          <div className="mt-8 text-center">
+          {/* Row 2: Contact Detail + Search */}
+          <div className="grid md:grid-cols-2 gap-6 mt-6">
+            {/* Contact detail mock */}
+            <div className="rounded-2xl border shadow-refined p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contact Detail</h3>
+                <span className="text-xs text-muted-foreground">Everything about a person in one place</span>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--copper)]/10 flex items-center justify-center text-[var(--copper)] font-semibold text-sm">SC</div>
+                  <div>
+                    <div className="font-semibold flex items-center gap-2">Sarah Chen <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-500 text-white"><span className="w-1 h-1 rounded-full bg-white" />Going cold</span></div>
+                    <div className="text-xs text-muted-foreground">Partner at Sequoia</div>
+                  </div>
+                </div>
+                <div className="rounded-lg border p-3 space-y-2 text-sm">
+                  <p className="text-xs font-semibold text-muted-foreground">ACTIVITY TIMELINE</p>
+                  <div className="flex gap-2 items-start">
+                    <span className="w-2 h-2 rounded-full bg-[var(--copper)] mt-1.5 shrink-0" />
+                    <div><span className="text-xs text-muted-foreground">Jan 15 · Meeting</span><p className="text-sm">Grabbed coffee, discussed AI CRM landscape. She&apos;s interested in early-stage tools.</p></div>
+                  </div>
+                  <div className="flex gap-2 items-start">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                    <div><span className="text-xs text-muted-foreground">Jan 10 · Email</span><p className="text-sm">Sent intro email after Founders Dinner.</p></div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-xs px-2 py-1 rounded-md border bg-muted/50">&#x1f4ac; Draft Follow-Up</span>
+                  <span className="text-xs px-2 py-1 rounded-md border bg-muted/50">&#x1f4c5; Meeting Prep</span>
+                  <span className="text-xs px-2 py-1 rounded-md border bg-muted/50">&#x270f;&#xfe0f; Edit</span>
+                </div>
+                <p className="text-xs text-muted-foreground pt-1">See the full history, log interactions, and draft AI-powered follow-ups — all from one screen.</p>
+              </div>
+            </div>
+
+            {/* Smart search mock */}
+            <div className="rounded-2xl border shadow-refined p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Smart Search</h3>
+                <span className="text-xs text-muted-foreground">Find people by meaning, not keywords</span>
+              </div>
+              <div className="space-y-3">
+                <div className="rounded-lg border p-3 text-sm flex items-center gap-2">
+                  <span className="text-muted-foreground">&#128269;</span>
+                  <span className="italic text-muted-foreground">&ldquo;who do I know in healthcare AI?&rdquo;</span>
+                </div>
+                <p className="text-xs text-muted-foreground">3 results</p>
+                {[
+                  { name: "Dr. Amy Liu", role: "Chief Medical Officer, HealthBridge AI", match: "92%" },
+                  { name: "James Torres", role: "ML Engineer, Tempus", match: "87%" },
+                  { name: "Nina Shah", role: "Founder, MedFlow", match: "81%" },
+                ].map((r) => (
+                  <div key={r.name} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 text-sm">
+                    <div>
+                      <span className="font-medium">{r.name}</span>
+                      <p className="text-xs text-muted-foreground">{r.role}</p>
+                    </div>
+                    <span className="text-xs text-[var(--copper)] font-medium">{r.match} match</span>
+                  </div>
+                ))}
+                <p className="text-xs text-muted-foreground pt-1">Ask natural questions about your network. Savvo searches by meaning — not just names and keywords.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 3: Daily Digest Email mock */}
+          <div className="mt-6">
+            <div className="rounded-2xl border shadow-refined p-5 max-w-lg mx-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Daily Digest Email</h3>
+                <span className="text-xs text-muted-foreground">Lands in your inbox every morning</span>
+              </div>
+              <div className="space-y-3">
+                <div className="rounded-lg bg-muted/50 p-3 text-sm">
+                  <p className="font-medium mb-2">Hey Neil, 3 relationships need your attention:</p>
+                  {[
+                    { name: "Sarah Chen", context: "You met at Founders Dinner · Last contact: 2 months ago", health: "&#128308;" },
+                    { name: "Marcus Webb", context: "Has a follow-up pending · Next step: Review proposal", health: "&#128992;" },
+                    { name: "Priya Patel", context: "Founder at Lumina · Last contact: 3 months ago", health: "&#128308;" },
+                  ].map((c) => (
+                    <div key={c.name} className="flex items-start gap-2 py-2 border-t first:border-t-0">
+                      <span className="text-sm mt-0.5">{c.health}</span>
+                      <div>
+                        <span className="font-medium text-sm">{c.name}</span>
+                        <p className="text-xs text-muted-foreground">{c.context}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">No app to open. No tasks to check. Just read your email, tap a name, and reconnect. Pro users get this every morning.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-10 text-center">
             <Link href="/login?mode=signup" className="inline-flex items-center px-6 py-3 rounded-xl text-base font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity">
               Try it yourself — free
             </Link>
+            <p className="text-sm text-muted-foreground mt-3">No credit card required. Set up in 30 seconds.</p>
           </div>
         </div>
       </section>

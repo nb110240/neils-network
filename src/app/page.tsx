@@ -469,12 +469,12 @@ function MarketingPage() {
                 <div className="rounded-lg bg-muted/50 p-3 text-sm">
                   <p className="font-medium mb-2">Hey Neil, 3 relationships need your attention:</p>
                   {[
-                    { name: "Sarah Chen", context: "You met at Founders Dinner · Last contact: 2 months ago", health: "&#128308;" },
-                    { name: "Marcus Webb", context: "Has a follow-up pending · Next step: Review proposal", health: "&#128992;" },
-                    { name: "Priya Patel", context: "Founder at Lumina · Last contact: 3 months ago", health: "&#128308;" },
+                    { name: "Sarah Chen", context: "You met at Founders Dinner · Last contact: 2 months ago", color: "bg-orange-500" },
+                    { name: "Marcus Webb", context: "Has a follow-up pending · Next step: Review proposal", color: "bg-amber-400" },
+                    { name: "Priya Patel", context: "Founder at Lumina · Last contact: 3 months ago", color: "bg-red-500" },
                   ].map((c) => (
                     <div key={c.name} className="flex items-start gap-2 py-2 border-t first:border-t-0">
-                      <span className="text-sm mt-0.5">{c.health}</span>
+                      <span className={`w-2.5 h-2.5 rounded-full ${c.color} mt-1.5 shrink-0`} />
                       <div>
                         <span className="font-medium text-sm">{c.name}</span>
                         <p className="text-xs text-muted-foreground">{c.context}</p>

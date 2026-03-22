@@ -166,9 +166,14 @@ function FeaturesGuidePage({ plan }: { plan: PlanType }) {
         </div>
       </section>
 
-      <footer className="py-6 px-6 border-t text-center text-sm text-muted-foreground space-y-1">
+      <footer className="py-8 px-6 border-t text-center text-sm text-muted-foreground space-y-2">
         <p>&copy; 2026 Savvo. Built for people who care about people.</p>
-        <p><Link href="/privacy" className="hover:text-foreground">Privacy Policy</Link> &middot; <Link href="/terms" className="hover:text-foreground">Terms of Service</Link></p>
+        <p>
+          <Link href="/privacy" className="hover:text-foreground font-medium">Privacy Policy</Link>
+          {" "}&middot;{" "}
+          <Link href="/terms" className="hover:text-foreground">Terms of Service</Link>
+        </p>
+        <p className="text-xs">Your data is stored securely and never shared with third parties.</p>
       </footer>
     </div>
   )
@@ -217,7 +222,7 @@ function MarketingPage() {
                 <div className="w-11 h-11 rounded-xl bg-[var(--copper)]/10 flex items-center justify-center text-[var(--copper)] font-semibold text-sm">JD</div>
                 <div>
                   <div className="font-semibold">John Doe</div>
-                  <div className="text-sm text-muted-foreground">VP of Engineering at SersweAI</div>
+                  <div className="text-sm text-muted-foreground">VP of Engineering at Nextera Health</div>
                 </div>
               </div>
               <div className="space-y-2 pt-3 border-t text-sm">
@@ -237,7 +242,7 @@ function MarketingPage() {
           <p className="text-muted-foreground mb-10 max-w-lg">Savvo replaces spreadsheets and forgotten business cards. Just talk about the people you meet.</p>
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { num: "01", title: "Write what you remember", desc: "No forms, no fields. Type a quick note like you'd text a friend.", example: '"Met John Doe at AI Summit, he\'s VP of Engineering at SersweAI, wants to grab coffee next week"' },
+              { num: "01", title: "Write what you remember", desc: "No forms, no fields. Type a quick note like you'd text a friend.", example: '"Met John Doe at AI Summit, he\'s VP of Engineering at Nextera Health, wants to grab coffee next week"' },
               { num: "02", title: "Details are extracted", desc: "Name, company, role, how you met, next steps — all structured automatically." },
               { num: "03", title: "Stay connected effortlessly", desc: "Health scores show which relationships are fading. Daily emails nudge you to reach out." },
             ].map((step) => (
@@ -265,7 +270,7 @@ function MarketingPage() {
               { title: "Natural Language Input", desc: "Just type what you remember. Name, company, context, and next steps are extracted automatically." },
               { title: "Health Scores", desc: "Every contact gets a color-coded score. Green means active. Red means you're about to lose touch." },
               { title: "Smart Search", desc: '"Who do I know in healthcare AI?" Search by meaning, not just keywords.' },
-              { title: "AI Follow-Up Drafts (Coming Soon)", desc: "One tap to draft a personalized follow-up message. AI reads your history and writes something natural." },
+              { title: "AI Follow-Up Drafts", desc: "One tap to draft a personalized follow-up message. AI reads your history and writes something natural." },
               { title: "Daily Digest", desc: "Every morning: 3 relationships that need attention. With context and a one-click link." },
               { title: "CSV & Gmail Import", desc: "Bring your existing network in seconds. Upload a CSV or pull from Google Contacts." },
               { title: "Google Calendar Sync", desc: "Had a 1:1 meeting? Savvo detects it and adds the person automatically." },
@@ -276,6 +281,108 @@ function MarketingPage() {
                 <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Privacy & Trust */}
+      <section className="py-12 sm:py-20 px-4 sm:px-6 bg-card/50">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper)] mb-2">Your data, your control</p>
+          <h2 className="text-3xl tracking-tight mb-10">Built for trust</h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="flex gap-4">
+              <div className="shrink-0 w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center text-lg">&#128274;</div>
+              <div>
+                <h3 className="font-medium mb-1">We never sell your data</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">Your contacts are yours. We don&apos;t share, sell, or train AI models on your network data. Ever.</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="shrink-0 w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/30 flex items-center justify-center text-lg">&#9889;</div>
+              <div>
+                <h3 className="font-medium mb-1">Everything is optional</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">Google sync, imports, and calendar are all opt-in. Use Savvo with just manual notes if you prefer — no account linking required.</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="shrink-0 w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/30 flex items-center justify-center text-lg">&#128220;</div>
+              <div>
+                <h3 className="font-medium mb-1">Export anytime</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">Download all your contacts as a CSV whenever you want. Delete your account and all data is permanently removed within 30 days.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* See it in action */}
+      <section className="py-12 sm:py-20 px-4 sm:px-6">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper)] mb-2">See it in action</p>
+          <h2 className="text-3xl tracking-tight mb-3">What the app actually looks like</h2>
+          <p className="text-muted-foreground mb-10 max-w-lg">No guessing. Here&apos;s what you&apos;ll use every day.</p>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Dashboard mock */}
+            <div className="rounded-2xl border shadow-refined p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Dashboard</h3>
+                <span className="text-xs text-muted-foreground">Your daily view</span>
+              </div>
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-3 rounded-lg bg-muted/50"><p className="text-xs text-muted-foreground">Contacts</p><p className="text-xl font-normal">47</p></div>
+                  <div className="p-3 rounded-lg bg-muted/50"><p className="text-xs text-muted-foreground">Reach Out</p><p className="text-xl font-normal text-[var(--copper)]">5</p></div>
+                  <div className="p-3 rounded-lg bg-muted/50"><p className="text-xs text-muted-foreground">Going Cold</p><p className="text-xl font-normal text-red-500">3</p></div>
+                </div>
+                <div className="rounded-lg border-l-2 border-l-[var(--copper)] p-3 space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground">REACH OUT TODAY</p>
+                  {[
+                    { name: "Sarah Chen", info: "Sequoia · 2 months ago", color: "bg-orange-500" },
+                    { name: "Marcus Webb", info: "Follow-up needed", color: "bg-amber-400" },
+                    { name: "Priya Patel", info: "Founder, Lumina · 3 months ago", color: "bg-red-500" },
+                  ].map((c) => (
+                    <div key={c.name} className="flex items-center gap-2 text-sm">
+                      <span className={`w-2 h-2 rounded-full ${c.color}`} />
+                      <span className="font-medium">{c.name}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">{c.info}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Add contact mock */}
+            <div className="rounded-2xl border shadow-refined p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Add Contact</h3>
+                <span className="text-xs text-muted-foreground">Just type what you remember</span>
+              </div>
+              <div className="space-y-3">
+                <div className="rounded-lg border p-3 text-sm text-muted-foreground italic leading-relaxed">
+                  &ldquo;Met Sarah Chen at the Founders Dinner last night. She&apos;s a partner at Sequoia focused on B2B SaaS. We talked about the CRM space and she mentioned they&apos;re looking at AI-native tools. Should send her our deck next week.&rdquo;
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">&#8595; AI extracts</span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+                <div className="rounded-lg bg-muted/50 p-3 space-y-1.5 text-sm">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Name</span><span className="font-medium">Sarah Chen</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Company</span><span>Sequoia</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Role</span><span>Partner, B2B SaaS</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">How we met</span><span>Founders Dinner</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Next step</span><span>Send deck next week</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Follow-up</span><span className="text-amber-600 font-medium">Yes</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 text-center">
+            <Link href="/login?mode=signup" className="inline-flex items-center px-6 py-3 rounded-xl text-base font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity">
+              Try it yourself — free
+            </Link>
           </div>
         </div>
       </section>
@@ -327,9 +434,14 @@ function MarketingPage() {
         </Link>
       </section>
 
-      <footer className="py-6 px-6 border-t text-center text-sm text-muted-foreground space-y-1">
+      <footer className="py-8 px-6 border-t text-center text-sm text-muted-foreground space-y-2">
         <p>&copy; 2026 Savvo. Built for people who care about people.</p>
-        <p><Link href="/privacy" className="hover:text-foreground">Privacy Policy</Link> &middot; <Link href="/terms" className="hover:text-foreground">Terms of Service</Link></p>
+        <p>
+          <Link href="/privacy" className="hover:text-foreground font-medium">Privacy Policy</Link>
+          {" "}&middot;{" "}
+          <Link href="/terms" className="hover:text-foreground">Terms of Service</Link>
+        </p>
+        <p className="text-xs">Your data is stored securely and never shared with third parties.</p>
       </footer>
     </div>
   )

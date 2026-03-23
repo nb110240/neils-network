@@ -47,7 +47,10 @@ export const metadata: Metadata = {
     title: "Savvo",
   },
   icons: {
-    icon: "/favicon.png",
+    icon: [
+      { url: "/favicon.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
     apple: "/icons/apple-touch-icon.png",
   },
 }

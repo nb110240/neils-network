@@ -115,7 +115,7 @@ function FeaturesGuidePage({ plan }: { plan: PlanType }) {
     <div className="min-h-screen bg-background">
       <nav className="fixed top-0 left-0 right-0 z-50 border-b bg-background/85 backdrop-blur-md">
         <div className="max-w-5xl mx-auto flex items-center justify-between px-4 sm:px-6 h-14">
-          <span className="text-xl font-medium tracking-tight text-[var(--copper)]">Savvo</span>
+          <span className="flex items-center gap-2"><img src="/logo.svg" alt="" className="h-6 w-6" /><span className="text-xl font-medium tracking-tight text-[var(--copper)]">Savvo</span></span>
           <div className="flex items-center gap-3">
             {plan === "free" && (
               <Link href="/pricing" className="text-sm font-medium text-[var(--copper)] hover:underline hidden sm:block">
@@ -196,7 +196,7 @@ function MarketingPage() {
     <div className="min-h-screen bg-background overflow-x-hidden">
       <nav className="fixed top-0 left-0 right-0 z-50 border-b bg-background/85 backdrop-blur-md">
         <div className="max-w-5xl mx-auto flex items-center justify-between px-4 sm:px-6 h-14">
-          <span className="text-xl font-medium tracking-tight text-[var(--copper)]">Savvo</span>
+          <span className="flex items-center gap-2"><img src="/logo.svg" alt="" className="h-6 w-6" /><span className="text-xl font-medium tracking-tight text-[var(--copper)]">Savvo</span></span>
           <div className="flex items-center gap-4 sm:gap-6">
             <Link href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Features</Link>
             <Link href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Pricing</Link>

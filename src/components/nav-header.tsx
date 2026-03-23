@@ -71,7 +71,8 @@ export function NavHeader() {
           </Button>
 
           <div className="mr-4 flex">
-            <Link href="/" className="mr-8 flex items-center group">
+            <Link href="/" className="mr-8 flex items-center gap-2 group">
+              <img src="/logo.svg" alt="Savvo" className="h-7 w-7" />
               <span className="text-xl font-medium tracking-tight text-[var(--copper)] group-hover:opacity-80 transition-opacity">Savvo</span>
             </Link>
             <nav className="hidden sm:flex items-center space-x-1">

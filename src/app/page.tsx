@@ -200,6 +200,7 @@ function MarketingPage() {
           <div className="flex items-center gap-4 sm:gap-6">
             <Link href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Features</Link>
             <Link href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Pricing</Link>
+            <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Log in</Link>
             <Link href="/login?mode=signup" className="inline-flex items-center px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity">
               Get Started
             </Link>

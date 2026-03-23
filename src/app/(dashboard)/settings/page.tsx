@@ -160,7 +160,7 @@ export default function SettingsPage() {
         throw new Error(data.message || "Failed to delete account")
       }
       await supabase.auth.signOut()
-      router.push("/login")
+      router.push("/")
       router.refresh()
     } catch (error) {
       addToast({
@@ -177,7 +177,7 @@ export default function SettingsPage() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    router.push("/login")
+    router.push("/")
     router.refresh()
   }
 

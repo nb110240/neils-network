@@ -8,7 +8,7 @@ import {
 } from "@/lib/api-utils"
 import { z } from "zod/v4"
 
-const VALID_TYPES = ["meeting", "note", "call", "email", "other"] as const
+const VALID_TYPES = ["meeting", "note", "call", "email", "message", "other"] as const
 
 const CreateActivitySchema = z.object({
   type: z.enum(VALID_TYPES),

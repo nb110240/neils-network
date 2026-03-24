@@ -24,7 +24,7 @@ export interface ContactActivity {
   id: string
   contact_id: string
   user_id: string
-  type: "meeting" | "note" | "call" | "email" | "other"
+  type: "meeting" | "note" | "call" | "email" | "message" | "other"
   content: string
   occurred_at: string
   follow_up_needed: boolean

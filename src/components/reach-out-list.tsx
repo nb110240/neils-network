@@ -84,7 +84,7 @@ export function ReachOutList({ contacts, plan, total }: ReachOutListProps) {
         {total > contacts.length && (
           <div className="pt-2 text-center">
             <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
-              <Link href="/contacts">
+              <Link href="/reach-out">
                 View all {total} contacts
                 <ArrowRight className="ml-1 h-3.5 w-3.5" />
               </Link>

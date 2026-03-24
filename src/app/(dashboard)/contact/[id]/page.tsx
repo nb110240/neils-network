@@ -46,6 +46,7 @@ const ACTIVITY_TYPES = [
   { value: "meeting", label: "Meeting" },
   { value: "call", label: "Call" },
   { value: "email", label: "Email" },
+  { value: "message", label: "Message" },
   { value: "note", label: "Note" },
   { value: "other", label: "Other" },
 ] as const
@@ -55,6 +56,7 @@ const ACTIVITY_TYPE_STYLES: Record<string, string> = {
   note: "bg-stone-100 text-stone-600 border-stone-300 dark:bg-stone-800 dark:text-stone-400 dark:border-stone-600",
   call: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-800",
   email: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800",
+  message: "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950 dark:text-violet-400 dark:border-violet-800",
   other: "bg-stone-50 text-stone-500 border-stone-200 dark:bg-stone-900 dark:text-stone-500 dark:border-stone-700",
 }
 
@@ -63,6 +65,7 @@ const ACTIVITY_DOT_STYLES: Record<string, string> = {
   note: "border-stone-400 bg-stone-100 dark:bg-stone-800 dark:border-stone-600",
   call: "border-blue-500 bg-blue-50 dark:bg-blue-950 dark:border-blue-700",
   email: "border-emerald-500 bg-emerald-50 dark:bg-emerald-950 dark:border-emerald-700",
+  message: "border-violet-500 bg-violet-50 dark:bg-violet-950 dark:border-violet-700",
   other: "border-stone-300 bg-white dark:bg-stone-900 dark:border-stone-600",
 }
 
@@ -614,33 +617,50 @@ export default function ContactDetailPage({
               ))}
             </div>
           ) : activities.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground">No activities yet.</p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowMeetingDialog(true)}
-                className="mt-3"
-              >
-                <MessageSquarePlus className="mr-2 h-4 w-4" />
-                Log your first interaction
-              </Button>
+            <div className="space-y-4">
+              {/* Show "Added" anchor even with no activities */}
+              {contact && (
+                <div className="flex gap-4">
+                  <div className="mt-1.5 shrink-0">
+                    <div className="h-[15px] w-[15px] rounded-full border-2 border-[var(--copper)] bg-[var(--copper)]" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 font-medium bg-[var(--copper)]/10 text-[var(--copper)] border-[var(--copper)]/30">
+                        Added
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(contact.created_at)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {contact.how_we_met ? `First added — ${contact.how_we_met}` : "Added to your network"}
+                    </p>
+                  </div>
+                </div>
+              )}
+              <div className="text-center pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowMeetingDialog(true)}
+                >
+                  <MessageSquarePlus className="mr-2 h-4 w-4" />
+                  Log your first interaction
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="relative">
-              {/* Vertical timeline line */}
-              {activities.length > 1 && (
-                <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border" />
-              )}
+              {/* Vertical timeline line — extends from first activity to "Added" anchor */}
+              <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border" />
 
               <div className="space-y-0">
                 {activities.map((activity, index) => {
-                  const isLast = index === activities.length - 1
-
                   return (
                     <div
                       key={activity.id}
-                      className="group relative flex gap-4 pb-6 last:pb-0"
+                      className="group relative flex gap-4 pb-6"
                     >
                       {/* Timeline dot */}
                       <div className="relative z-10 mt-1.5 shrink-0">
@@ -652,7 +672,7 @@ export default function ContactDetailPage({
                       </div>
 
                       {/* Content */}
-                      <div className={`flex-1 min-w-0 ${!isLast ? "pb-2" : ""}`}>
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <Badge
                             variant="outline"
@@ -692,6 +712,36 @@ export default function ContactDetailPage({
                     </div>
                   )
                 })}
+
+                {/* First contact anchor — always shown at the bottom */}
+                {contact && (
+                  <div className="relative flex gap-4 pb-0">
+                    <div className="relative z-10 mt-1.5 shrink-0">
+                      <div className="h-[15px] w-[15px] rounded-full border-2 border-[var(--copper)] bg-[var(--copper)]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 font-medium bg-[var(--copper)]/10 text-[var(--copper)] border-[var(--copper)]/30">
+                          Added
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDate(contact.created_at)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {contact.how_we_met
+                          ? `First added — ${contact.how_we_met}`
+                          : contact.source === "linkedin"
+                            ? "Imported from LinkedIn"
+                            : contact.source === "csv"
+                              ? "Imported from CSV"
+                              : contact.source === "google"
+                                ? "Imported from Google Contacts"
+                                : "Added to your network"}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

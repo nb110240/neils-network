@@ -38,91 +38,116 @@ export default function DevPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   const loadUsers = async () => {
-    const res = await fetch("/api/dev/users")
-    if (res.ok) {
-      const data = await res.json()
-      setAllUsers(data.users || [])
+    try {
+      const res = await fetch("/api/dev/users")
+      if (res.ok) {
+        const data = await res.json()
+        setAllUsers(data.users || [])
+      }
+    } catch {
+      // Network error — non-critical for dev page
     }
   }
 
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user || !ADMIN_EMAILS.includes(user.email || "")) {
-        setIsAdmin(false)
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user || !ADMIN_EMAILS.includes(user.email || "")) {
+          setIsAdmin(false)
+          setIsLoading(false)
+          return
+        }
+        setIsAdmin(true)
+        setUserEmail(user.email || "")
+        setUserId(user.id)
+
+        const res = await fetch("/api/settings/plan")
+        if (res.ok) {
+          const data = await res.json()
+          setStats(data)
+        }
+
+        await loadUsers()
+      } catch {
+        // Network error during init — page will show non-admin state
+      } finally {
         setIsLoading(false)
-        return
       }
-      setIsAdmin(true)
-      setUserEmail(user.email || "")
-      setUserId(user.id)
-
-      const res = await fetch("/api/settings/plan")
-      if (res.ok) {
-        const data = await res.json()
-        setStats(data)
-      }
-
-      await loadUsers()
-      setIsLoading(false)
     }
     init()
   }, [supabase])
 
   async function togglePlan(targetUserId: string, currentPlan: string) {
     setActionLoading(`plan-${targetUserId}`)
-    const newPlan = currentPlan === "pro" ? "free" : "pro"
-    const res = await fetch("/api/dev/toggle-plan", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: targetUserId, plan: newPlan }),
-    })
-    if (res.ok) {
-      addToast({ title: "Plan updated", description: `Set to ${newPlan}` })
-      await loadUsers()
-      if (targetUserId === userId) {
-        const planRes = await fetch("/api/settings/plan")
-        if (planRes.ok) setStats(await planRes.json())
+    try {
+      const newPlan = currentPlan === "pro" ? "free" : "pro"
+      const res = await fetch("/api/dev/toggle-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: targetUserId, plan: newPlan }),
+      })
+      if (res.ok) {
+        addToast({ title: "Plan updated", description: `Set to ${newPlan}` })
+        await loadUsers()
+        if (targetUserId === userId) {
+          const planRes = await fetch("/api/settings/plan")
+          if (planRes.ok) setStats(await planRes.json())
+        }
+      } else {
+        addToast({ title: "Error", description: "Failed to update plan", variant: "destructive" })
       }
-    } else {
-      addToast({ title: "Error", description: "Failed to update plan", variant: "destructive" })
+    } catch {
+      addToast({ title: "Error", description: "Network error", variant: "destructive" })
     }
     setActionLoading(null)
   }
 
   async function triggerDigest() {
     setActionLoading("digest")
-    const res = await fetch("/api/dev/trigger-digest", { method: "POST" })
-    const data = await res.json()
-    addToast({
-      title: res.ok ? "Digest triggered" : "Error",
-      description: res.ok ? `Sent to ${data.sent || 0} users` : data.message,
-      variant: res.ok ? undefined : "destructive",
-    })
+    try {
+      const res = await fetch("/api/dev/trigger-digest", { method: "POST" })
+      const data = await res.json()
+      addToast({
+        title: res.ok ? "Digest triggered" : "Error",
+        description: res.ok ? `Sent to ${data.sent || 0} users` : data.message,
+        variant: res.ok ? undefined : "destructive",
+      })
+    } catch {
+      addToast({ title: "Error", description: "Network error", variant: "destructive" })
+    }
     setActionLoading(null)
   }
 
   async function triggerCalendarSync() {
     setActionLoading("calendar")
-    const res = await fetch("/api/calendar/sync", { method: "POST" })
-    const data = await res.json()
-    addToast({
-      title: res.ok ? "Calendar synced" : "Error",
-      description: res.ok ? `${data.newContacts || 0} new contacts` : data.message,
-      variant: res.ok ? undefined : "destructive",
-    })
+    try {
+      const res = await fetch("/api/calendar/sync", { method: "POST" })
+      const data = await res.json()
+      addToast({
+        title: res.ok ? "Calendar synced" : "Error",
+        description: res.ok ? `${data.newContacts || 0} new contacts` : data.message,
+        variant: res.ok ? undefined : "destructive",
+      })
+    } catch {
+      addToast({ title: "Error", description: "Network error", variant: "destructive" })
+    }
     setActionLoading(null)
   }
 
   async function reEmbed() {
     setActionLoading("embed")
-    const res = await fetch("/api/dev/re-embed", { method: "POST" })
-    const data = await res.json()
-    addToast({
-      title: res.ok ? "Re-embedding started" : "Error",
-      description: res.ok ? `Processing ${data.count || 0} contacts` : data.message,
-      variant: res.ok ? undefined : "destructive",
-    })
+    try {
+      const res = await fetch("/api/dev/re-embed", { method: "POST" })
+      const data = await res.json()
+      addToast({
+        title: res.ok ? "Re-embedding started" : "Error",
+        description: res.ok ? `Processing ${data.count || 0} contacts` : data.message,
+        variant: res.ok ? undefined : "destructive",
+      })
+    } catch {
+      addToast({ title: "Error", description: "Network error", variant: "destructive" })
+    }
     setActionLoading(null)
   }
 

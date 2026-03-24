@@ -57,18 +57,21 @@ export default function SettingsPage() {
 
   useEffect(() => {
     async function loadUser() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setEmail(user.email || "")
-        setFullName(user.user_metadata?.full_name || "")
-      }
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          setEmail(user.email || "")
+          setFullName(user.user_metadata?.full_name || "")
+        }
 
-      // Get plan info
-      const res = await fetch("/api/settings/plan")
-      if (res.ok) {
-        const data = await res.json()
-        setPlan(data.plan)
-        setContactCount(data.contactCount)
+        const res = await fetch("/api/settings/plan")
+        if (res.ok) {
+          const data = await res.json()
+          setPlan(data.plan)
+          setContactCount(data.contactCount)
+        }
+      } catch {
+        // Network error during load — page will show defaults
       }
     }
     loadUser()

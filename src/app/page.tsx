@@ -230,6 +230,11 @@ function MarketingPage() {
                 See how it works
               </Link>
             </div>
+            <Link href="/from-spreadsheet" className="inline-flex items-center gap-2 mt-4 text-sm text-muted-foreground hover:text-[var(--copper)] transition-colors group">
+              <span>📋</span>
+              <span className="underline underline-offset-2 decoration-stone-300 group-hover:decoration-[var(--copper)]">Using a spreadsheet? See how to import</span>
+              <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+            </Link>
           </div>
           <div className="relative mt-4 md:mt-0">
             <div className="rounded-2xl border shadow-refined-lg p-6 rotate-1">

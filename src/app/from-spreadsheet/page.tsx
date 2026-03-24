@@ -74,12 +74,15 @@ export default function FromSpreadsheetPage() {
           <h2 className="text-2xl sm:text-3xl tracking-tight text-center mb-10">Spreadsheet vs. Savvo</h2>
           <div className="grid sm:grid-cols-2 gap-6">
             {/* Spreadsheet column */}
-            <div className="rounded-2xl border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/20 p-6">
+            <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white/50 dark:bg-stone-900/50 p-6 relative">
+              <div className="absolute top-4 right-4 text-xs font-medium text-stone-400 uppercase tracking-wider">Old way</div>
               <div className="flex items-center gap-3 mb-5">
-                <span className="text-2xl">📋</span>
-                <h3 className="text-lg font-medium">Google Sheets / Notion</h3>
+                <div className="w-10 h-10 rounded-xl bg-stone-100 dark:bg-stone-800 flex items-center justify-center">
+                  <span className="text-lg">📋</span>
+                </div>
+                <h3 className="text-lg font-medium text-stone-500">Google Sheets / Notion</h3>
               </div>
-              <ul className="space-y-3 text-sm">
+              <ul className="space-y-3.5 text-sm">
                 {[
                   "Manual data entry for every contact",
                   "No follow-up reminders",
@@ -89,8 +92,8 @@ export default function FromSpreadsheetPage() {
                   "Breaks down after 50+ contacts",
                   "Clunky on mobile",
                 ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-2.5 text-red-700 dark:text-red-400">
-                    <span className="text-red-500 shrink-0 mt-0.5">✗</span>
+                  <li key={i} className="flex items-start gap-3 text-stone-500 dark:text-stone-400">
+                    <span className="w-5 h-5 rounded-full bg-stone-200 dark:bg-stone-700 flex items-center justify-center shrink-0 mt-0.5 text-xs text-stone-400">✗</span>
                     {item}
                   </li>
                 ))}
@@ -98,12 +101,15 @@ export default function FromSpreadsheetPage() {
             </div>
 
             {/* Savvo column */}
-            <div className="rounded-2xl border border-green-200 dark:border-green-900/50 bg-green-50/50 dark:bg-green-950/20 p-6">
+            <div className="rounded-2xl border-2 border-[var(--copper)]/30 bg-white dark:bg-stone-900 p-6 shadow-refined relative">
+              <div className="absolute top-4 right-4 text-xs font-semibold text-[var(--copper)] uppercase tracking-wider">Better way</div>
               <div className="flex items-center gap-3 mb-5">
-                <span className="text-2xl">✨</span>
+                <div className="w-10 h-10 rounded-xl bg-[var(--copper)]/10 flex items-center justify-center">
+                  <img src="/logo.svg" alt="Savvo" className="h-5 w-5" />
+                </div>
                 <h3 className="text-lg font-medium">Savvo</h3>
               </div>
-              <ul className="space-y-3 text-sm">
+              <ul className="space-y-3.5 text-sm">
                 {[
                   "Type messy notes → AI extracts the data",
                   "Daily digest: who needs attention today",
@@ -113,8 +119,8 @@ export default function FromSpreadsheetPage() {
                   "Built for hundreds of connections",
                   "Mobile-first, works anywhere",
                 ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-2.5 text-green-700 dark:text-green-400">
-                    <span className="text-green-500 shrink-0 mt-0.5">✓</span>
+                  <li key={i} className="flex items-start gap-3">
+                    <span className="w-5 h-5 rounded-full bg-[var(--copper)]/15 flex items-center justify-center shrink-0 mt-0.5 text-xs text-[var(--copper)] font-bold">✓</span>
                     {item}
                   </li>
                 ))}
@@ -129,12 +135,15 @@ export default function FromSpreadsheetPage() {
           <p className="text-muted-foreground text-center mb-10 max-w-lg mx-auto">Here&apos;s what breaks — and how Savvo fixes it.</p>
           <div className="grid gap-4 sm:grid-cols-2">
             {painPoints.map((item, i) => (
-              <div key={i} className="rounded-xl border bg-white/60 dark:bg-stone-900/40 p-5 shadow-refined">
-                <div className="flex items-start gap-3">
-                  <span className="text-xl shrink-0">{item.emoji}</span>
+              <div key={i} className="rounded-xl border bg-white/80 dark:bg-stone-900/60 p-5 shadow-refined">
+                <div className="flex items-start gap-3.5">
+                  <span className="text-xl shrink-0 mt-0.5">{item.emoji}</span>
                   <div>
-                    <p className="text-sm font-medium text-red-600 dark:text-red-400 line-through decoration-red-300">{item.pain}</p>
-                    <p className="text-sm text-foreground mt-1.5">{item.solution}</p>
+                    <p className="text-sm text-muted-foreground mb-2">{item.pain}</p>
+                    <div className="flex items-start gap-2">
+                      <span className="w-4 h-4 rounded-full bg-[var(--copper)]/15 flex items-center justify-center shrink-0 mt-0.5 text-[10px] text-[var(--copper)] font-bold">→</span>
+                      <p className="text-sm font-medium text-foreground">{item.solution}</p>
+                    </div>
                   </div>
                 </div>
               </div>

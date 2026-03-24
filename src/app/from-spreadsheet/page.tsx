@@ -74,13 +74,15 @@ export default function FromSpreadsheetPage() {
           <h2 className="text-2xl sm:text-3xl tracking-tight text-center mb-10">Spreadsheet vs. Savvo</h2>
           <div className="grid sm:grid-cols-2 gap-6">
             {/* Spreadsheet column */}
-            <div className="rounded-2xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 p-6 relative">
-              <div className="absolute top-4 right-4 text-[10px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-widest">Old way</div>
+            <div className="rounded-2xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 p-6 relative">
+              <div className="absolute top-4 right-4">
+                <span className="px-2 py-0.5 rounded-full bg-stone-200 dark:bg-stone-700 text-[10px] font-semibold text-stone-600 dark:text-stone-300 uppercase tracking-widest">Old way</span>
+              </div>
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-stone-100 dark:bg-stone-800 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-white dark:bg-stone-700 flex items-center justify-center shadow-sm">
                   <span className="text-lg">📋</span>
                 </div>
-                <h3 className="text-lg font-medium text-foreground">Google Sheets / Notion</h3>
+                <h3 className="text-lg font-medium text-stone-900 dark:text-stone-100">Google Sheets / Notion</h3>
               </div>
               <ul className="space-y-3.5 text-sm">
                 {[
@@ -92,8 +94,8 @@ export default function FromSpreadsheetPage() {
                   "Breaks down after 50+ contacts",
                   "Clunky on mobile",
                 ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3 text-stone-700 dark:text-stone-300">
-                    <span className="w-5 h-5 rounded-full bg-stone-200 dark:bg-stone-700 flex items-center justify-center shrink-0 mt-0.5 text-xs text-stone-500 dark:text-stone-400">✗</span>
+                  <li key={i} className="flex items-start gap-3 text-stone-600 dark:text-stone-300">
+                    <span className="w-5 h-5 rounded-full bg-stone-300 dark:bg-stone-600 flex items-center justify-center shrink-0 mt-0.5 text-xs text-stone-500 dark:text-stone-400 font-medium">✗</span>
                     {item}
                   </li>
                 ))}
@@ -101,13 +103,15 @@ export default function FromSpreadsheetPage() {
             </div>
 
             {/* Savvo column */}
-            <div className="rounded-2xl border-2 border-[var(--copper)]/40 bg-white dark:bg-stone-900 p-6 shadow-refined relative">
-              <div className="absolute top-4 right-4 text-[10px] font-bold text-[var(--copper)] uppercase tracking-widest">Better way</div>
+            <div className="rounded-2xl border-2 border-[var(--copper)]/40 bg-white dark:bg-stone-800 p-6 shadow-refined-lg relative">
+              <div className="absolute top-4 right-4">
+                <span className="px-2 py-0.5 rounded-full bg-[var(--copper)]/15 text-[10px] font-bold text-[var(--copper)] uppercase tracking-widest">Better way</span>
+              </div>
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-[var(--copper)]/10 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-[var(--copper)]/10 flex items-center justify-center shadow-sm">
                   <img src="/logo.svg" alt="Savvo" className="h-5 w-5" />
                 </div>
-                <h3 className="text-lg font-medium text-foreground">Savvo</h3>
+                <h3 className="text-lg font-medium text-stone-900 dark:text-stone-100">Savvo</h3>
               </div>
               <ul className="space-y-3.5 text-sm">
                 {[
@@ -119,8 +123,8 @@ export default function FromSpreadsheetPage() {
                   "Built for hundreds of connections",
                   "Mobile-first, works anywhere",
                 ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3 text-stone-800 dark:text-stone-200">
-                    <span className="w-5 h-5 rounded-full bg-[var(--copper)]/15 flex items-center justify-center shrink-0 mt-0.5 text-xs text-[var(--copper)] font-bold">✓</span>
+                  <li key={i} className="flex items-start gap-3 text-stone-700 dark:text-stone-200">
+                    <span className="w-5 h-5 rounded-full bg-[var(--copper)]/20 flex items-center justify-center shrink-0 mt-0.5 text-xs text-[var(--copper)] font-bold">✓</span>
                     {item}
                   </li>
                 ))}
@@ -135,14 +139,14 @@ export default function FromSpreadsheetPage() {
           <p className="text-muted-foreground text-center mb-10 max-w-lg mx-auto">Here&apos;s what breaks — and how Savvo fixes it.</p>
           <div className="grid gap-4 sm:grid-cols-2">
             {painPoints.map((item, i) => (
-              <div key={i} className="rounded-xl border bg-white dark:bg-stone-900 p-5 shadow-refined">
+              <div key={i} className="rounded-xl border bg-white dark:bg-stone-800 p-5 shadow-refined">
                 <div className="flex items-start gap-3.5">
                   <span className="text-xl shrink-0 mt-0.5">{item.emoji}</span>
                   <div>
                     <p className="text-sm text-stone-500 dark:text-stone-400 mb-2">{item.pain}</p>
                     <div className="flex items-start gap-2">
                       <span className="text-[var(--copper)] shrink-0 mt-0.5 text-sm font-bold">→</span>
-                      <p className="text-sm font-medium text-stone-800 dark:text-stone-200">{item.solution}</p>
+                      <p className="text-sm font-medium text-stone-900 dark:text-stone-100">{item.solution}</p>
                     </div>
                   </div>
                 </div>

@@ -30,9 +30,22 @@ Generated from CEO Review on 2026-03-19. All v0.1 items shipped same day.
 
 ## Deferred (Future Milestones)
 
+### 10-Star Features (dreamed 2026-03-24)
+
+- **Network Score** — single 0-100 gamified score on dashboard (recency, coverage, growth, diversity, follow-through). Animated ring chart + breakdown tooltip. $0 cost, pure SQL. ~1 day.
+- **Double-Opt-In Intro Flow** — act on intro suggestions: draft both messages, user approves/edits, send or copy. New `intro_requests` table. Tracks as activity on both contacts. Growth engine. ~$0.50/mo at 100 users. ~2-3 days.
+- **Voice Note Input** — mic button → Whisper API transcription → existing extraction pipeline. 30-60s post-meeting debrief creates a full contact. Pro feature. ~$3/mo at 100 users. ~1-2 days.
+- **Smart Daily Brief v2** — AI-written 3-sentence personalized digest (today's meetings, who's going cold, follow-up reminders, network score delta). Replaces template digest for Pro users. ~$1/mo at 100 users. ~1 day.
+- **PWA + Push Notifications** — installable on mobile, Web Push API for daily brief + follow-up reminders. VAPID keys, service worker, push subscription table. $0 cost. ~1-2 days.
+
+### Other Deferred
+
 - Team plan ($12/user/mo — shared graphs, intro requests, admin tools)
-- PWA push notifications (replace email digest for mobile-first users)
 - Contact photo/avatar upload
 - Bulk tag operations
 - Export graph as image
 - Network intelligence analytics (network composition, blind spots)
+- Ambient network intelligence (proactive suggestions based on network signals)
+- Goal-linked networking ("I'm raising a Series A" → prioritize investor contacts)
+- AI relationship coach (pattern detection + re-engagement strategies)
+- Second brain for people (synthesized profiles from all interactions)

@@ -182,6 +182,10 @@ function FeaturesGuidePage({ plan }: { plan: PlanType }) {
           <Link href="/privacy" className="hover:text-foreground font-medium">Privacy Policy</Link>
           {" "}&middot;{" "}
           <Link href="/terms" className="hover:text-foreground">Terms of Service</Link>
+          {" "}&middot;{" "}
+          <Link href="#faq" className="hover:text-foreground">FAQ</Link>
+          {" "}&middot;{" "}
+          <Link href="/from-spreadsheet" className="hover:text-foreground">Switching from Spreadsheets?</Link>
         </p>
         <p className="text-xs">Your data is stored securely and never shared with third parties.</p>
       </footer>
@@ -536,6 +540,55 @@ function MarketingPage() {
         </div>
       </section>
 
+      {/* FAQ Section */}
+      <section id="faq" className="py-12 sm:py-20 px-4 sm:px-6 max-w-3xl mx-auto">
+        <h2 className="text-3xl tracking-tight text-center mb-10">Frequently Asked Questions</h2>
+        <div className="space-y-4">
+          {[
+            {
+              q: "What is Savvo?",
+              a: "Savvo is an AI-powered personal CRM built for founders, VCs, and professional networkers. You add contacts by typing what you remember about someone — like messy meeting notes — and Savvo automatically extracts their name, company, role, and follow-up actions. Every contact gets a health score that tracks how fresh the relationship is, and you get daily digest emails reminding you who needs attention.",
+            },
+            {
+              q: "How does the health score work?",
+              a: "Every contact gets a color-coded health score based on when you last interacted. Green means active (within the last 30 days), yellow means cooling (31-90 days), orange means going cold (91-180 days), and red means at risk (180+ days). Your dashboard shows you exactly who needs a reach-out, prioritized by urgency.",
+            },
+            {
+              q: "Is my data private and secure?",
+              a: "Yes. Savvo uses Supabase with PostgreSQL and row-level security — every user can only access their own data. All data is encrypted in transit (HTTPS) and at rest. We never sell your data, never share contacts with third parties, and you can export or delete everything at any time. AI processing happens through OpenAI's API with no data retention.",
+            },
+            {
+              q: "How is Savvo different from a spreadsheet or Notion?",
+              a: "Spreadsheets and Notion require you to manually create columns, type structured data, and remember to check them. Savvo lets you type naturally — 'Met Sarah at TechCrunch, she runs a fintech startup' — and AI handles the structure. Plus, you get automatic health scores, follow-up reminders via daily digest emails, and semantic search so you can find people by context, not just names.",
+            },
+            {
+              q: "Can I import my existing contacts?",
+              a: "Yes. Pro users can import via CSV upload (works with any spreadsheet export) or connect Google Contacts for a one-click import. Savvo automatically deduplicates during import so you won't get duplicate entries. Your existing spreadsheet becomes your starting point.",
+            },
+            {
+              q: "What does the AI actually do?",
+              a: "Savvo uses AI in four ways: (1) Contact extraction — parses natural language notes into structured data. (2) Semantic search — find contacts by meaning, not just keywords ('who was the fintech person?'). (3) Follow-up drafts — generates personalized outreach messages based on your history. (4) Intro suggestions — identifies high-value introductions across your network.",
+            },
+            {
+              q: "How much does Savvo cost?",
+              a: "Savvo has a free plan with 50 contacts, health scores, and weekly digest emails. The Pro plan is $8/month (currently $5/month launch price until June 2026) and includes unlimited contacts, daily digests, unlimited semantic search, AI drafts, meeting prep, intro suggestions, CSV/Google import, and Google Calendar sync.",
+            },
+            {
+              q: "Who is Savvo built for?",
+              a: "Savvo is built for people whose network is their most valuable professional asset — startup founders managing investor and partner relationships, VCs tracking portfolio founders and dealflow, community builders maintaining large networks, and sales professionals who value relationship-first selling. If you meet a lot of people and struggle to keep every connection warm, Savvo is for you.",
+            },
+          ].map((faq, i) => (
+            <details key={i} className="group border rounded-xl px-5 py-4 bg-white/60 dark:bg-stone-900/40 shadow-refined">
+              <summary className="cursor-pointer text-sm font-medium flex items-center justify-between gap-4 list-none">
+                {faq.q}
+                <svg className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+              </summary>
+              <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
       <section className="py-12 sm:py-20 px-4 sm:px-6 text-center">
         <h2 className="text-3xl tracking-tight mb-3">Your network is your net worth.<br />Stop letting it decay.</h2>
         <p className="text-muted-foreground mb-6 max-w-md mx-auto">Join founders, VCs, and connectors who use Savvo to keep every connection alive.</p>
@@ -550,6 +603,10 @@ function MarketingPage() {
           <Link href="/privacy" className="hover:text-foreground font-medium">Privacy Policy</Link>
           {" "}&middot;{" "}
           <Link href="/terms" className="hover:text-foreground">Terms of Service</Link>
+          {" "}&middot;{" "}
+          <Link href="#faq" className="hover:text-foreground">FAQ</Link>
+          {" "}&middot;{" "}
+          <Link href="/from-spreadsheet" className="hover:text-foreground">Switching from Spreadsheets?</Link>
         </p>
         <p className="text-xs">Your data is stored securely and never shared with third parties.</p>
       </footer>

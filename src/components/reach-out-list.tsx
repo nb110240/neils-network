@@ -25,7 +25,7 @@ export function ReachOutList({ contacts, plan, total }: ReachOutListProps) {
   if (contacts.length === 0) return null
 
   return (
-    <Card className="shadow-refined border-l-2 border-l-[var(--copper)]">
+    <Card className="shadow-refined border-l-2 border-l-[var(--copper)]" data-tour="reach-out-section">
       <CardHeader>
         <CardTitle className="flex items-center gap-3 text-lg font-normal">
           <div className="h-8 w-8 rounded-lg bg-[var(--copper)]/10 flex items-center justify-center">

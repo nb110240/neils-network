@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Suspense } from "react"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/server"
-import type { Contact } from "@/lib/types"
+
 import { calculateHealthScore } from "@/lib/health"
 import { getUserPlan } from "@/lib/subscription"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,8 +15,11 @@ import { ManageSubscriptionButton } from "@/components/manage-subscription-butto
 import { UpgradeToast } from "@/components/upgrade-toast"
 import { EventModeBanner } from "@/components/event-mode-banner"
 import { StartEventButton } from "@/components/start-event-button"
-import { OnboardingBanner } from "@/components/onboarding-banner"
-import { Plus, Users, ArrowRight, ThermometerSnowflake, Crown, Mail, HandHeart } from "lucide-react"
+import { WelcomeExperience } from "@/components/welcome-experience"
+import { OnboardingChecklist } from "@/components/onboarding-checklist"
+import { DashboardWalkthrough } from "@/components/dashboard-walkthrough"
+import { DashboardHeader } from "@/components/dashboard-header"
+import { Plus, Users, ArrowRight, ThermometerSnowflake, Crown, HandHeart } from "lucide-react"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -145,67 +148,16 @@ export default async function DashboardPage() {
   const recentContacts = contactsWithHealth.slice(0, 6)
   const isEmpty = (allContacts || []).length === 0
 
-  // Empty state for new users — Step 1: Welcome + Value Prop
+  // Brand new user — guided welcome experience
   if (isEmpty) {
+    const userName = user.user_metadata?.full_name || null
+    const userEmail = user.email || null
     return (
       <div className="space-y-8">
         <Suspense fallback={null}>
           <UpgradeToast />
         </Suspense>
-        <div className="flex flex-col items-center justify-center py-16 max-w-xl mx-auto text-center animate-fade-in">
-          <div className="w-16 h-16 rounded-2xl bg-[var(--copper)]/10 flex items-center justify-center mb-6">
-            <Users className="h-8 w-8 text-[var(--copper)]" />
-          </div>
-          <h1 className="text-3xl font-normal tracking-tight mb-2">Welcome to Savvo</h1>
-          <p className="text-muted-foreground text-lg mb-10">
-            Add people you meet. We&apos;ll track your relationships and tell you when they&apos;re going cold.
-          </p>
-
-          {/* Core concepts */}
-          <div className="grid gap-3 w-full mb-10 sm:grid-cols-3">
-            <Card className="shadow-refined text-left">
-              <CardContent className="pt-5 pb-4 px-4">
-                <div className="h-9 w-9 rounded-lg bg-[var(--copper)]/10 flex items-center justify-center mb-3">
-                  <Plus className="h-4 w-4 text-[var(--copper)]" />
-                </div>
-                <p className="text-sm font-medium leading-snug">Add contacts by typing what you remember</p>
-              </CardContent>
-            </Card>
-            <Card className="shadow-refined text-left">
-              <CardContent className="pt-5 pb-4 px-4">
-                <div className="h-9 w-9 rounded-lg bg-[var(--copper)]/10 flex items-center justify-center mb-3">
-                  <ThermometerSnowflake className="h-4 w-4 text-[var(--copper)]" />
-                </div>
-                <p className="text-sm font-medium leading-snug">Health scores show who needs attention</p>
-              </CardContent>
-            </Card>
-            <Card className="shadow-refined text-left">
-              <CardContent className="pt-5 pb-4 px-4">
-                <div className="h-9 w-9 rounded-lg bg-[var(--copper)]/10 flex items-center justify-center mb-3">
-                  <Mail className="h-4 w-4 text-[var(--copper)]" />
-                </div>
-                <p className="text-sm font-medium leading-snug">Daily digest reminds you to reach out</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* CTAs */}
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <Button asChild className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0 h-12 px-8 text-base">
-              <Link href="/add">
-                Add Your First Contact
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
-            {plan === "pro" && (
-              <Button variant="outline" asChild className="h-12 px-6 text-base">
-                <Link href="/import">
-                  Or import existing contacts
-                </Link>
-              </Button>
-            )}
-          </div>
-        </div>
+        <WelcomeExperience userName={userName} userEmail={userEmail} plan={plan} />
       </div>
     )
   }
@@ -216,10 +168,10 @@ export default async function DashboardPage() {
         <UpgradeToast />
       </Suspense>
       <EventModeBanner />
-      {/* Onboarding banner for new users (1-4 contacts) */}
-      {(totalContacts || 0) > 0 && (totalContacts || 0) < 5 && (
-        <OnboardingBanner contactCount={totalContacts || 0} plan={plan} />
-      )}
+      {/* Walkthrough tooltip tour for users with 1-4 contacts */}
+      <DashboardWalkthrough contactCount={totalContacts || 0} />
+      {/* Onboarding checklist for users with < 10 contacts */}
+      <OnboardingChecklist contactCount={totalContacts || 0} />
       {/* Contact limit warning for free users approaching 50 */}
       {plan === "free" && (totalContacts || 0) >= 45 && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3 flex items-center justify-between gap-4">
@@ -233,12 +185,7 @@ export default async function DashboardPage() {
       )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 animate-fade-in">
-        <div>
-          <h1 className="text-4xl font-normal tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1 text-lg">
-            Welcome back. Here&apos;s your network overview.
-          </p>
-        </div>
+        <DashboardHeader userName={user.user_metadata?.full_name || null} />
         <div className="flex items-center gap-3 flex-wrap">
           {plan === "pro" && (
             <CalendarConnectButton isConnected={calendarConnected} />
@@ -253,7 +200,7 @@ export default async function DashboardPage() {
           ) : (
             <ManageSubscriptionButton />
           )}
-          <Button asChild className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 shadow-md hover:shadow-lg border-0">
+          <Button asChild className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 shadow-md hover:shadow-lg border-0" data-tour="add-contact-btn">
             <Link href="/add">
               <Plus className="mr-2 h-4 w-4" />
               Add Contact
@@ -263,7 +210,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 stagger-children">
         <Card className="shadow-refined">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Contacts</CardTitle>
@@ -277,7 +224,7 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-refined">
+        <Card className="shadow-refined" data-tour="stats-reach-out">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Reach Out</CardTitle>
             <HandHeart className="h-4 w-4 text-[var(--copper)]" />
@@ -290,7 +237,7 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-refined">
+        <Card className="shadow-refined" data-tour="stats-cold">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Going Cold</CardTitle>
             <ThermometerSnowflake className="h-4 w-4 text-red-500" />
@@ -351,9 +298,9 @@ export default async function DashboardPage() {
           </Button>
         </div>
         {recentContacts && recentContacts.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">
             {recentContacts.map((contact) => (
-              <div key={contact.id}>
+              <div key={contact.id} className="card-interactive">
                 <ContactCard contact={contact} />
               </div>
             ))}

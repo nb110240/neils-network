@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server"
+import { timingSafeEqual } from "crypto"
 import { createClient } from "@/lib/supabase/server"
 import { rateLimit, rateLimitHeaders, type RateLimitType } from "@/lib/rate-limit"
 import type { SupabaseClient } from "@supabase/supabase-js"
+
+// ─── Timing-safe secret comparison ───
+// Prevents timing attacks on secret/token comparisons
+export function safeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  return timingSafeEqual(Buffer.from(a), Buffer.from(b))
+}
 
 // ─── Auth result types ───
 
@@ -87,9 +95,15 @@ export function sanitizeForPrompt(text: string | null | undefined, maxLength: nu
 // unauthenticated API calls
 
 export async function verifyDevAccess(request: Request): Promise<NextResponse | null> {
-  // Path 1: secret header (for programmatic access)
+  // Block dev endpoints entirely in production
+  if (process.env.NODE_ENV === "production" && !process.env.ALLOW_DEV_ENDPOINTS) {
+    return NextResponse.json({ error: "Not available in production" }, { status: 404 })
+  }
+
+  // Path 1: secret header (for programmatic access) — timing-safe comparison
   const secret = request.headers.get("x-dev-secret")
-  if (secret && secret === process.env.DEV_SECRET) {
+  const devSecret = process.env.DEV_SECRET
+  if (secret && devSecret && safeCompare(secret, devSecret)) {
     return null
   }
 

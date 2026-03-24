@@ -67,8 +67,97 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://savvo.app/#organization",
+        name: "Savvo",
+        url: "https://savvo.app",
+        logo: "https://savvo.app/logo.svg",
+        description: "AI-powered relationship manager for founders, VCs, and professional networkers. Keep every connection alive.",
+        founder: {
+          "@type": "Person",
+          name: "Neil Bajaj",
+          email: "neil@savvo.app",
+        },
+        contactPoint: {
+          "@type": "ContactPoint",
+          email: "neil@savvo.app",
+          contactType: "customer support",
+        },
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://savvo.app/#app",
+        name: "Savvo",
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web",
+        description: "AI-powered personal CRM that extracts contact details from natural language notes, tracks relationship health scores, and sends daily digest reminders.",
+        url: "https://savvo.app",
+        provider: { "@id": "https://savvo.app/#organization" },
+        offers: [
+          {
+            "@type": "Offer",
+            name: "Free",
+            price: "0",
+            priceCurrency: "USD",
+            description: "50 contacts, health scores, weekly digest, 5 semantic searches/month",
+          },
+          {
+            "@type": "Offer",
+            name: "Pro",
+            price: "8",
+            priceCurrency: "USD",
+            billingIncrement: "month" as string,
+            description: "Unlimited contacts, daily digest, unlimited search, all AI features",
+          },
+        ],
+        featureList: [
+          "Natural language contact capture",
+          "Relationship health scores",
+          "Semantic search",
+          "Daily digest emails",
+          "AI follow-up drafts",
+          "LinkedIn QR code import",
+          "CSV and Google Contacts import",
+          "Google Calendar sync",
+          "Relationship graph",
+          "AI intro suggestions",
+        ],
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://savvo.app/#website",
+        url: "https://savvo.app",
+        name: "Savvo",
+        publisher: { "@id": "https://savvo.app/#organization" },
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://savvo.app/#faq",
+        mainEntity: [
+          { "@type": "Question", name: "What is Savvo?", acceptedAnswer: { "@type": "Answer", text: "Savvo is an AI-powered personal CRM built for founders, VCs, and professional networkers. You add contacts by typing what you remember about someone and Savvo automatically extracts their name, company, role, and follow-up actions. Every contact gets a health score that tracks how fresh the relationship is." } },
+          { "@type": "Question", name: "How does the health score work?", acceptedAnswer: { "@type": "Answer", text: "Every contact gets a color-coded health score based on when you last interacted. Green means active (within 30 days), yellow means cooling (31-90 days), orange means going cold (91-180 days), and red means at risk (180+ days)." } },
+          { "@type": "Question", name: "Is my data private and secure?", acceptedAnswer: { "@type": "Answer", text: "Yes. Savvo uses Supabase with PostgreSQL and row-level security. All data is encrypted in transit and at rest. We never sell your data, never share contacts with third parties, and you can export or delete everything at any time." } },
+          { "@type": "Question", name: "How is Savvo different from a spreadsheet?", acceptedAnswer: { "@type": "Answer", text: "Spreadsheets require manual data entry and structure. Savvo lets you type naturally and AI handles the structure. Plus you get automatic health scores, follow-up reminders, and semantic search to find people by context, not just names." } },
+          { "@type": "Question", name: "Can I import my existing contacts?", acceptedAnswer: { "@type": "Answer", text: "Yes. Pro users can import via CSV upload (works with any spreadsheet export) or connect Google Contacts for a one-click import. Savvo automatically deduplicates during import." } },
+          { "@type": "Question", name: "How much does Savvo cost?", acceptedAnswer: { "@type": "Answer", text: "Free plan includes 50 contacts, health scores, and weekly digest. Pro is $8/month (launch price $5/month) with unlimited contacts, daily digests, unlimited search, all AI features, and import capabilities." } },
+          { "@type": "Question", name: "Who is Savvo built for?", acceptedAnswer: { "@type": "Answer", text: "Savvo is built for people whose network is their most valuable professional asset — startup founders, VCs, community builders, and sales professionals who meet many people and struggle to keep every connection warm." } },
+        ],
+      },
+    ],
+  }
+
   return (
     <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body
         className={`${dmSans.variable} ${dmSerif.variable} ${geistMono.variable} antialiased`}
       >

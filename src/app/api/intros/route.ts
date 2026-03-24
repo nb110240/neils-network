@@ -67,9 +67,9 @@ export async function GET() {
         const tags = contactTagNames.get(c.id) || []
         const parts = [
           `ID:${c.id.slice(0, 8)}`,
-          c.name || "Unknown",
-          c.company ? `@${c.company}` : "",
-          c.job_title ? `(${c.job_title})` : "",
+          sanitizeForPrompt(c.name, 100) || "Unknown",
+          c.company ? `@${sanitizeForPrompt(c.company, 100)}` : "",
+          c.job_title ? `(${sanitizeForPrompt(c.job_title, 100)})` : "",
           tags.length > 0 ? `[${tags.join(",")}]` : "",
           c.how_we_met ? `met:${sanitizeForPrompt(c.how_we_met, 60)}` : "",
           c.next_steps ? `next:${sanitizeForPrompt(c.next_steps, 60)}` : "",

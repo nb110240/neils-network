@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
           { key: "X-XSS-Protection", value: "1; mode=block" },
           {
             key: "Strict-Transport-Security",
-            value: "max-age=31536000; includeSubDomains",
+            value: "max-age=31536000; includeSubDomains; preload",
           },
           {
             key: "Permissions-Policy",
@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co https://api.openai.com https://api.stripe.com https://*.sentry.io https://*.googleapis.com https://*.upstash.io; frame-src https://js.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co https://api.openai.com https://api.stripe.com https://*.sentry.io https://*.googleapis.com https://*.upstash.io; frame-src https://js.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'",
           },
         ],
       },

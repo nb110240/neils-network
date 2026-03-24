@@ -59,8 +59,8 @@ BEGIN
     WHERE created_by = NEW.created_by
       AND archived_at IS NULL;
 
-    IF contact_count >= 25 THEN
-      RAISE EXCEPTION 'Free plan limit: maximum 25 contacts. Upgrade to Pro for unlimited.';
+    IF contact_count >= 50 THEN
+      RAISE EXCEPTION 'Free plan limit: maximum 50 contacts. Upgrade to Pro for unlimited.';
     END IF;
   END IF;
 
@@ -156,10 +156,16 @@ AS $$
 BEGIN
   -- Delete in dependency order within a single transaction
   DELETE FROM contact_activities WHERE user_id = target_user_id;
+  DELETE FROM contact_tags WHERE contact_id IN (SELECT id FROM contacts WHERE created_by = target_user_id);
   DELETE FROM digest_history WHERE user_id = target_user_id;
   DELETE FROM search_usage WHERE user_id = target_user_id;
   DELETE FROM integrations WHERE user_id = target_user_id;
+  DELETE FROM user_preferences WHERE user_id = target_user_id;
   DELETE FROM contacts WHERE created_by = target_user_id;
+  DELETE FROM tags WHERE created_by = target_user_id;
+  DELETE FROM events WHERE created_by = target_user_id;
+  DELETE FROM team_members WHERE user_id = target_user_id;
+  DELETE FROM teams WHERE owner_id = target_user_id;
   DELETE FROM subscriptions WHERE user_id = target_user_id;
   -- Note: auth.users deletion must be done via supabase.auth.admin.deleteUser()
   -- after this RPC succeeds, since it's in the auth schema.

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { Resend } from "resend"
 import { escapeHtml, emailLayout } from "@/lib/email"
+import { safeCompare } from "@/lib/api-utils"
 
 let _resend: Resend | null = null
 
@@ -13,9 +14,10 @@ function getResend(): Resend {
 
 export async function POST(request: Request) {
   try {
-    // Protect with internal secret — only callable from auth callback
+    // Protect with internal secret — only callable from auth callback (timing-safe)
     const authHeader = request.headers.get("x-internal-secret")
-    if (authHeader !== (process.env.INTERNAL_API_SECRET || process.env.CRON_SECRET)) {
+    const expectedSecret = process.env.INTERNAL_API_SECRET || process.env.CRON_SECRET
+    if (!authHeader || !expectedSecret || !safeCompare(authHeader, expectedSecret)) {
       return NextResponse.json({ message: "Forbidden" }, { status: 403 })
     }
 

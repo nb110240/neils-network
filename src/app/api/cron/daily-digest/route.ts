@@ -3,13 +3,15 @@ import { createServiceClient } from "@/lib/supabase/server"
 import { calculateHealthScore } from "@/lib/health"
 import { sendDigestEmail } from "@/lib/email"
 import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
+import { safeCompare } from "@/lib/api-utils"
 import { log } from "@/lib/logger"
 
 export async function GET(request: Request) {
-  // Verify cron secret to prevent unauthorized access
+  // Verify cron secret to prevent unauthorized access (timing-safe)
   const cronSecret = process.env.CRON_SECRET
   const authHeader = request.headers.get("authorization")
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : ""
+  if (!cronSecret || !token || !safeCompare(token, cronSecret)) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
   }
 

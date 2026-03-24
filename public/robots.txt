@@ -1,0 +1,45 @@
+# Savvo — AI Relationship Manager
+# https://savvo.app
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /contacts
+Disallow: /contact/
+Disallow: /add
+Disallow: /scan
+Disallow: /import
+Disallow: /graph
+Disallow: /intros
+Disallow: /search
+Disallow: /settings
+Disallow: /dev
+Disallow: /support
+
+# AI Crawlers — welcome
+User-agent: GPTBot
+Allow: /
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /contact/
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /contact/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /contact/
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+Sitemap: https://savvo.app/sitemap.xml

@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
@@ -16,6 +17,10 @@ import {
 } from "@/components/ui/dialog"
 import { Loader2, Plus, Linkedin, Crown, ScanLine, Check, Edit2 } from "lucide-react"
 import Link from "next/link"
+import { type NetworkingGoal, GOAL_CONFIGS } from "@/lib/personalization"
+import { Celebration, useFirstContactCelebration } from "@/components/celebration"
+
+const DEFAULT_PLACEHOLDER = `Example: Met John Doe at the AI Summit. He's VP of Engineering at Acme Corp. We talked about their platform and he mentioned they're hiring. Should follow up next week.`
 
 export default function AddContactPage() {
   const router = useRouter()
@@ -26,6 +31,19 @@ export default function AddContactPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isLinkedinLoading, setIsLinkedinLoading] = useState(false)
   const [linkedinSuccess, setLinkedinSuccess] = useState<{ id: string; name: string } | null>(null)
+  const [placeholder, setPlaceholder] = useState(DEFAULT_PLACEHOLDER)
+  const { showCelebration, triggerIfFirst, onComplete: onCelebrationComplete } = useFirstContactCelebration()
+
+  // Load personalized placeholder from user's networking goal
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      const goal = user?.user_metadata?.networking_goal as NetworkingGoal | undefined
+      if (goal && GOAL_CONFIGS[goal]) {
+        setPlaceholder(GOAL_CONFIGS[goal].addContactPlaceholder)
+      }
+    })
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,7 +70,15 @@ export default function AddContactPage() {
         description: `${data.contact?.name || "New contact"} has been added to your network.`,
       })
 
-      router.push(`/contact/${data.contact.id}`)
+      // Check if this was the user's first contact — celebrate!
+      const isFirstEver = localStorage.getItem("savvo-first-contact-celebrated") !== "true"
+      if (isFirstEver) {
+        triggerIfFirst(1)
+        // Let confetti play before navigating
+        setTimeout(() => router.push(`/contact/${data.contact.id}`), 1800)
+      } else {
+        router.push(`/contact/${data.contact.id}`)
+      }
     } catch (error) {
       addToast({
         title: "Error",
@@ -109,6 +135,7 @@ export default function AddContactPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
+      <Celebration show={showCelebration} onComplete={onCelebrationComplete} />
       <div>
         <h1 className="text-4xl font-normal tracking-tight">Add Contact</h1>
         <p className="text-muted-foreground mt-1 text-lg">
@@ -127,7 +154,7 @@ export default function AddContactPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <Textarea
-              placeholder={`Example: Met John Doe at the AI Summit. He's VP of Engineering at SersweAI. We talked about their platform and he mentioned they're hiring. Should follow up next week.`}
+              placeholder={placeholder}
               value={rawNote}
               onChange={(e) => setRawNote(e.target.value)}
               rows={6}

@@ -84,12 +84,12 @@ export async function POST(
         // Calendar not connected, that's fine
       }
 
-      prompt = `Draft a short, warm message to schedule a 1:1 meeting with ${contact.name || "this person"}.
+      prompt = `Draft a short, warm message to schedule a 1:1 meeting with ${sanitizeForPrompt(contact.name, 100) || "this person"}.
 
 Context about this person:
-- Name: ${contact.name || "Unknown"}
-- Company: ${contact.company || "Unknown"}
-- Role: ${contact.job_title || "Unknown"}
+- Name: ${sanitizeForPrompt(contact.name, 100) || "Unknown"}
+- Company: ${sanitizeForPrompt(contact.company, 100) || "Unknown"}
+- Role: ${sanitizeForPrompt(contact.job_title, 100) || "Unknown"}
 - How we met: ${sanitizeForPrompt(contact.how_we_met, 200)}
 - Last interaction: ${contact.last_contact_date || "Unknown"}
 - Notes: ${sanitizeForPrompt(contact.raw_note)}
@@ -105,12 +105,12 @@ Requirements:
 
     } else {
       // Follow-up message
-      prompt = `Draft a short, personalized follow-up message to ${contact.name || "this person"}.
+      prompt = `Draft a short, personalized follow-up message to ${sanitizeForPrompt(contact.name, 100) || "this person"}.
 
 Context about this person:
-- Name: ${contact.name || "Unknown"}
-- Company: ${contact.company || "Unknown"}
-- Role: ${contact.job_title || "Unknown"}
+- Name: ${sanitizeForPrompt(contact.name, 100) || "Unknown"}
+- Company: ${sanitizeForPrompt(contact.company, 100) || "Unknown"}
+- Role: ${sanitizeForPrompt(contact.job_title, 100) || "Unknown"}
 - How we met: ${sanitizeForPrompt(contact.how_we_met, 200)}
 - Last interaction: ${contact.last_contact_date || "Unknown"}
 - Next steps noted: ${sanitizeForPrompt(contact.next_steps, 200)}

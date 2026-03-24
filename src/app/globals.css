@@ -260,10 +260,77 @@ h1, h2, h3, h4, h5, h6 {
     0 16px 32px rgba(0, 0, 0, 0.08);
 }
 
+/* Slide-up animation for page-level content */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out forwards;
+  opacity: 0;
+}
+
+/* Stagger delays for grid children — apply to parent */
+.stagger-children > * {
+  opacity: 0;
+  animation: fade-in 0.4s ease-out forwards;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.3s; }
+.stagger-children > *:nth-child(7) { animation-delay: 0.35s; }
+.stagger-children > *:nth-child(8) { animation-delay: 0.4s; }
+
 /* Touch targets for mobile — opt-in only via .touch-target class */
 .touch-target {
   min-height: 44px;
   min-width: 44px;
+}
+
+/* Mobile-specific: smoother scrolling, overscroll behavior */
+@media (max-width: 640px) {
+  html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Prevent rubber-banding on mobile */
+  body {
+    overscroll-behavior-y: none;
+  }
+
+  /* Larger touch targets on mobile buttons */
+  button, a[role="button"], [role="link"] {
+    min-height: 44px;
+  }
+
+  /* Better tap highlight on iOS */
+  * {
+    -webkit-tap-highlight-color: rgba(194, 65, 12, 0.1);
+  }
+}
+
+/* Smooth transitions on interactive cards */
+.card-interactive {
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+
+.card-interactive:hover {
+  transform: translateY(-1px);
+}
+
+.card-interactive:active {
+  transform: translateY(0) scale(0.995);
 }
 
 /* Selection */

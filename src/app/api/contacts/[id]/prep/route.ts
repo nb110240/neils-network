@@ -93,9 +93,9 @@ export async function POST(
     const prompt = `Generate a concise meeting prep brief for ${userName}'s upcoming interaction with this contact.
 
 CONTACT PROFILE:
-- Name: ${contact.name || "Unknown"}
-- Company: ${contact.company || "Unknown"}
-- Role: ${contact.job_title || "Unknown"}
+- Name: ${sanitizeForPrompt(contact.name, 100) || "Unknown"}
+- Company: ${sanitizeForPrompt(contact.company, 100) || "Unknown"}
+- Role: ${sanitizeForPrompt(contact.job_title, 100) || "Unknown"}
 - How we met: ${sanitizeForPrompt(contact.how_we_met, 200)}
 - Relationship health: ${health.label} (${health.level} — last contact: ${contact.last_contact_date || "never"})
 - Tags: ${tagNames.length > 0 ? tagNames.join(", ") : "None"}

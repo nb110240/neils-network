@@ -1,0 +1,46 @@
+# Savvo — AI Relationship Manager
+
+> Keep every connection alive. Savvo is an AI-powered personal CRM built for founders, VCs, and professional networkers.
+
+## What Savvo Does
+
+Savvo helps professionals manage their network relationships. Users type natural language notes about people they meet, and AI extracts structured contact data (name, company, role, follow-ups). Every contact gets a health score that tracks relationship freshness — green means active, red means going cold. Daily digest emails remind users who needs attention.
+
+## Key Features
+
+- **Natural Language Contact Capture**: Type messy meeting notes, AI extracts name, company, job title, how you met, and next steps
+- **Relationship Health Scores**: Color-coded scores (green/yellow/orange/red) based on last contact date
+- **Semantic Search**: Search contacts by meaning, not just keywords ("who was the fintech person at the conference?")
+- **Daily Digest Emails**: Morning summary of relationships that need attention
+- **AI Follow-Up Drafts**: One-tap personalized outreach messages
+- **LinkedIn QR Code Import**: Scan LinkedIn QR codes to add contacts
+- **CSV & Google Contacts Import**: Bring your existing network
+- **Google Calendar Sync**: Auto-detect meetings and attendees
+- **Relationship Graph**: Visual network map showing connections
+- **AI Intro Suggestions**: Discover high-value introductions across your network
+
+## Pricing
+
+- **Free**: 50 contacts, health scores, weekly digest, 5 semantic searches/month
+- **Pro**: $8/month (launch price $5/month) — unlimited contacts, daily digest, unlimited search, all AI features
+- **Team**: $12/user/month — coming soon, shared graphs and intro requests
+
+## Who It's For
+
+- Startup founders managing investor, partner, and hire relationships
+- Venture capitalists tracking portfolio founders and dealflow
+- Community builders maintaining large professional networks
+- Sales professionals who value relationship-first selling
+
+## Technology
+
+Built with Next.js, Supabase (PostgreSQL + pgvector), OpenAI for extraction and embeddings, Stripe for payments. Hosted on Vercel. All data encrypted, row-level security on all tables, no data sharing with third parties.
+
+## Links
+
+- Website: https://savvo.app
+- Pricing: https://savvo.app/pricing
+- Switching from Spreadsheets: https://savvo.app/from-spreadsheet
+- Privacy Policy: https://savvo.app/privacy
+- Terms of Service: https://savvo.app/terms
+- Contact: neil@savvo.app

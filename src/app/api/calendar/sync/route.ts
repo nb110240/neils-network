@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { createServiceClient } from "@/lib/supabase/server"
 import { createClient } from "@/lib/supabase/server"
 import { getUserPlan } from "@/lib/subscription"
+import { safeCompare } from "@/lib/api-utils"
+import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
 
 // Manual sync: user triggers from dashboard
 export async function POST() {
@@ -10,6 +12,15 @@ export async function POST() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    }
+
+    // Rate limit: 5 manual syncs per hour per user
+    const rl = await rateLimit(`calendar-sync:${user.id}`, "import")
+    if (!rl.success) {
+      return NextResponse.json(
+        { message: "Too many sync requests. Try again later." },
+        { status: 429, headers: rateLimitHeaders(rl) }
+      )
     }
 
     const result = await syncCalendarForUser(user.id, user.email || "")
@@ -24,7 +35,8 @@ export async function POST() {
 export async function GET(request: Request) {
   const cronSecret = process.env.CRON_SECRET
   const authHeader = request.headers.get("authorization")
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : ""
+  if (!cronSecret || !token || !safeCompare(token, cronSecret)) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
   }
 

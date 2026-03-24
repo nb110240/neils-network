@@ -81,6 +81,12 @@ export async function PUT(
       return badRequestResponse("tagIds must be an array")
     }
 
+    // Validate each tagId is a valid UUID
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (tagIds.some((id: unknown) => typeof id !== "string" || !UUID_RE.test(id))) {
+      return badRequestResponse("Each tagId must be a valid UUID")
+    }
+
     // Remove all existing tags for this contact
     await supabase.from("contact_tags").delete().eq("contact_id", id)
 

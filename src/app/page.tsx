@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { getUserPlan } from "@/lib/subscription"
 import Link from "next/link"
 import type { PlanType } from "@/lib/types"
+import { TypingDemo } from "@/components/typing-demo"
 
 export default async function Home() {
   // Check for auth cookie before making a network call to Supabase
@@ -375,31 +376,8 @@ function MarketingPage() {
               </div>
             </div>
 
-            {/* Add contact mock */}
-            <div className="rounded-2xl border shadow-refined p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Add Contact</h3>
-                <span className="text-xs text-muted-foreground">Just type what you remember</span>
-              </div>
-              <div className="space-y-3">
-                <div className="rounded-lg border p-3 text-sm text-muted-foreground italic leading-relaxed">
-                  &ldquo;Met Sarah Chen at the Founders Dinner last night. She&apos;s a partner at Sequoia focused on B2B SaaS. We talked about the CRM space and she mentioned they&apos;re looking at AI-native tools. Should send her our deck next week.&rdquo;
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">&#8595; AI extracts automatically</span>
-                  <div className="flex-1 h-px bg-border" />
-                </div>
-                <div className="rounded-lg bg-muted/50 p-3 space-y-1.5 text-sm">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Name</span><span className="font-medium">Sarah Chen</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Company</span><span>Sequoia</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Role</span><span>Partner, B2B SaaS</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">How we met</span><span>Founders Dinner</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Next step</span><span>Send deck next week</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Follow-up</span><span className="text-amber-600 font-medium">Yes</span></div>
-                </div>
-                <p className="text-xs text-muted-foreground pt-1">No forms. No fields. Just write what you&apos;d text a friend — AI handles the rest in seconds.</p>
-              </div>
-            </div>
+            {/* Add contact — interactive typing demo */}
+            <TypingDemo />
           </div>
 
           {/* Row 2: Contact Detail + Search */}

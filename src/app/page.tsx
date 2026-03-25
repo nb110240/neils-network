@@ -475,41 +475,48 @@ function MarketingPage() {
               </div>
             </div>
 
-            {/* Intro Suggestions mock */}
+            {/* Import from Spreadsheet mock */}
             <div className="rounded-2xl border shadow-refined p-5">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">AI Intro Suggestions</h3>
-                <span className="text-xs text-muted-foreground">Connections you should make</span>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Import from Spreadsheet</h3>
+                <span className="text-xs text-muted-foreground">Bring your existing network</span>
               </div>
               <div className="space-y-3">
-                {[
-                  {
-                    person1: "Sarah Chen",
-                    role1: "Partner, Sequoia",
-                    person2: "Alex Rivera",
-                    role2: "Founder, DataFlow",
-                    reason: "Both focused on AI infrastructure — Sarah is actively investing in the space",
-                  },
-                  {
-                    person1: "Marcus Webb",
-                    role1: "VP Eng, Stripe",
-                    person2: "Nina Shah",
-                    role2: "Founder, MedFlow",
-                    reason: "Nina is hiring senior engineers — Marcus knows the talent market",
-                  },
-                ].map((intro, i) => (
-                  <div key={i} className="rounded-lg border p-3 space-y-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="w-7 h-7 rounded-lg bg-[var(--copper)]/10 flex items-center justify-center text-[var(--copper)] text-xs font-semibold">{intro.person1.split(" ").map(n => n[0]).join("")}</div>
-                      <span className="font-medium">{intro.person1}</span>
-                      <span className="text-muted-foreground">↔</span>
-                      <div className="w-7 h-7 rounded-lg bg-[var(--copper)]/10 flex items-center justify-center text-[var(--copper)] text-xs font-semibold">{intro.person2.split(" ").map(n => n[0]).join("")}</div>
-                      <span className="font-medium">{intro.person2}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{intro.reason}</p>
+                {/* CSV upload area */}
+                <div className="rounded-lg border-2 border-dashed border-stone-300 dark:border-stone-600 p-4 text-center">
+                  <div className="w-8 h-8 rounded-lg bg-[var(--copper)]/10 flex items-center justify-center mx-auto mb-2">
+                    <span className="text-[var(--copper)] text-sm">&#x1f4ce;</span>
                   </div>
-                ))}
-                <p className="text-xs text-muted-foreground pt-1">Savvo analyzes your network and suggests high-value introductions you might not have thought of. One tap to draft the intro message.</p>
+                  <p className="text-xs font-medium">contacts.csv</p>
+                  <p className="text-[10px] text-muted-foreground">47 rows detected</p>
+                </div>
+
+                {/* Column mapping */}
+                <div className="rounded-lg bg-muted/50 p-3 space-y-1.5 text-sm">
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">COLUMN MAPPING</p>
+                  {[
+                    { csv: "Full Name", savvo: "Name", status: "mapped" },
+                    { csv: "Organization", savvo: "Company", status: "mapped" },
+                    { csv: "Email Address", savvo: "Email", status: "mapped" },
+                    { csv: "Notes", savvo: "Raw Note", status: "mapped" },
+                    { csv: "Phone", savvo: "Phone", status: "mapped" },
+                  ].map((col) => (
+                    <div key={col.csv} className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">{col.csv}</span>
+                      <span className="text-muted-foreground">→</span>
+                      <span className="font-medium">{col.savvo}</span>
+                      <span className="text-green-600 text-[10px]">&#10003;</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Success state */}
+                <div className="rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 p-3 text-center">
+                  <p className="text-sm font-medium text-green-700 dark:text-green-400">&#10003; 47 contacts imported</p>
+                  <p className="text-xs text-green-600 dark:text-green-500">3 duplicates skipped · Health scores generating...</p>
+                </div>
+
+                <p className="text-xs text-muted-foreground pt-1">Upload any CSV or connect Google Contacts. Savvo maps your columns, deduplicates, and generates health scores automatically. <Link href="/from-spreadsheet" className="text-[var(--copper)] hover:underline font-medium">Learn more →</Link></p>
               </div>
             </div>
           </div>

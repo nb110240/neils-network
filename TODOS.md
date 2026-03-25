@@ -83,18 +83,19 @@ Generated from CEO Review on 2026-03-19. Updated 2026-03-25.
 ## In Progress
 
 ### Email Deliverability (manual — Supabase dashboard)
-- [ ] Custom SMTP via Resend in Supabase Auth settings
-- [ ] Custom email templates (signup, magic link, reset password, invite, change email)
-- [ ] DNS records: SPF, DKIM, DMARC in Namecheap
+- [x] Custom SMTP via Resend in Supabase Auth settings
+- [x] Custom email templates (signup, magic link, reset password, invite, change email)
+- [x] DNS records: SPF, DKIM, DMARC in Namecheap
 
 ### First 10 Users (design doc: ~/.gstack/projects/nb110240-neils-network/)
-- [ ] Verify SMTP delivers to Gmail, Outlook, iCloud inbox (Day 0 gate)
-- [ ] Write Twitter/X building-in-public thread
-- [ ] Post on Reddit r/SideProject, Indie Hackers
-- [ ] Set up F5Bot alerts for personal CRM keywords
+- [x] Verify SMTP delivers to Gmail, Outlook, iCloud inbox (Day 0 gate)
+- [x] Write Twitter/X building-in-public thread (TWITTER-THREAD.md)
+- [x] Set up F5Bot alerts for personal CRM keywords
+- [ ] **Post thread on Twitter/X** ← NEXT ACTION
+- [ ] Share on Reddit r/SideProject, Indie Hackers
 - [ ] Update welcome email to ask "what are you hoping Savvo helps with?"
 - [ ] Run activation tracking SQL daily
-- [ ] 3+ screenshare/conversation sessions with real users
+- [ ] 3+ conversations with real users
 
 ## Deferred (Future Milestones)
 

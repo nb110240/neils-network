@@ -32,12 +32,30 @@ export async function POST(request: Request) {
 
       const queryEmbedding = await generateEmbedding(query)
       if (!queryEmbedding) {
-        return errorResponse("Failed to generate embedding")
+        console.error("Semantic search: failed to generate embedding for query:", query)
+        // Fall back to keyword search if embedding fails
+        const sanitized = query.replace(/[%_\\,().*]/g, (c) => `\\${c}`)
+        const searchPattern = `%${sanitized}%`
+        const searchFields = ["name", "email", "company", "job_title", "how_we_met", "raw_note"]
+        const orFilter = searchFields.map((f) => `${f}.ilike.${searchPattern}`).join(",")
+        const { data: fallbackResults } = await supabase
+          .from("contacts")
+          .select("*")
+          .eq("created_by", user.id)
+          .is("archived_at", null)
+          .or(orFilter)
+          .order("created_at", { ascending: false })
+          .limit(20)
+        const resultsWithHealth = (fallbackResults || []).map((r) => ({
+          ...r,
+          health: calculateHealthScore(r.last_contact_date, r.created_at),
+        }))
+        return NextResponse.json({ results: resultsWithHealth, fallback: true })
       }
 
       const { data: results, error } = await supabase.rpc("match_contacts", {
         query_embedding: queryEmbedding,
-        match_threshold: 0.5,
+        match_threshold: 0.3,
         match_count: 20,
         user_id: user.id,
       })
@@ -68,6 +86,7 @@ export async function POST(request: Request) {
         .from("contacts")
         .select("*")
         .eq("created_by", user.id)
+        .is("archived_at", null)
         .or(orFilter)
         .order("created_at", { ascending: false })
         .limit(20)

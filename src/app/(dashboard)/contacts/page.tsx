@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { createClient } from "@/lib/supabase/server"
 import { Contact } from "@/lib/types"
 import { calculateHealthScore } from "@/lib/health"

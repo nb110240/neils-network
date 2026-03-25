@@ -21,6 +21,7 @@ import { WelcomeExperience } from "@/components/welcome-experience"
 import { OnboardingChecklist } from "@/components/onboarding-checklist"
 import { DashboardWalkthrough } from "@/components/dashboard-walkthrough"
 import { DashboardHeader } from "@/components/dashboard-header"
+import { FollowUpList, type FollowUpContact } from "@/components/follow-up-list"
 import { Plus, Users, ArrowRight, ThermometerSnowflake, Crown, HandHeart } from "lucide-react"
 
 export default async function DashboardPage() {
@@ -132,6 +133,44 @@ export default async function DashboardPage() {
 
   const reachOutTotal = reachOutContacts.length
   const reachOutCapped = reachOutContacts.slice(0, 8)
+
+  // --- Follow-ups Pending: contacts with follow_up_needed, with trigger date ---
+  const allFollowUpContacts = contactsWithHealth.filter((c) => c.follow_up_needed)
+  const followUpContactIds = allFollowUpContacts.map((c) => c.id)
+
+  // Get the most recent activity with follow_up_needed for each contact
+  let followUpTriggerDates = new Map<string, { date: string; context: string | null }>()
+  if (followUpContactIds.length > 0) {
+    const { data: followUpActivities } = await supabase
+      .from("contact_activities")
+      .select("contact_id, occurred_at, content")
+      .in("contact_id", followUpContactIds)
+      .eq("follow_up_needed", true)
+      .order("occurred_at", { ascending: false })
+
+    if (followUpActivities) {
+      for (const a of followUpActivities) {
+        // Only keep the most recent per contact
+        if (!followUpTriggerDates.has(a.contact_id)) {
+          followUpTriggerDates.set(a.contact_id, {
+            date: a.occurred_at,
+            context: a.content?.slice(0, 80) || null,
+          })
+        }
+      }
+    }
+  }
+
+  const followUpList: FollowUpContact[] = allFollowUpContacts
+    .map((c) => {
+      const trigger = followUpTriggerDates.get(c.id)
+      return {
+        ...c,
+        followUpTriggeredAt: trigger?.date || c.updated_at || c.created_at,
+        followUpContext: trigger?.context || c.next_steps || null,
+      }
+    })
+    .sort((a, b) => new Date(a.followUpTriggeredAt).getTime() - new Date(b.followUpTriggeredAt).getTime())
 
   // --- New in Your Network: added in last 7 days, not yet followed up ---
   const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000
@@ -279,6 +318,9 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Follow-ups Pending */}
+      <FollowUpList contacts={followUpList} />
 
       {/* New in Your Network */}
       {newContacts.length > 0 && (

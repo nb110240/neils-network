@@ -11,15 +11,18 @@ export async function POST(request: Request) {
     const { user, supabase } = auth
 
     const body = await request.json()
-    const { query, semantic = true } = body
+    const { query: rawQuery, semantic = true } = body
 
-    if (!query || typeof query !== "string") {
+    if (!rawQuery || typeof rawQuery !== "string") {
       return badRequestResponse("Query is required")
     }
 
-    if (query.length > 2000) {
+    if (rawQuery.length > 2000) {
       return badRequestResponse("Query too long (max 2000 characters)")
     }
+
+    // Normalize case for consistent embedding generation and search
+    const query = rawQuery.trim().toLowerCase()
 
     // Check semantic search limit (free: 5/month, pro: unlimited)
     if (semantic) {

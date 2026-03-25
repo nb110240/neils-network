@@ -25,6 +25,8 @@ const CONTACT_FIELDS = [
   { value: "job_title", label: "Job Title" },
   { value: "website", label: "Website" },
   { value: "how_we_met", label: "How We Met" },
+  { value: "next_steps", label: "Next Steps" },
+  { value: "notes", label: "Notes" },
 ]
 
 function guessField(header: string): string {
@@ -35,6 +37,8 @@ function guessField(header: string): string {
   if (h.includes("company") || h.includes("organization") || h.includes("org")) return "company"
   if (h.includes("title") || h.includes("role") || h.includes("position") || h.includes("job")) return "job_title"
   if (h.includes("website") || h.includes("url") || h.includes("web")) return "website"
+  if (h.includes("next step") || h.includes("action") || h.includes("todo") || h.includes("follow")) return "next_steps"
+  if (h.includes("note") || h.includes("comment") || h.includes("description") || h.includes("memo")) return "notes"
   return "skip"
 }
 

@@ -578,11 +578,11 @@ export default function ContactDetailPage({
         </Card>
       )}
 
-      {/* Original Note */}
-      {originalNote && (
+      {/* Original Note — hide if it's just auto-generated CSV filler */}
+      {originalNote && !originalNote.startsWith("Imported from CSV") && originalNote !== `${contact.name}${contact.company ? ` at ${contact.company}` : ""}` && (
         <Card className="shadow-refined">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-medium">How we met / Notes</CardTitle>
+            <CardTitle className="text-base font-medium">Notes</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">

@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     }
 
     // Validate mapping values are only allowed fields
-    const allowedFields = new Set(["skip", "name", "email", "phone", "company", "job_title", "website", "how_we_met"])
+    const allowedFields = new Set(["skip", "name", "email", "phone", "company", "job_title", "website", "how_we_met", "next_steps", "notes"])
     for (const val of Object.values(mapping)) {
       if (!allowedFields.has(val)) {
         return badRequestResponse("Invalid mapping field")
@@ -66,6 +66,11 @@ export async function POST(request: Request) {
           contact[field] = row[csvCol].trim()
         }
         if (!contact.name) return null
+        // Build raw_note from user's notes column, or generate a minimal one
+        const userNotes = (contact.notes as string) || ""
+        const autoNote = `${contact.name}${contact.company ? ` at ${contact.company}` : ""}`
+        const rawNote = userNotes || autoNote
+
         return {
           name: (contact.name as string) || null,
           email: (contact.email as string) || null,
@@ -74,10 +79,11 @@ export async function POST(request: Request) {
           job_title: (contact.job_title as string) || null,
           website: (contact.website as string) || null,
           how_we_met: (contact.how_we_met as string) || null,
-          raw_note: `Imported from CSV. ${contact.name}${contact.company ? ` at ${contact.company}` : ""}`,
+          next_steps: (contact.next_steps as string) || null,
+          raw_note: rawNote,
           source: "csv_import",
           created_by: user.id,
-          follow_up_needed: false,
+          follow_up_needed: !!(contact.next_steps),
         }
       })
       .filter(Boolean)

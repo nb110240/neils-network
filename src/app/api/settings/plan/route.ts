@@ -16,6 +16,7 @@ export async function GET() {
       .from("contacts")
       .select("*", { count: "exact", head: true })
       .eq("created_by", user.id)
+      .is("archived_at", null)
 
     return NextResponse.json({
       plan,

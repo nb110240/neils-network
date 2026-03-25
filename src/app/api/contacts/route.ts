@@ -157,6 +157,7 @@ export async function GET(request: Request) {
         .from("contacts")
         .select("*")
         .eq("created_by", user.id)
+        .is("archived_at", null)
         .order("created_at", { ascending: false })
 
       if (error) {
@@ -175,18 +176,19 @@ export async function GET(request: Request) {
     // Paginated path
     const limit = Math.min(Math.max(1, parseInt(limitParam, 10) || 25), 100)
 
-    // Get total count
+    // Get total count (exclude archived)
     const { count: total, error: countError } = await supabase
       .from("contacts")
       .select("*", { count: "exact", head: true })
       .eq("created_by", user.id)
+      .is("archived_at", null)
 
     if (countError) {
       console.error("Error counting contacts:", countError)
       return errorResponse("Failed to fetch contacts")
     }
 
-    // Build paginated query
+    // Build paginated query (exclude archived)
     // Ordered by created_at DESC (most recent first)
     // direction=next: older items (created_at < cursor)
     // direction=prev: newer items (created_at > cursor), then reverse
@@ -194,6 +196,7 @@ export async function GET(request: Request) {
       .from("contacts")
       .select("*")
       .eq("created_by", user.id)
+      .is("archived_at", null)
 
     if (cursor) {
       if (direction === "prev") {

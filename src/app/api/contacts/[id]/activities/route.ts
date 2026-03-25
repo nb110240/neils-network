@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 import {
   authenticateRequest,
   authFailed,
@@ -142,6 +143,11 @@ export async function POST(
       .update(updateData)
       .eq("id", id)
       .eq("created_by", user.id)
+
+    // Revalidate dashboard and reach-out so health scores update immediately
+    revalidatePath("/dashboard")
+    revalidatePath("/reach-out")
+    revalidatePath("/contacts")
 
     return NextResponse.json({ activity }, { status: 201 })
   } catch (error) {

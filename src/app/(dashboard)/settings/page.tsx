@@ -30,8 +30,10 @@ import {
   Check,
   AlertTriangle,
   Bell,
+  Sun,
 } from "lucide-react"
 import { NotificationPreferences } from "./notifications"
+import { ThemeSelector } from "@/components/theme-selector"
 import { RecentlyDeleted } from "@/components/recently-deleted"
 
 export default function SettingsPage() {
@@ -338,6 +340,19 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
           <NotificationPreferences />
+        </CardContent>
+      </Card>
+
+      {/* Appearance */}
+      <Card className="shadow-refined">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg font-normal">
+            <Sun className="h-4 w-4 text-muted-foreground" />
+            Appearance
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ThemeSelector />
         </CardContent>
       </Card>
 

@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS contact_activities (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   contact_id UUID NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id),
-  type TEXT NOT NULL DEFAULT 'meeting' CHECK (type IN ('meeting', 'note', 'call', 'email', 'other')),
+  type TEXT NOT NULL DEFAULT 'meeting' CHECK (type IN ('meeting', 'note', 'call', 'email', 'message', 'other')),
   content TEXT NOT NULL,
   occurred_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   follow_up_needed BOOLEAN DEFAULT false,

@@ -20,6 +20,7 @@ export async function GET() {
       .from("contacts")
       .select("name, email, phone, company, job_title, website, how_we_met, next_steps, follow_up_needed, last_contact_date, raw_note, source, created_at")
       .eq("created_by", user.id)
+      .is("archived_at", null)
       .order("name", { ascending: true })
 
     if (error) {

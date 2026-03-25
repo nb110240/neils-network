@@ -7,7 +7,6 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { LogOut, Plus, Search, LayoutDashboard, Upload, Users, Settings, ScanLine, Code, Menu, X, Network, BookOpen, Sparkles } from "lucide-react"
-import { ThemeToggle } from "@/components/theme-toggle"
 
 // Client component can't read server env vars — hardcoded fallback matches .env ADMIN_EMAILS
 const ADMIN_EMAILS = ["neilbajaj72@gmail.com"]
@@ -98,7 +97,6 @@ export function NavHeader() {
             </nav>
           </div>
           <div className="flex flex-1 items-center justify-end space-x-2">
-            <ThemeToggle />
             {isAdmin && (
               <Link
                 href="/dev"

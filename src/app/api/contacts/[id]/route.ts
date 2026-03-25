@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 import { authenticateRequest, authFailed, badRequestResponse, notFoundResponse, errorResponse } from "@/lib/api-utils"
 import { calculateHealthScore } from "@/lib/health"
 import { z } from "zod/v4"
@@ -106,6 +107,9 @@ export async function PUT(
       return errorResponse("Failed to update contact")
     }
 
+    revalidatePath("/dashboard")
+    revalidatePath("/reach-out")
+    revalidatePath("/contacts")
     return NextResponse.json({ contact })
   } catch (error) {
     console.error("Error updating contact:", error)
@@ -140,6 +144,9 @@ export async function DELETE(
       return errorResponse("Failed to archive contact")
     }
 
+    revalidatePath("/dashboard")
+    revalidatePath("/reach-out")
+    revalidatePath("/contacts")
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error deleting contact:", error)

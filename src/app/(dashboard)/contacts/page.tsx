@@ -15,17 +15,19 @@ export default async function ContactsPage() {
     return null
   }
 
-  // Get total count
+  // Get total count (exclude archived)
   const { count: total } = await supabase
     .from("contacts")
     .select("*", { count: "exact", head: true })
     .eq("created_by", user.id)
+    .is("archived_at", null)
 
-  // Fetch the first page ordered by created_at DESC
+  // Fetch the first page ordered by created_at DESC (exclude archived)
   const { data: contacts } = await supabase
     .from("contacts")
     .select("*")
     .eq("created_by", user.id)
+    .is("archived_at", null)
     .order("created_at", { ascending: false })
     .limit(PAGE_SIZE + 1)
 

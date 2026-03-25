@@ -45,11 +45,12 @@ export async function POST(request: Request) {
       return badRequestResponse("Please enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/johndoe)")
     }
 
-    // Check for duplicate by LinkedIn URL
+    // Check for duplicate by LinkedIn URL (only among active contacts)
     const { data: existing } = await supabase
       .from("contacts")
       .select("id")
       .eq("created_by", user.id)
+      .is("archived_at", null)
       .ilike("website", `%${cleanUrl.replace(/\/$/, "")}%`)
       .single()
 

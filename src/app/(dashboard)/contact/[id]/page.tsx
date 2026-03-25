@@ -157,6 +157,7 @@ export default function ContactDetailPage({
         title: "Followed up!",
         description: "Contact marked as followed up.",
       })
+      router.refresh() // update dashboard health scores
     } catch {
       addToast({
         title: "Error",
@@ -183,6 +184,7 @@ export default function ContactDetailPage({
         title: "Contact archived",
         description: "Contact archived. You can restore it from Settings.",
       })
+      router.refresh() // invalidate cached contact lists
       router.push("/contacts")
     } catch {
       addToast({
@@ -274,6 +276,9 @@ export default function ContactDetailPage({
       setMeetingType("meeting")
       setShowMeetingDialog(false)
       addToast({ title: "Activity added", description: "Your notes have been saved." })
+
+      // Invalidate server cache so dashboard/contacts show updated health scores
+      router.refresh()
     } catch {
       addToast({ title: "Error", description: "Failed to save activity", variant: "destructive" })
     } finally {

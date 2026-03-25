@@ -282,62 +282,7 @@ function MarketingPage() {
         </div>
       </section>
 
-      <section className="py-12 sm:py-20 px-4 sm:px-6" id="features">
-        <div className="max-w-5xl mx-auto">
-          <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper)] mb-2">Features</p>
-          <h2 className="text-3xl tracking-tight mb-10">Everything your network needs</h2>
-          <div className="grid md:grid-cols-3 gap-4">
-            {[
-              { title: "Natural Language Input", desc: "Just type what you remember. Name, company, context, and next steps are extracted automatically." },
-              { title: "Health Scores", desc: "Every contact gets a color-coded score. Green means active. Red means you're about to lose touch." },
-              { title: "Smart Search", desc: '"Who do I know in healthcare AI?" Search by meaning, not just keywords.' },
-              { title: "AI Follow-Up Drafts", desc: "One tap to draft a personalized follow-up message. AI reads your history and writes something natural." },
-              { title: "Daily Digest", desc: "Every morning: 3 relationships that need attention. With context and a one-click link." },
-              { title: "CSV & Gmail Import", desc: "Bring your existing network in seconds. Upload a CSV or pull from Google Contacts." },
-              { title: "Google Calendar Sync", desc: "Had a 1:1 meeting? Savvo detects it and adds the person automatically." },
-              { title: '"Going Cold" Dashboard', desc: "See every fading relationship at a glance. Sorted by urgency." },
-            ].map((f) => (
-              <div key={f.title} className="p-5 rounded-xl border hover:border-[var(--copper)]/30 hover:shadow-refined transition-all">
-                <h3 className="text-base font-medium mb-1">{f.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Privacy & Trust */}
-      <section className="py-12 sm:py-20 px-4 sm:px-6 bg-card/50">
-        <div className="max-w-5xl mx-auto">
-          <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper)] mb-2">Your data, your control</p>
-          <h2 className="text-3xl tracking-tight mb-10">Built for trust</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="flex gap-4">
-              <div className="shrink-0 w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center text-lg">&#128274;</div>
-              <div>
-                <h3 className="font-medium mb-1">We never sell your data</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">Your contacts are yours. We don&apos;t share, sell, or train AI models on your network data. Ever.</p>
-              </div>
-            </div>
-            <div className="flex gap-4">
-              <div className="shrink-0 w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/30 flex items-center justify-center text-lg">&#9889;</div>
-              <div>
-                <h3 className="font-medium mb-1">Everything is optional</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">Google sync, imports, and calendar are all opt-in. Use Savvo with just manual notes if you prefer — no account linking required.</p>
-              </div>
-            </div>
-            <div className="flex gap-4">
-              <div className="shrink-0 w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/30 flex items-center justify-center text-lg">&#128220;</div>
-              <div>
-                <h3 className="font-medium mb-1">Export anytime</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">Download all your contacts as a CSV whenever you want. Delete your account and all data is permanently removed within 30 days.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* See it in action */}
+      {/* See it in action — moved before Trust and Features */}
       <section className="py-12 sm:py-20 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto">
           <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper)] mb-2">See it in action</p>
@@ -530,6 +475,63 @@ function MarketingPage() {
         </div>
       </section>
 
+      {/* Privacy & Trust */}
+      <section className="py-12 sm:py-20 px-4 sm:px-6 bg-card/50">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper)] mb-2">Your data, your control</p>
+          <h2 className="text-3xl tracking-tight mb-10">Built for trust</h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="flex gap-4">
+              <div className="shrink-0 w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center text-lg">&#128274;</div>
+              <div>
+                <h3 className="font-medium mb-1">We never sell your data</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">Your contacts are yours. We don&apos;t share, sell, or train AI models on your network data. Ever.</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="shrink-0 w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/30 flex items-center justify-center text-lg">&#9889;</div>
+              <div>
+                <h3 className="font-medium mb-1">Everything is optional</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">Google sync, imports, and calendar are all opt-in. Use Savvo with just manual notes if you prefer — no account linking required.</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="shrink-0 w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/30 flex items-center justify-center text-lg">&#128220;</div>
+              <div>
+                <h3 className="font-medium mb-1">Export anytime</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">Download all your contacts as a CSV whenever you want. Delete your account and all data is permanently removed within 30 days.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="py-12 sm:py-20 px-4 sm:px-6" id="features">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper)] mb-2">Features</p>
+          <h2 className="text-3xl tracking-tight mb-10">Everything your network needs</h2>
+          <div className="grid md:grid-cols-3 gap-4">
+            {[
+              { title: "Natural Language Input", desc: "Just type what you remember. Name, company, context, and next steps are extracted automatically." },
+              { title: "Health Scores", desc: "Every contact gets a color-coded score. Green means active. Red means you're about to lose touch." },
+              { title: "Smart Search", desc: '"Who do I know in healthcare AI?" Search by meaning, not just keywords.' },
+              { title: "AI Follow-Up Drafts", desc: "One tap to draft a personalized follow-up message. AI reads your history and writes something natural." },
+              { title: "Daily Digest", desc: "Every morning: 3 relationships that need attention. With context and a one-click link." },
+              { title: "CSV & Gmail Import", desc: "Bring your existing network in seconds. Upload a CSV or pull from Google Contacts." },
+              { title: "Google Calendar Sync", desc: "Had a 1:1 meeting? Savvo detects it and adds the person automatically." },
+              { title: '"Going Cold" Dashboard', desc: "See every fading relationship at a glance. Sorted by urgency." },
+            ].map((f) => (
+              <div key={f.title} className="p-5 rounded-xl border hover:border-[var(--copper)]/30 hover:shadow-refined transition-all">
+                <h3 className="text-base font-medium mb-1">{f.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
       <section className="py-12 sm:py-20 px-4 sm:px-6 bg-card/50" id="pricing">
         <div className="max-w-3xl mx-auto text-center">
           <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper)] mb-2">Pricing</p>

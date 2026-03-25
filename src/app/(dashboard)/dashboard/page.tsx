@@ -49,11 +49,12 @@ export default async function DashboardPage() {
     calendarConnected = !!integration
   }
 
-  // Fetch stats
+  // Fetch stats (exclude archived)
   const { count: totalContacts } = await supabase
     .from("contacts")
     .select("*", { count: "exact", head: true })
     .eq("created_by", user.id)
+    .is("archived_at", null)
 
   const { data: allContacts } = await supabase
     .from("contacts")

@@ -17,7 +17,9 @@ Startup founders, VCs, and professional networkers who meet many people weekly a
 - **References:** Linear (precision, speed, polish), Clay (warm cards, modern CRM aesthetic, copper tones)
 - **Anti-references:** Generic AI apps (dark mode, purple gradients, glowing neon), social media apps (feed-based, notification-heavy), spreadsheet/data tools (rows and columns, feels like work)
 - **Theme:** Light mode primary. Warm stone palette with copper accent. Glass morphism cards. Serif headings (DM Serif Display) for personality, sans body (DM Sans) for clarity.
-- **Color:** Sand background (#faf9f7), stone borders (#e7e5e4), copper accent (#c2410c → #ea580c gradient). Dark mode defined but secondary.
+- **Color:** Sand background (#faf9f7), stone borders (#e7e5e4), copper accent (#c2410c → #ea580c gradient). Dark mode is actively used — treat it as a first-class mode, not secondary.
+- **Contrast rules (hard-learned):** Light mode body text: `stone-700` minimum, `stone-900` for headings. Dark mode body text: `stone-300` minimum, `stone-100` for headings. Card backgrounds: solid `white`/`stone-50` (light) or `stone-800`/`stone-900` (dark) — never use transparency that blends with the dotted sand background. Always verify both light and dark mode before shipping.
+- **No founder/about page.** The product speaks for itself. Do not create an /about page. Build E-E-A-T through content, social presence, and the product itself.
 
 ### Design Principles
 
@@ -31,6 +33,8 @@ Startup founders, VCs, and professional networkers who meet many people weekly a
 
 5. **Delight through speed.** Fast interactions are delightful interactions. Optimistic UI updates, instant navigation, staggered reveals that feel snappy not slow. The app should feel faster than the user expects.
 
+6. **Purposeful motion.** Animations must earn their existence. Staggered card reveals (fast, subtle), typing demo on landing page (demonstrates the core "aha"), confetti on first contact (celebrates a milestone). No decorative animation. No loading spinners with "AI is thinking..." — results appear naturally.
+
 ## Quality Gates
 
 Before shipping any feature:
@@ -40,11 +44,14 @@ Before shipping any feature:
 3. **Test with real-world inputs** — e.g. LinkedIn URLs from "Share Profile", not hand-typed clean URLs
 4. **Check cross-feature conflicts** — if adding security headers, verify they don't break existing features (camera, iframes, etc.)
 5. **Write an integration test** for any new user-facing flow in `src/__tests__/integration/`
+6. **Verify all contact queries filter archived** — every `.from("contacts")` must include `.is("archived_at", null)` unless specifically querying archived contacts
+7. **Verify mutations call revalidatePath** — any API route that changes contact data must call `revalidatePath("/dashboard")`, `revalidatePath("/reach-out")`, `revalidatePath("/contacts")`
+8. **Check both light and dark mode** — contrast must meet the rules in Aesthetic Direction
 
 Before deploying:
 
-6. **`npx next build`** — must pass (catches SSR issues like missing Suspense boundaries)
-7. **Run `.claude/hooks/post-deploy-smoke.sh`** after `vercel --prod` to verify the deploy
+9. **`npx next build`** — must pass (catches SSR issues like missing Suspense boundaries)
+10. **Run `.claude/hooks/post-deploy-smoke.sh`** after `vercel --prod` to verify the deploy
 
 ## Testing
 

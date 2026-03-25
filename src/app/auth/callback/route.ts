@@ -33,6 +33,12 @@ export async function GET(request: Request) {
           // Welcome email is non-critical, don't block redirect
           console.error("Failed to send welcome email")
         }
+
+        // New email signups go to branded verify page (not OAuth)
+        const isOAuth = data.user.app_metadata?.provider !== "email"
+        if (!isOAuth) {
+          return NextResponse.redirect(`${origin}/auth/verify`)
+        }
       }
     }
   }

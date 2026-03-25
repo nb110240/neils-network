@@ -140,9 +140,15 @@ function LoginPageInner() {
               <p className="text-sm text-muted-foreground">
                 We sent a confirmation link to <strong>{email}</strong>. Click the link to verify your account and get started.
               </p>
-              <p className="text-xs text-muted-foreground">
-                Didn&apos;t receive it? Check your spam folder.
-              </p>
+              <div className="text-left text-xs text-muted-foreground space-y-1.5 mt-2 p-3 rounded-lg bg-stone-50 dark:bg-stone-800/50">
+                <p className="font-medium text-foreground">Can&apos;t find it?</p>
+                <ul className="space-y-1 list-disc list-inside">
+                  <li>Check your <strong>spam or junk</strong> folder</li>
+                  <li>Look for an email from <strong>hello@savvo.app</strong></li>
+                  <li>The email may take up to 2 minutes to arrive</li>
+                  <li>Try the resend button below if needed</li>
+                </ul>
+              </div>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-2 pb-6">

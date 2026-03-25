@@ -8,15 +8,29 @@ import { ContactCard } from "@/components/contact-card"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Search, Crown } from "lucide-react"
+import { Search, Crown, Zap } from "lucide-react"
+
+interface SearchFacets {
+  companies?: { name: string; count: number }[]
+  health?: { level: string; count: number }[]
+}
+
+interface SearchFilters {
+  companies?: string[]
+  tags?: string[]
+  healthLevels?: string[]
+}
 
 export default function SearchPage() {
   const [results, setResults] = useState<SearchResult[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
+  const [facets, setFacets] = useState<SearchFacets | undefined>()
+  const [totalMatches, setTotalMatches] = useState<number | undefined>()
+  const [searchMode, setSearchMode] = useState<string | undefined>()
 
-  const handleSearch = async (query: string, semantic: boolean) => {
+  const handleSearch = async (query: string, filters: SearchFilters) => {
     setIsLoading(true)
     setHasSearched(true)
     setSearchError(null)
@@ -25,7 +39,7 @@ export default function SearchPage() {
       const response = await fetch("/api/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, semantic }),
+        body: JSON.stringify({ query, filters }),
       })
 
       if (!response.ok) {
@@ -40,6 +54,9 @@ export default function SearchPage() {
 
       const data = await response.json()
       setResults(data.results || [])
+      setFacets(data.facets)
+      setTotalMatches(data.totalMatches)
+      setSearchMode(data.searchMode)
     } catch (error) {
       console.error("Search error:", error)
       setResults([])
@@ -53,11 +70,17 @@ export default function SearchPage() {
       <div>
         <h1 className="text-4xl font-normal tracking-tight">Search</h1>
         <p className="text-muted-foreground mt-1 text-lg">
-          Find anyone in your network.
+          Find anyone in your network by name, company, or context.
         </p>
       </div>
 
-      <SearchBar onSearch={handleSearch} isLoading={isLoading} />
+      <SearchBar
+        onSearch={handleSearch}
+        isLoading={isLoading}
+        facets={facets}
+        totalMatches={totalMatches}
+        searchMode={searchMode}
+      />
 
       {isLoading && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -104,7 +127,7 @@ export default function SearchPage() {
             </div>
             <h3 className="text-xl font-normal">No results found</h3>
             <p className="text-muted-foreground text-center max-w-sm mt-2">
-              Try different keywords or turn on smart search.
+              Try different keywords or clear your filters.
             </p>
           </CardContent>
         </Card>
@@ -112,17 +135,21 @@ export default function SearchPage() {
 
       {!isLoading && results.length > 0 && (
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground font-medium">
-            {results.length} result{results.length === 1 ? "" : "s"}
-          </p>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground font-medium">
+              {results.length} result{results.length === 1 ? "" : "s"}
+              {totalMatches && totalMatches > results.length ? ` of ${totalMatches}` : ""}
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">
             {results.map((contact) => (
-              <ContactCard
-                key={contact.id}
-                contact={contact as Contact}
-                showSimilarity={contact.similarity !== undefined}
-                similarity={contact.similarity}
-              />
+              <div key={contact.id} className="card-interactive">
+                <ContactCard
+                  contact={contact as Contact}
+                  showSimilarity={contact.similarity !== undefined}
+                  similarity={contact.similarity}
+                />
+              </div>
             ))}
           </div>
         </div>
@@ -131,12 +158,13 @@ export default function SearchPage() {
       {!hasSearched && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
-              <Search className="h-6 w-6 text-muted-foreground" />
+            <div className="w-14 h-14 rounded-2xl bg-[var(--copper)]/10 flex items-center justify-center mb-4">
+              <Zap className="h-6 w-6 text-[var(--copper)]" />
             </div>
-            <h3 className="text-xl font-normal">Search your network</h3>
+            <h3 className="text-xl font-normal">Hybrid search</h3>
             <p className="text-muted-foreground text-center max-w-md mt-2">
-              Enter a name, company, or describe who you&apos;re looking for.
+              AI-powered search combines keyword matching with semantic understanding.
+              Find contacts by name, company, or describe who you&apos;re looking for.
             </p>
           </CardContent>
         </Card>

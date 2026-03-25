@@ -82,9 +82,9 @@ export default async function DashboardPage() {
     return months === 1 ? "1 month ago" : `${months} months ago`
   }
 
-  // Priority 1: follow_up_needed contacts, oldest last_contact_date first
+  // Priority 1: follow_up_needed contacts that aren't green (green = already healthy)
   const followUpContacts: ReachOutContact[] = contactsWithHealth
-    .filter((c) => c.follow_up_needed)
+    .filter((c) => c.follow_up_needed && c.health.level !== "green")
     .sort((a, b) => {
       const aDate = new Date(a.last_contact_date || a.created_at).getTime()
       const bDate = new Date(b.last_contact_date || b.created_at).getTime()

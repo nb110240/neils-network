@@ -51,9 +51,9 @@ export default async function ReachOutPage() {
     return months === 1 ? "1 month ago" : `${months} months ago`
   }
 
-  // Priority 1: follow_up_needed
+  // Priority 1: follow_up_needed that aren't green (green = already healthy)
   const followUpContacts: ReachOutContact[] = contactsWithHealth
-    .filter((c) => c.follow_up_needed)
+    .filter((c) => c.follow_up_needed && c.health.level !== "green")
     .sort((a, b) => new Date(a.last_contact_date || a.created_at).getTime() - new Date(b.last_contact_date || b.created_at).getTime())
     .map((c) => ({ ...c, reason: "Follow-up needed" }))
 

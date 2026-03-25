@@ -446,9 +446,10 @@ function MarketingPage() {
             </div>
           </div>
 
-          {/* Row 3: Daily Digest Email mock */}
-          <div className="mt-6">
-            <div className="rounded-2xl border shadow-refined p-5 max-w-lg mx-auto">
+          {/* Row 3: Daily Digest + Intro Suggestions */}
+          <div className="grid md:grid-cols-2 gap-6 mt-6">
+            {/* Daily Digest Email mock */}
+            <div className="rounded-2xl border shadow-refined p-5">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Daily Digest Email</h3>
                 <span className="text-xs text-muted-foreground">Lands in your inbox every morning</span>
@@ -471,6 +472,44 @@ function MarketingPage() {
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground">No app to open. No tasks to check. Just read your email, tap a name, and reconnect. Pro users get this every morning.</p>
+              </div>
+            </div>
+
+            {/* Intro Suggestions mock */}
+            <div className="rounded-2xl border shadow-refined p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">AI Intro Suggestions</h3>
+                <span className="text-xs text-muted-foreground">Connections you should make</span>
+              </div>
+              <div className="space-y-3">
+                {[
+                  {
+                    person1: "Sarah Chen",
+                    role1: "Partner, Sequoia",
+                    person2: "Alex Rivera",
+                    role2: "Founder, DataFlow",
+                    reason: "Both focused on AI infrastructure — Sarah is actively investing in the space",
+                  },
+                  {
+                    person1: "Marcus Webb",
+                    role1: "VP Eng, Stripe",
+                    person2: "Nina Shah",
+                    role2: "Founder, MedFlow",
+                    reason: "Nina is hiring senior engineers — Marcus knows the talent market",
+                  },
+                ].map((intro, i) => (
+                  <div key={i} className="rounded-lg border p-3 space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="w-7 h-7 rounded-lg bg-[var(--copper)]/10 flex items-center justify-center text-[var(--copper)] text-xs font-semibold">{intro.person1.split(" ").map(n => n[0]).join("")}</div>
+                      <span className="font-medium">{intro.person1}</span>
+                      <span className="text-muted-foreground">↔</span>
+                      <div className="w-7 h-7 rounded-lg bg-[var(--copper)]/10 flex items-center justify-center text-[var(--copper)] text-xs font-semibold">{intro.person2.split(" ").map(n => n[0]).join("")}</div>
+                      <span className="font-medium">{intro.person2}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{intro.reason}</p>
+                  </div>
+                ))}
+                <p className="text-xs text-muted-foreground pt-1">Savvo analyzes your network and suggests high-value introductions you might not have thought of. One tap to draft the intro message.</p>
               </div>
             </div>
           </div>

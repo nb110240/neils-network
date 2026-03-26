@@ -146,8 +146,8 @@ export default function SearchPage() {
               <div key={contact.id} className="card-interactive">
                 <ContactCard
                   contact={contact as Contact}
-                  showSimilarity={contact.similarity !== undefined}
-                  similarity={contact.similarity}
+                  showSimilarity={contact.matchPercent !== undefined}
+                  similarity={contact.matchPercent !== undefined ? contact.matchPercent / 100 : undefined}
                 />
               </div>
             ))}

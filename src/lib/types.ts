@@ -46,6 +46,7 @@ export interface ContactFormData {
 
 export interface SearchResult extends Contact {
   similarity?: number
+  matchPercent?: number
 }
 
 export interface User {

@@ -177,11 +177,19 @@ export async function POST(request: Request) {
         health,
         _score: Math.round(finalScore * 1000) / 1000,
         similarity: (contact.similarity as number) ?? undefined,
+        matchPercent: 0,
       }
     })
 
     // Sort by final score descending
     boostedResults.sort((a, b) => b._score - a._score)
+
+    // Normalize scores to 0-100% match for display
+    // Top result = 99%, others scaled relative to it
+    const maxScore = boostedResults[0]?._score || 1
+    for (const r of boostedResults) {
+      r.matchPercent = Math.min(99, Math.max(1, Math.round((r._score / maxScore) * 99)))
+    }
 
     // ─── Apply facet filters ───
 

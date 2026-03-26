@@ -96,14 +96,18 @@ export async function generateEmbedding(text: string): Promise<number[] | null> 
 /**
  * Build the embedding text for a contact from its fields.
  * Centralizes the text construction so all embedding paths are consistent.
+ * Includes ALL searchable fields so semantic search can match on any contact info.
  */
 export function buildContactEmbeddingText(fields: {
   name?: string | null
   company?: string | null
   job_title?: string | null
+  email?: string | null
+  how_we_met?: string | null
+  next_steps?: string | null
   raw_note: string
 }): string {
-  return [fields.name, fields.company, fields.job_title, fields.raw_note]
+  return [fields.name, fields.company, fields.job_title, fields.email, fields.how_we_met, fields.next_steps, fields.raw_note]
     .filter(Boolean)
     .join(" ")
 }

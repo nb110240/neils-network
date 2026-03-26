@@ -111,6 +111,8 @@ export async function POST(request: Request) {
       name,
       company,
       job_title: jobTitle,
+      how_we_met: howWeMet,
+      next_steps: nextSteps,
       raw_note: rawNote,
     })
     const embedding = await generateEmbedding(embeddingText)

@@ -20,7 +20,7 @@ export async function POST(
     // Verify contact belongs to user
     const { data: contact, error } = await supabase
       .from("contacts")
-      .select("id, name, company, job_title, raw_note, created_by")
+      .select("id, name, company, job_title, email, how_we_met, next_steps, raw_note, created_by")
       .eq("id", id)
       .eq("created_by", user.id)
       .single()
@@ -34,6 +34,9 @@ export async function POST(
       name: contact.name,
       company: contact.company,
       job_title: contact.job_title,
+      email: contact.email,
+      how_we_met: contact.how_we_met,
+      next_steps: contact.next_steps,
       raw_note: contact.raw_note,
     })
     const embedding = await generateEmbedding(embeddingText)

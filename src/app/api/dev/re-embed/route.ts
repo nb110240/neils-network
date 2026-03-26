@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createClient, createServiceClient } from "@/lib/supabase/server"
 import { verifyDevAccess } from "@/lib/api-utils"
+import { buildContactEmbeddingText } from "@/lib/openai"
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     const { data: contacts } = await serviceSupabase
       .from("contacts")
-      .select("id, name, company, raw_note")
+      .select("id, name, company, job_title, email, how_we_met, next_steps, raw_note")
       .eq("created_by", user.id)
 
     if (!contacts || contacts.length === 0) {
@@ -44,9 +45,7 @@ async function reEmbedBatch(
   const batchSize = 50
   for (let i = 0; i < contacts.length; i += batchSize) {
     const batch = contacts.slice(i, i + batchSize)
-    const texts = batch.map(
-      (c) => `${c.name || ""} ${c.company || ""} ${c.raw_note}`
-    )
+    const texts = batch.map((c) => buildContactEmbeddingText(c))
 
     const res = await fetch("https://api.openai.com/v1/embeddings", {
       method: "POST",

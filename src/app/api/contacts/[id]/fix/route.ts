@@ -36,6 +36,9 @@ export async function POST(
       name: extracted.name as string | null,
       company: extracted.company as string | null,
       job_title: extracted.job_title as string | null,
+      email: extracted.email as string | null,
+      how_we_met: extracted.how_we_met as string | null,
+      next_steps: extracted.next_steps as string | null,
       raw_note: contact.raw_note,
     })
     const embedding = await generateEmbedding(embeddingText)

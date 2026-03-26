@@ -152,7 +152,7 @@ export async function POST(request: Request) {
 }
 
 async function generateEmbeddingsBatch(
-  contacts: { id: string; raw_note: string; name: string | null; company: string | null; job_title?: string | null }[],
+  contacts: { id: string; raw_note: string; name: string | null; company: string | null; job_title?: string | null; email?: string | null; how_we_met?: string | null; next_steps?: string | null }[],
   supabase: SupabaseClient
 ) {
   for (const contact of contacts) {
@@ -160,6 +160,9 @@ async function generateEmbeddingsBatch(
       name: contact.name,
       company: contact.company,
       job_title: contact.job_title || null,
+      email: contact.email || null,
+      how_we_met: contact.how_we_met || null,
+      next_steps: contact.next_steps || null,
       raw_note: contact.raw_note,
     })
     const embedding = await generateEmbedding(embeddingText)

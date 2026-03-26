@@ -7,9 +7,12 @@ describe("buildContactEmbeddingText", () => {
       name: "John Doe",
       company: "Acme",
       job_title: "Engineer",
+      email: "john@acme.com",
+      how_we_met: "TechCrunch conference",
+      next_steps: "Follow up next week",
       raw_note: "Met at conference",
     })
-    expect(result).toBe("John Doe Acme Engineer Met at conference")
+    expect(result).toBe("John Doe Acme Engineer john@acme.com TechCrunch conference Follow up next week Met at conference")
   })
 
   it("skips null fields", () => {

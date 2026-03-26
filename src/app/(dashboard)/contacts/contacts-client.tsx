@@ -161,12 +161,15 @@ export function ContactsClient({ contacts: initialContacts, tags, contactTagMap:
 
           {/* Load More button — only shown when not filtering by tag */}
           {!activeTagId && pagination.hasMore && (
-            <div className="flex justify-center pt-2">
+            <div className="flex flex-col items-center gap-2 pt-4 pb-2">
+              <p className="text-sm text-muted-foreground">
+                Showing {contacts.length} of {pagination.total} contacts
+              </p>
               <Button
                 variant="outline"
                 onClick={loadMore}
                 disabled={isLoadingMore}
-                className="min-w-[160px]"
+                className="min-w-[200px] h-10 border-[var(--copper)]/30 text-[var(--copper)] hover:bg-[var(--copper)]/5"
               >
                 {isLoadingMore ? (
                   <>
@@ -174,7 +177,7 @@ export function ContactsClient({ contacts: initialContacts, tags, contactTagMap:
                     Loading...
                   </>
                 ) : (
-                  "Load More"
+                  `Load More (${pagination.total - contacts.length} remaining)`
                 )}
               </Button>
             </div>

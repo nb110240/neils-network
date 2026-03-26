@@ -58,12 +58,35 @@ export function WelcomeExperience({ userName, userEmail, plan }: WelcomeExperien
 
   return (
     <div className="max-w-3xl mx-auto py-6 sm:py-12 animate-fade-in">
-      {/* Welcome header */}
+      {/* Welcome header + Primary CTA */}
       <div className="text-center mb-8">
         <h1 className="text-3xl sm:text-4xl font-normal tracking-tight mb-2">{greeting}</h1>
-        <p className="text-muted-foreground text-lg max-w-md mx-auto leading-relaxed">
+        <p className="text-muted-foreground text-lg max-w-md mx-auto leading-relaxed mb-6">
           {subtitle}
         </p>
+        <div className="flex flex-col items-center gap-3">
+          <Button
+            asChild
+            className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0 h-14 px-10 text-base shadow-lg hover:shadow-xl transition-all"
+          >
+            <Link href="/add" id="onboarding-add-cta">
+              <Plus className="mr-2.5 h-5 w-5" />
+              Add your first contact
+              <ArrowRight className="ml-2.5 h-5 w-5" />
+            </Link>
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Takes 10 seconds — just describe who you met
+          </p>
+          {plan === "pro" && (
+            <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-[var(--copper)]">
+              <Link href="/import">
+                <Upload className="mr-2 h-4 w-4" />
+                Or import existing contacts
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Goal picker */}
@@ -110,31 +133,6 @@ export function WelcomeExperience({ userName, userEmail, plan }: WelcomeExperien
           </div>
         </div>
       )}
-
-      {/* Primary CTA */}
-      <div className="flex flex-col items-center gap-3 mb-10">
-        <Button
-          asChild
-          className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0 h-14 px-10 text-base shadow-lg hover:shadow-xl transition-all"
-        >
-          <Link href="/add" id="onboarding-add-cta">
-            <Plus className="mr-2.5 h-5 w-5" />
-            Add your first contact
-            <ArrowRight className="ml-2.5 h-5 w-5" />
-          </Link>
-        </Button>
-        <p className="text-xs text-muted-foreground">
-          Takes 10 seconds — just describe who you met
-        </p>
-        {plan === "pro" && (
-          <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-[var(--copper)]">
-            <Link href="/import">
-              <Upload className="mr-2 h-4 w-4" />
-              Or import existing contacts
-            </Link>
-          </Button>
-        )}
-      </div>
 
       {/* What you get — product capability showcase */}
       <div className="space-y-4">

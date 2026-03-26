@@ -279,7 +279,7 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-refined" data-tour="stats-cold">
+        <Card className="shadow-refined" data-tour="stats-cold" title="Green: &lt;30 days, Yellow: 31-90, Orange: 91-180, Red: 180+">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Going Cold</CardTitle>
             <ThermometerSnowflake className="h-4 w-4 text-red-500" />
@@ -288,8 +288,8 @@ export default async function DashboardPage() {
             <div className="text-3xl font-normal whitespace-nowrap">
               {contactsWithHealth.filter((c) => c.health.level === "orange" || c.health.level === "red").length}
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              going cold
+            <p className="text-xs text-muted-foreground mt-1">
+              90+ days since last contact
             </p>
           </CardContent>
         </Card>

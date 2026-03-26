@@ -8,7 +8,7 @@ import { ContactCard } from "@/components/contact-card"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Search, Crown, Zap } from "lucide-react"
+import { ArrowLeft, Search, Crown, Zap } from "lucide-react"
 
 interface SearchFacets {
   companies?: { name: string; count: number }[]
@@ -68,6 +68,10 @@ export default function SearchPage() {
   return (
     <div className="space-y-6">
       <div>
+        <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Dashboard
+        </Link>
         <h1 className="text-4xl font-normal tracking-tight">Search</h1>
         <p className="text-muted-foreground mt-1 text-lg">
           Find anyone in your network by name, company, or context.
@@ -139,6 +143,14 @@ export default function SearchPage() {
             <p className="text-sm text-muted-foreground font-medium">
               {results.length} result{results.length === 1 ? "" : "s"}
               {totalMatches && totalMatches > results.length ? ` of ${totalMatches}` : ""}
+              {searchMode && (
+                <span className="ml-2 inline-flex items-center gap-1">
+                  &middot;
+                  <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium">
+                    {searchMode === "hybrid" ? "Hybrid search" : "Keyword only"}
+                  </span>
+                </span>
+              )}
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">

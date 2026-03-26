@@ -196,12 +196,10 @@ function ImportPageInner() {
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/dashboard">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
-          </Link>
-        </Button>
+        <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Dashboard
+        </Link>
         <div>
           <h1 className="text-3xl font-normal tracking-tight">Import Contacts</h1>
           <p className="text-muted-foreground">
@@ -209,6 +207,13 @@ function ImportPageInner() {
           </p>
         </div>
       </div>
+
+      {/* One-time import disclaimer */}
+      {mode === "choose" && (
+        <p className="text-xs text-muted-foreground">
+          Imports are one-time. Future changes in Google Contacts won&apos;t sync automatically.
+        </p>
+      )}
 
       {/* Step: Choose import method */}
       {mode === "choose" && (

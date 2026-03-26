@@ -1,0 +1,19 @@
+Full Name,Company,Job Title,Email,Phone,How We Met,Website
+Alex Thompson,Stripe,Head of Partnerships,alex@stripe.com,415-555-0101,TechCrunch Disrupt 2025,https://linkedin.com/in/alexthompson
+,Notion,Product Manager,maria.g@notion.so,415-555-0102,YC Demo Day,
+James Liu,,,,,,
+,,,,,,
+Priya Sharma-Ramachandran,Figma Design Inc. (A Subsidiary of Adobe Corporation),Senior Staff Designer & Design Systems Lead,priya.sharma-ramachandran@figma.com,+1 (415) 555-0104,Design conference in San Francisco — met at the after-party. She was with the Vercel team.,https://www.figma.com/@priya
+David Kim,Vercel,Solutions Engineer,DAVID.K@VERCEL.COM,,LinkedIn DM,
+Sarah Okonkwo,Plaid,VP of Engineering,sokonkwo@plaid.com,415-555-0106,Startup Grind,
+David Kim,Vercel,Solutions Engineer,david.k@vercel.com,,Slack intro,
+"O'Brien, Patrick",McKinsey & Company,"Associate Partner, Digital",patrick.obrien@mckinsey.com,+44 7700 900123,London Tech Week,https://linkedin.com/in/pobrien
+José María González-López,Mercado Libre,Director de Ingeniería,jose.gonzalez@mercadolibre.com,+54 11 5555-0109,"Buenos Aires tech meetup, introduced by María",
+Björk Guðmundsdóttir,Meniga,CTO,bjork@meniga.is,,Reykjavik Fintech Summit,
+张伟,ByteDance,Staff Engineer,zhang.wei@bytedance.com,+86 138 0000 0000,Shenzhen AI Conference,
+Name With    Extra   Spaces,  Spacey Corp  , Lead   Developer ,spaces@test.com,,Met somewhere,
+Test <script>alert('xss')</script>,Evil Corp,<img onerror=alert(1)>,not-an-email,not-a-phone,<b>bold</b> meeting,javascript:alert(1)
+,,,,,,
+A,B,C,D,E,F,G
+Really Really Really Really Really Really Really Really Really Really Really Really Long Name That Goes On And On And On Forever,A Company With An Extremely Long Name That Would Break Any Reasonable Layout Or Database Field If Not Properly Truncated By The Application,Chief Executive Officer And President And Chairman Of The Board And Head Of All Things Important,this.is.a.very.long.email.address.that.might.cause.issues.with.validation@extremely-long-subdomain.company-with-dashes.co.uk,+1-800-555-0199 ext. 12345,"Met at a conference that had a very long name: The International Symposium on Advanced Technologies and Innovation in the Digital Age 2025, held in San Francisco, California",https://www.linkedin.com/in/a-very-long-profile-url-that-keeps-going-and-going
+alex@stripe.com,Different Company,Different Role,alex@stripe.com,999-999-9999,Different event,

@@ -201,6 +201,9 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Account Section */}
+      <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 pt-2">Account</h2>
+
       {/* Profile */}
       <Card className="shadow-refined">
         <CardHeader>
@@ -330,6 +333,9 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Preferences Section */}
+      <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 pt-2">Preferences</h2>
+
       {/* Notifications */}
       <Card className="shadow-refined">
         <CardHeader>
@@ -449,6 +455,9 @@ export default function SettingsPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Data Section */}
+      <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 pt-2">Data</h2>
 
       {/* Recently Deleted */}
       <RecentlyDeleted />

@@ -160,12 +160,10 @@ export default function ScanPage() {
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/add">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
-          </Link>
-        </Button>
+        <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Dashboard
+        </Link>
         <div>
           <h1 className="text-3xl font-normal tracking-tight">Scan LinkedIn</h1>
           <p className="text-muted-foreground">

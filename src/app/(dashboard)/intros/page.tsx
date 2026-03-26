@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/components/ui/toast"
-import { ArrowRight, Copy, Check, Loader2, Sparkles, Users, RefreshCw } from "lucide-react"
+import { ArrowLeft, ArrowRight, Copy, Check, Loader2, Sparkles, Users, RefreshCw } from "lucide-react"
 
 interface IntroSuggestion {
   contact1_id: string
@@ -66,6 +66,10 @@ export default function IntrosPage() {
     return (
       <div className="space-y-8">
         <div className="animate-fade-in">
+          <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Dashboard
+          </Link>
           <h1 className="text-4xl font-normal tracking-tight">Intro Suggestions</h1>
           <p className="text-muted-foreground mt-1 text-lg">
             AI-powered recommendations for who in your network should know each other.
@@ -97,6 +101,12 @@ export default function IntrosPage() {
 
   return (
     <div className="space-y-8">
+      <div className="animate-fade-in">
+        <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Dashboard
+        </Link>
+      </div>
       <div className="flex items-start justify-between animate-fade-in">
         <div>
           <h1 className="text-4xl font-normal tracking-tight">Intro Suggestions</h1>

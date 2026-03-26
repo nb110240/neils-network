@@ -314,12 +314,10 @@ export default function GraphPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/dashboard">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
-          </Link>
-        </Button>
+        <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Dashboard
+        </Link>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Relationship Graph</h1>
           <p className="text-muted-foreground">

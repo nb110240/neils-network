@@ -151,9 +151,22 @@ export async function sendDigestEmail(
     ? "Your weekly relationship check-in"
     : "Your daily relationship check-in"
 
+  // First-time digest explainer for new users
+  const healthExplainer = `
+    <div style="padding:14px 16px;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;margin-bottom:20px;font-size:13px;color:#44403c">
+      <p style="margin:0 0 6px;font-weight:600;color:#1c1917">How this works</p>
+      <p style="margin:0">Savvo tracks how recently you interacted with each contact and assigns a health score:
+        <span style="color:#22c55e">Green</span> = active (last 30 days),
+        <span style="color:#eab308">Yellow</span> = cooling (31-90 days),
+        <span style="color:#f97316">Orange</span> = going cold (91-180 days),
+        <span style="color:#ef4444">Red</span> = at risk (180+ days).
+        Below are the contacts that need attention most.</p>
+    </div>`
+
   const bodyContent = `
     <p style="margin:0 0 4px">Hey ${escapeHtml(userName)},</p>
     <p style="color:#44403c;margin:0 0 20px">These relationships could use some attention:</p>
+    ${healthExplainer}
     ${networkSummary}
     ${contactRows}
     ${upgradeCta}

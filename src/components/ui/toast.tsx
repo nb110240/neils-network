@@ -9,6 +9,11 @@ interface Toast {
   title?: string
   description?: string
   variant?: "default" | "destructive"
+  action?: {
+    label: string
+    onClick: () => void
+  }
+  duration?: number
 }
 
 interface ToastContextType {
@@ -27,7 +32,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => [...prev, { ...toast, id }])
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id))
-    }, 5000)
+    }, toast.duration ?? 5000)
   }, [])
 
   const removeToast = React.useCallback((id: string) => {
@@ -71,6 +76,17 @@ function ToastContainer() {
             )}
             {toast.description && (
               <p className="text-sm opacity-90">{toast.description}</p>
+            )}
+            {toast.action && (
+              <button
+                onClick={() => {
+                  toast.action?.onClick()
+                  removeToast(toast.id)
+                }}
+                className="mt-1 self-start text-sm font-semibold underline underline-offset-2 hover:opacity-80 transition-opacity"
+              >
+                {toast.action.label}
+              </button>
             )}
           </div>
           <button

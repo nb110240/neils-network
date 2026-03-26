@@ -182,7 +182,25 @@ export default function ContactDetailPage({
 
       addToast({
         title: "Contact archived",
-        description: "Contact archived. You can restore it from Settings.",
+        description: "Contact moved to trash.",
+        duration: 6000,
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            try {
+              const restoreRes = await fetch("/api/contacts/archived", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contactId: id }),
+              })
+              if (!restoreRes.ok) throw new Error("Restore failed")
+              addToast({ title: "Contact restored", description: "The contact has been restored." })
+              router.refresh()
+            } catch {
+              addToast({ title: "Error", description: "Failed to restore contact. Check Settings to restore manually.", variant: "destructive" })
+            }
+          },
+        },
       })
       router.refresh() // invalidate cached contact lists
       router.push("/contacts")

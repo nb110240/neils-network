@@ -32,6 +32,11 @@ export function ContactCard({
               <h3 className="font-semibold text-base group-hover:text-[var(--copper)] transition-colors truncate min-h-[1.5rem]">
                 {contact.name || "Unknown Contact"}
               </h3>
+              {!contact.name && (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-[var(--copper)]">
+                  Tap to fix
+                </span>
+              )}
               {(contact.job_title || contact.company) && (
                 <p className="text-sm text-muted-foreground truncate">
                   {[contact.job_title, contact.company].filter(Boolean).join(", ")}

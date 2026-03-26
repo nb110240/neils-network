@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 }
 
 async function reEmbedBatch(
-  contacts: { id: string; name: string | null; company: string | null; raw_note: string }[],
+  contacts: { id: string; name: string | null; company: string | null; job_title: string | null; email: string | null; how_we_met: string | null; next_steps: string | null; raw_note: string }[],
   supabase: Awaited<ReturnType<typeof createServiceClient>>
 ) {
   const openaiKey = process.env.OPENAI_API_KEY

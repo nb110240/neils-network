@@ -28,6 +28,7 @@ export function NavHeader() {
   const router = useRouter()
   const supabase = createClient()
   const [isAdmin, setIsAdmin] = useState(false)
+  const isLocal = typeof window !== "undefined" && window.location.hostname === "localhost"
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
@@ -97,7 +98,7 @@ export function NavHeader() {
             </nav>
           </div>
           <div className="flex flex-1 items-center justify-end space-x-2">
-            {isAdmin && (
+            {isAdmin && isLocal && (
               <Link
                 href="/dev"
                 className={cn(
@@ -183,7 +184,7 @@ export function NavHeader() {
 
             <div className="border-t my-3" />
 
-            {isAdmin && (
+            {isAdmin && isLocal && (
               <Link
                 href="/dev"
                 onClick={closeMobileMenu}

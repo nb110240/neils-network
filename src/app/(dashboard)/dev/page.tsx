@@ -159,12 +159,14 @@ export default function DevPage() {
     )
   }
 
-  if (!isAdmin) {
+  const isLocal = typeof window !== "undefined" && window.location.hostname === "localhost"
+
+  if (!isAdmin || !isLocal) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <Shield className="h-10 w-10 text-muted-foreground mb-4" />
         <h1 className="text-2xl font-normal">Access Denied</h1>
-        <p className="text-muted-foreground mt-1">This page is for developers only.</p>
+        <p className="text-muted-foreground mt-1">{!isLocal ? "Dev tools are only available on localhost." : "This page is for developers only."}</p>
       </div>
     )
   }

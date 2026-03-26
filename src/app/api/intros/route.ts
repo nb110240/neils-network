@@ -18,7 +18,7 @@ export async function GET() {
     // Get user's active contacts with relevant fields
     const { data: contacts } = await supabase
       .from("contacts")
-      .select("id, name, company, job_title, how_we_met, next_steps, raw_note")
+      .select("id, name, email, phone, company, job_title, how_we_met, next_steps, raw_note")
       .eq("created_by", user.id)
       .is("archived_at", null)
       .order("created_at", { ascending: false })

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 import { authenticateRequest, authFailed, notFoundResponse, errorResponse, isValidUUID, badRequestResponse } from "@/lib/api-utils"
 import { extractContactInfo } from "@/lib/extract-contact"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
@@ -59,6 +60,10 @@ export async function POST(
     if (updateError) {
       return errorResponse("Failed to update contact")
     }
+
+    revalidatePath("/dashboard")
+    revalidatePath("/reach-out")
+    revalidatePath("/contacts")
 
     return NextResponse.json({ contact: fixed })
   } catch (error) {

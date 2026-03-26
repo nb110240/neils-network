@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 import { authenticateRequest, authFailed, notFoundResponse, badRequestResponse, errorResponse, isValidUUID } from "@/lib/api-utils"
 
 export async function GET(
@@ -112,6 +113,10 @@ export async function PUT(
       .eq("contact_id", id)
 
     const tags = (contactTags || []).map((ct: Record<string, unknown>) => ct.tags)
+
+    revalidatePath("/dashboard")
+    revalidatePath("/reach-out")
+    revalidatePath("/contacts")
 
     return NextResponse.json({ tags })
   } catch (error) {

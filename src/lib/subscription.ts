@@ -36,6 +36,7 @@ export async function checkContactLimit(userId: string): Promise<{ allowed: bool
     .from("contacts")
     .select("*", { count: "exact", head: true })
     .eq("created_by", userId)
+    .is("archived_at", null)
 
   const currentCount = count || 0
   return {

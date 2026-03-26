@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 import { authenticateRequest, authFailed, badRequestResponse, errorResponse } from "@/lib/api-utils"
 
 export async function GET() {
@@ -58,6 +59,10 @@ export async function POST(request: Request) {
       console.error("Error creating tag:", error)
       return errorResponse("Failed to create tag")
     }
+
+    revalidatePath("/dashboard")
+    revalidatePath("/reach-out")
+    revalidatePath("/contacts")
 
     return NextResponse.json({ tag })
   } catch (error) {

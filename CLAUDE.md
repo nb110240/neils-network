@@ -19,6 +19,7 @@ Startup founders, VCs, and professional networkers who meet many people weekly a
 - **Theme:** Light mode primary. Warm stone palette with copper accent. Glass morphism cards. Serif headings (DM Serif Display) for personality, sans body (DM Sans) for clarity.
 - **Color:** Sand background (#faf9f7), stone borders (#e7e5e4), copper accent (#c2410c → #ea580c gradient). Dark mode is actively used — treat it as a first-class mode, not secondary.
 - **Contrast rules (hard-learned):** Light mode body text: `stone-700` minimum, `stone-900` for headings. Dark mode body text: `stone-300` minimum, `stone-100` for headings. Card backgrounds: solid `white`/`stone-50` (light) or `stone-800`/`stone-900` (dark) — never use transparency that blends with the dotted sand background. Always verify both light and dark mode before shipping.
+- **Dark mode implementation:** Tailwind v4 with class-based dark mode via `@custom-variant dark` in globals.css. ThemeSelector toggles `.dark` on `<html>`. CSS custom properties (`bg-background` etc.) AND Tailwind `dark:` utilities both respond to the `.dark` class. Dev server runs on **port 3001** (port 3000 is a different project).
 - **No founder/about page.** The product speaks for itself. Do not create an /about page. Build E-E-A-T through content, social presence, and the product itself.
 
 ### Design Principles

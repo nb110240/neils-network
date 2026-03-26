@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
       .from("contacts")
       .select("id, name, company, job_title, email, how_we_met, next_steps, raw_note")
       .eq("created_by", user.id)
+      .is("archived_at", null)
 
     if (!contacts || contacts.length === 0) {
       return NextResponse.json({ message: "No contacts to embed", count: 0 })

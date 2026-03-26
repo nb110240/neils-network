@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 import { authenticateRequest, authFailed, badRequestResponse, errorResponse, isValidUUID } from "@/lib/api-utils"
 
 export async function GET() {
@@ -77,6 +78,10 @@ export async function POST(request: Request) {
       return errorResponse("Failed to create event")
     }
 
+    revalidatePath("/dashboard")
+    revalidatePath("/reach-out")
+    revalidatePath("/contacts")
+
     return NextResponse.json({ event })
   } catch (error) {
     console.error("Error creating event:", error)
@@ -109,6 +114,10 @@ export async function PATCH(request: Request) {
       console.error("Error deactivating event:", error)
       return errorResponse("Failed to deactivate event")
     }
+
+    revalidatePath("/dashboard")
+    revalidatePath("/reach-out")
+    revalidatePath("/contacts")
 
     return NextResponse.json({ event })
   } catch (error) {

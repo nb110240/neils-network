@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 import { authenticateRequest, authFailed, badRequestResponse, errorResponse } from "@/lib/api-utils"
 
 export async function GET() {
@@ -53,6 +54,10 @@ export async function POST(request: Request) {
       return errorResponse("Failed to restore contact")
     }
 
+    revalidatePath("/dashboard")
+    revalidatePath("/reach-out")
+    revalidatePath("/contacts")
+
     return NextResponse.json({ success: true, contact })
   } catch (error) {
     console.error("Error restoring contact:", error)
@@ -83,6 +88,10 @@ export async function DELETE(request: Request) {
       console.error("Error permanently deleting contact:", error)
       return errorResponse("Failed to permanently delete contact")
     }
+
+    revalidatePath("/dashboard")
+    revalidatePath("/reach-out")
+    revalidatePath("/contacts")
 
     return NextResponse.json({ success: true })
   } catch (error) {

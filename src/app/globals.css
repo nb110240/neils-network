@@ -299,16 +299,21 @@ h1, h2, h3, h4, h5, h6 {
   min-width: 44px;
 }
 
-/* Mobile-specific: smoother scrolling, overscroll behavior */
+/* Mobile-specific: smoother scrolling */
 @media (max-width: 640px) {
   html {
-    scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Prevent rubber-banding on mobile */
+  /* Disable heavy background pattern on mobile for performance */
   body {
-    overscroll-behavior-y: none;
+    background-image: none !important;
+  }
+
+  /* Disable stagger animations on mobile — causes jank on low-end Android */
+  .stagger-children > * {
+    animation: none !important;
+    opacity: 1 !important;
   }
 
   /* Larger touch targets on mobile buttons */

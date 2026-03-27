@@ -99,7 +99,8 @@ export function OfflineIndicator() {
       window.removeEventListener("offline", handleOffline)
       navigator.serviceWorker?.removeEventListener("message", handleMessage)
     }
-  }, [updateQueueCount, syncOfflineQueue])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- listeners are stable, only mount once
+  }, [])
 
   // Nothing to show
   if (!isOffline && queueCount === 0 && !isSyncing && !syncDone) {

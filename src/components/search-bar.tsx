@@ -69,10 +69,13 @@ export function SearchBar({ onSearch, isLoading, facets, totalMatches, searchMod
     [query, onSearch, buildFilters]
   )
 
-  // Re-search when filters change (if there's an active query)
+  // Re-search when filters change (debounced to avoid rapid API calls)
   useEffect(() => {
     if (query.trim() && (selectedCompanies.size > 0 || selectedHealth.size > 0)) {
-      onSearch(query, buildFilters())
+      const timer = setTimeout(() => {
+        onSearch(query, buildFilters())
+      }, 300)
+      return () => clearTimeout(timer)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCompanies, selectedHealth])

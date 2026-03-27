@@ -1,98 +1,78 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
-
-interface Particle {
-  id: number
-  x: number
-  y: number
-  color: string
-  size: number
-  angle: number
-  velocity: number
-  spin: number
-  opacity: number
-}
+import { useEffect, useState, useRef } from "react"
 
 const COLORS = ["#c2410c", "#ea580c", "#f97316", "#22c55e", "#3b82f6", "#a855f7", "#eab308"]
-
-function createParticles(count: number): Particle[] {
-  return Array.from({ length: count }, (_, i) => ({
-    id: i,
-    x: 50 + (Math.random() - 0.5) * 20,
-    y: 40,
-    color: COLORS[Math.floor(Math.random() * COLORS.length)],
-    size: Math.random() * 8 + 4,
-    angle: Math.random() * Math.PI * 2,
-    velocity: Math.random() * 6 + 3,
-    spin: (Math.random() - 0.5) * 10,
-    opacity: 1,
-  }))
-}
+const PARTICLE_COUNT = 40
 
 interface CelebrationProps {
-  /** Show celebration */
   show: boolean
-  /** Called when animation completes */
   onComplete?: () => void
 }
 
 export function Celebration({ show, onComplete }: CelebrationProps) {
-  const [particles, setParticles] = useState<Particle[]>([])
-  const [frame, setFrame] = useState(0)
-
-  const animate = useCallback(() => {
-    setFrame((f) => f + 1)
-    setParticles((prev) =>
-      prev
-        .map((p) => ({
-          ...p,
-          x: p.x + Math.cos(p.angle) * p.velocity * 0.3,
-          y: p.y + Math.sin(p.angle) * p.velocity * 0.3 + frame * 0.02,
-          opacity: Math.max(0, p.opacity - 0.012),
-          spin: p.spin,
-        }))
-        .filter((p) => p.opacity > 0)
-    )
-  }, [frame])
+  const [visible, setVisible] = useState(false)
+  const particlesRef = useRef<{ x: number; y: number; color: string; size: number; angle: number; velocity: number; spin: number; delay: number }[]>([])
 
   useEffect(() => {
     if (!show) return
-    setParticles(createParticles(60))
-    setFrame(0)
-  }, [show])
+    // Generate particles once, animate entirely with CSS
+    particlesRef.current = Array.from({ length: PARTICLE_COUNT }, () => ({
+      x: 50 + (Math.random() - 0.5) * 20,
+      y: 40,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      size: Math.random() * 8 + 4,
+      angle: Math.random() * 360,
+      velocity: Math.random() * 300 + 150,
+      spin: (Math.random() - 0.5) * 720,
+      delay: Math.random() * 0.2,
+    }))
+    setVisible(true)
 
-  useEffect(() => {
-    if (particles.length === 0 && show) {
+    const timer = setTimeout(() => {
+      setVisible(false)
       onComplete?.()
-      return
-    }
-    if (particles.length === 0) return
+    }, 2500)
+    return () => clearTimeout(timer)
+  }, [show, onComplete])
 
-    const timer = requestAnimationFrame(animate)
-    return () => cancelAnimationFrame(timer)
-  }, [particles, animate, show, onComplete])
-
-  if (!show || particles.length === 0) return null
+  if (!visible) return null
 
   return (
     <div className="fixed inset-0 z-[200] pointer-events-none" aria-hidden="true">
-      {particles.map((p) => (
-        <div
-          key={p.id}
-          className="absolute rounded-sm"
-          style={{
-            left: `${p.x}%`,
-            top: `${p.y}%`,
-            width: p.size,
-            height: p.size * 0.6,
-            backgroundColor: p.color,
-            opacity: p.opacity,
-            transform: `rotate(${p.spin * frame}deg)`,
-            transition: "none",
-          }}
-        />
-      ))}
+      {particlesRef.current.map((p, i) => {
+        const dx = Math.cos((p.angle * Math.PI) / 180) * p.velocity
+        const dy = Math.sin((p.angle * Math.PI) / 180) * p.velocity + 200
+        return (
+          <div
+            key={i}
+            className="absolute rounded-sm"
+            style={{
+              left: `${p.x}%`,
+              top: `${p.y}%`,
+              width: p.size,
+              height: p.size * 0.6,
+              backgroundColor: p.color,
+              animationName: "confetti-fall",
+              animationDuration: "2.2s",
+              animationTimingFunction: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+              animationFillMode: "forwards",
+              animationDelay: `${p.delay}s`,
+              // @ts-expect-error CSS custom properties for per-particle animation
+              "--dx": `${dx}px`,
+              "--dy": `${dy}px`,
+              "--spin": `${p.spin}deg`,
+            }}
+          />
+        )
+      })}
+      <style>{`
+        @keyframes confetti-fall {
+          0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+          80% { opacity: 0.8; }
+          100% { transform: translate(var(--dx), var(--dy)) rotate(var(--spin)); opacity: 0; }
+        }
+      `}</style>
     </div>
   )
 }
@@ -103,7 +83,6 @@ const CELEBRATION_STORAGE_KEY = "savvo-first-contact-celebrated"
 export function useFirstContactCelebration() {
   const [showCelebration, setShowCelebration] = useState(false)
 
-  /** Call after creating a contact — triggers celebration if it's the first one */
   function triggerIfFirst(contactCount: number) {
     if (typeof window === "undefined") return
     if (contactCount !== 1) return

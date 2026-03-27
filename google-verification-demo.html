@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Savvo — Google OAuth Scope Demo</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0c0a09; color: #fafaf9; overflow: hidden; }
+
+  .scene { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.8s ease; pointer-events: none; }
+  .scene.active { opacity: 1; pointer-events: auto; }
+
+  .title-bar { position: fixed; top: 0; left: 0; right: 0; height: 48px; background: #1c1917; border-bottom: 1px solid #292524; display: flex; align-items: center; padding: 0 20px; z-index: 100; }
+  .title-bar .logo { color: #c2410c; font-size: 18px; font-weight: 600; letter-spacing: 0.5px; }
+  .title-bar .nav { margin-left: auto; display: flex; gap: 16px; font-size: 13px; color: #a8a29e; }
+
+  .mockup { background: #1c1917; border: 1px solid #292524; border-radius: 16px; padding: 32px; max-width: 700px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+
+  .step-label { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); background: #c2410c; color: white; padding: 10px 24px; border-radius: 100px; font-size: 14px; font-weight: 600; z-index: 100; }
+
+  .scope-badge { display: inline-flex; align-items: center; gap: 6px; background: #292524; border: 1px solid #44403c; padding: 6px 12px; border-radius: 8px; font-size: 12px; color: #d6d3d1; margin: 4px; }
+  .scope-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; }
+
+  h2 { font-size: 28px; font-weight: 400; margin-bottom: 8px; }
+  h3 { font-size: 20px; font-weight: 500; margin-bottom: 12px; color: #fafaf9; }
+  .subtitle { color: #a8a29e; font-size: 15px; margin-bottom: 24px; }
+
+  .contact-row { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid #292524; border-radius: 12px; margin-bottom: 8px; animation: slideIn 0.5s ease forwards; opacity: 0; }
+  .contact-row .avatar { width: 40px; height: 40px; border-radius: 10px; background: #c2410c20; display: flex; align-items: center; justify-content: center; color: #c2410c; font-weight: 600; font-size: 14px; flex-shrink: 0; }
+  .contact-row .info { flex: 1; }
+  .contact-row .name { font-weight: 600; font-size: 14px; }
+  .contact-row .role { font-size: 12px; color: #a8a29e; margin-top: 2px; }
+  .contact-row .health { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  .calendar-event { display: flex; gap: 12px; padding: 14px; border: 1px solid #292524; border-radius: 12px; margin-bottom: 8px; animation: slideIn 0.5s ease forwards; opacity: 0; }
+  .calendar-event .time { color: #c2410c; font-size: 13px; font-weight: 600; min-width: 60px; }
+  .calendar-event .details .event-title { font-weight: 600; font-size: 14px; }
+  .calendar-event .details .attendee { font-size: 12px; color: #a8a29e; margin-top: 2px; }
+
+  .arrow-down { display: flex; justify-content: center; margin: 16px 0; color: #c2410c; font-size: 24px; animation: bounce 1s ease infinite; }
+
+  .readonly-badge { display: inline-flex; align-items: center; gap: 4px; background: #22c55e20; color: #22c55e; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .permission-list { list-style: none; padding: 0; }
+  .permission-list li { padding: 10px 0; border-bottom: 1px solid #292524; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+  .permission-list li:last-child { border-bottom: none; }
+  .check { color: #22c55e; font-size: 16px; }
+  .cross { color: #ef4444; font-size: 16px; }
+
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; border: none; cursor: pointer; }
+  .btn-copper { background: linear-gradient(135deg, #c2410c, #ea580c); color: white; }
+  .btn-outline { background: transparent; border: 1px solid #44403c; color: #d6d3d1; }
+
+  .progress-bar { position: fixed; top: 48px; left: 0; height: 3px; background: #c2410c; z-index: 100; transition: width 0.8s ease; }
+
+  .scene-counter { position: fixed; top: 60px; right: 20px; font-size: 12px; color: #78716c; z-index: 100; }
+
+  .highlight-box { border: 2px solid #c2410c; border-radius: 12px; padding: 16px; background: #c2410c08; margin-top: 16px; }
+
+  .data-flow { display: flex; align-items: center; gap: 16px; justify-content: center; margin: 20px 0; }
+  .data-flow .node { padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 600; text-align: center; }
+  .data-flow .google { background: #4285f420; border: 1px solid #4285f440; color: #93b4f4; }
+  .data-flow .savvo { background: #c2410c20; border: 1px solid #c2410c40; color: #ea580c; }
+  .data-flow .arrow { color: #44403c; font-size: 20px; }
+
+  @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(6px); } }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  .typing { animation: pulse 1s ease infinite; }
+</style>
+</head>
+<body>
+
+<div class="title-bar">
+  <span class="logo">Savvo</span>
+  <div class="nav">
+    <span>Dashboard</span>
+    <span>Contacts</span>
+    <span>Search</span>
+    <span>Settings</span>
+  </div>
+</div>
+
+<div class="progress-bar" id="progress"></div>
+<div class="scene-counter" id="counter"></div>
+
+<!-- Scene 1: Intro -->
+<div class="scene active" id="scene1">
+  <div style="text-align:center; max-width: 600px;">
+    <div style="width:64px;height:64px;border-radius:16px;background:#c2410c20;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+      <span style="color:#c2410c;font-size:28px;font-weight:300;">S</span>
+    </div>
+    <h2>Savvo — Google OAuth Scope Demo</h2>
+    <p class="subtitle">How Savvo uses Google Calendar and Google Contacts data</p>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:20px;">
+      <span class="scope-badge"><span class="dot"></span>calendar.readonly</span>
+      <span class="scope-badge"><span class="dot"></span>contacts.readonly</span>
+    </div>
+    <p style="color:#78716c;font-size:12px;margin-top:16px;">Both scopes are read-only. Savvo never modifies Google data.</p>
+  </div>
+</div>
+
+<!-- Scene 2: Scope 1 - Google Contacts Import -->
+<div class="scene" id="scene2">
+  <div class="mockup">
+    <div style="display:flex;align-items:center;justify-content:between;margin-bottom:20px;">
+      <div>
+        <h3>Import Contacts</h3>
+        <p style="font-size:13px;color:#a8a29e;">Scope: <code style="background:#292524;padding:2px 8px;border-radius:4px;font-size:12px;">contacts.readonly</code></p>
+      </div>
+      <span class="readonly-badge" style="margin-left:auto;">Read Only</span>
+    </div>
+    <p style="font-size:14px;color:#d6d3d1;margin-bottom:16px;">User clicks "Import from Google Contacts" — Savvo reads contacts once and creates local copies.</p>
+    <div class="data-flow">
+      <div class="node google">Google Contacts</div>
+      <div class="arrow">→</div>
+      <div class="node savvo">Savvo (one-time read)</div>
+    </div>
+    <div style="margin-top:20px;">
+      <p style="font-size:12px;color:#78716c;margin-bottom:8px;">Imported contacts:</p>
+      <div class="contact-row" style="animation-delay:0.2s;"><div class="avatar">SC</div><div class="info"><div class="name">Sarah Chen</div><div class="role">Partner at Sequoia Capital</div></div><div class="health" style="background:#22c55e"></div></div>
+      <div class="contact-row" style="animation-delay:0.4s;"><div class="avatar">MJ</div><div class="info"><div class="name">Mike Johnson</div><div class="role">CTO at TechCorp</div></div><div class="health" style="background:#22c55e"></div></div>
+      <div class="contact-row" style="animation-delay:0.6s;"><div class="avatar">LP</div><div class="info"><div class="name">Lisa Park</div><div class="role">Founder at GreenStack</div></div><div class="health" style="background:#eab308"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 3: Contacts - What we access -->
+<div class="scene" id="scene3">
+  <div class="mockup">
+    <h3>Google Contacts — What Savvo Reads</h3>
+    <p style="font-size:13px;color:#a8a29e;margin-bottom:20px;">Only these fields are read from Google Contacts:</p>
+    <ul class="permission-list">
+      <li><span class="check">&#10003;</span> Name</li>
+      <li><span class="check">&#10003;</span> Email address</li>
+      <li><span class="check">&#10003;</span> Phone number</li>
+      <li><span class="check">&#10003;</span> Company &amp; job title</li>
+    </ul>
+    <div style="border-top:1px solid #292524;margin-top:16px;padding-top:16px;">
+      <p style="font-size:13px;color:#78716c;margin-bottom:12px;">What Savvo does NOT do:</p>
+      <ul class="permission-list">
+        <li><span class="cross">&#10007;</span> Never modifies your Google Contacts</li>
+        <li><span class="cross">&#10007;</span> Never deletes contacts from Google</li>
+        <li><span class="cross">&#10007;</span> Never shares contact data with third parties</li>
+        <li><span class="cross">&#10007;</span> Never syncs back — import is one-time only</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 4: Scope 2 - Google Calendar Sync -->
+<div class="scene" id="scene4">
+  <div class="mockup">
+    <div style="display:flex;align-items:center;margin-bottom:20px;">
+      <div>
+        <h3>Calendar Sync</h3>
+        <p style="font-size:13px;color:#a8a29e;">Scope: <code style="background:#292524;padding:2px 8px;border-radius:4px;font-size:12px;">calendar.readonly</code></p>
+      </div>
+      <span class="readonly-badge" style="margin-left:auto;">Read Only</span>
+    </div>
+    <p style="font-size:14px;color:#d6d3d1;margin-bottom:16px;">Savvo reads upcoming 1:1 meetings and auto-creates contacts from attendees.</p>
+    <div class="data-flow">
+      <div class="node google">Google Calendar</div>
+      <div class="arrow">→</div>
+      <div class="node savvo">Savvo (read meetings)</div>
+    </div>
+    <div style="margin-top:20px;">
+      <p style="font-size:12px;color:#78716c;margin-bottom:8px;">Recent meetings synced:</p>
+      <div class="calendar-event" style="animation-delay:0.2s;">
+        <div class="time">10:00am</div>
+        <div class="details">
+          <div class="event-title">Coffee with Sarah Chen</div>
+          <div class="attendee">sarah@sequoia.com — auto-added as contact</div>
+        </div>
+      </div>
+      <div class="calendar-event" style="animation-delay:0.4s;">
+        <div class="time">2:00pm</div>
+        <div class="details">
+          <div class="event-title">Intro call — Mike Johnson</div>
+          <div class="attendee">mike@techcorp.io — auto-added as contact</div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow-down">&#8595;</div>
+    <p style="font-size:13px;color:#a8a29e;text-align:center;">Meeting attendees become contacts with health tracking</p>
+  </div>
+</div>
+
+<!-- Scene 5: Calendar - What we access -->
+<div class="scene" id="scene5">
+  <div class="mockup">
+    <h3>Google Calendar — What Savvo Reads</h3>
+    <p style="font-size:13px;color:#a8a29e;margin-bottom:20px;">Only these fields are read from calendar events:</p>
+    <ul class="permission-list">
+      <li><span class="check">&#10003;</span> Event title</li>
+      <li><span class="check">&#10003;</span> Attendee names &amp; emails</li>
+      <li><span class="check">&#10003;</span> Event date &amp; time</li>
+    </ul>
+    <div style="border-top:1px solid #292524;margin-top:16px;padding-top:16px;">
+      <p style="font-size:13px;color:#78716c;margin-bottom:12px;">What Savvo does NOT do:</p>
+      <ul class="permission-list">
+        <li><span class="cross">&#10007;</span> Never creates or modifies calendar events</li>
+        <li><span class="cross">&#10007;</span> Never reads event descriptions or attachments</li>
+        <li><span class="cross">&#10007;</span> Never accesses events you didn't attend</li>
+        <li><span class="cross">&#10007;</span> Never shares calendar data with third parties</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 6: Data Privacy -->
+<div class="scene" id="scene6">
+  <div class="mockup">
+    <h3>Data Privacy &amp; Security</h3>
+    <p style="font-size:13px;color:#a8a29e;margin-bottom:20px;">How imported Google data is protected</p>
+    <ul class="permission-list">
+      <li><span class="check">&#10003;</span> Data stored in Supabase with Row-Level Security — each user can only see their own contacts</li>
+      <li><span class="check">&#10003;</span> All API routes require authentication</li>
+      <li><span class="check">&#10003;</span> HTTPS everywhere with HSTS preload</li>
+      <li><span class="check">&#10003;</span> Users can delete all data via Settings → Delete Account</li>
+      <li><span class="check">&#10003;</span> Users can export all data as CSV anytime</li>
+      <li><span class="check">&#10003;</span> Privacy policy: <span style="color:#c2410c;">savvo.app/privacy</span></li>
+      <li><span class="check">&#10003;</span> Terms of service: <span style="color:#c2410c;">savvo.app/terms</span></li>
+    </ul>
+  </div>
+</div>
+
+<!-- Scene 7: Summary -->
+<div class="scene" id="scene7">
+  <div style="text-align:center; max-width: 600px;">
+    <h2>Summary</h2>
+    <p class="subtitle" style="margin-bottom:32px;">Savvo requests two read-only Google scopes</p>
+    <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;">
+      <div style="background:#1c1917;border:1px solid #292524;border-radius:16px;padding:24px;flex:1;min-width:250px;">
+        <div class="scope-badge" style="margin-bottom:12px;"><span class="dot"></span>contacts.readonly</div>
+        <p style="font-size:13px;color:#d6d3d1;">One-time import of contacts (name, email, company) into Savvo. Never writes back.</p>
+      </div>
+      <div style="background:#1c1917;border:1px solid #292524;border-radius:16px;padding:24px;flex:1;min-width:250px;">
+        <div class="scope-badge" style="margin-bottom:12px;"><span class="dot"></span>calendar.readonly</div>
+        <p style="font-size:13px;color:#d6d3d1;">Reads 1:1 meeting attendees to auto-create contacts. Never modifies events.</p>
+      </div>
+    </div>
+    <div style="margin-top:32px;display:flex;gap:12px;justify-content:center;">
+      <span class="readonly-badge">Read Only</span>
+      <span class="readonly-badge" style="background:#c2410c20;color:#ea580c;">User-Initiated</span>
+      <span class="readonly-badge" style="background:#3b82f620;color:#60a5fa;">RLS Protected</span>
+    </div>
+    <p style="color:#78716c;font-size:13px;margin-top:24px;">savvo.app — AI-powered relationship manager</p>
+  </div>
+</div>
+
+<div class="step-label" id="stepLabel"></div>
+
+<script>
+const scenes = [
+  { id: 'scene1', label: 'Savvo OAuth Scope Overview' },
+  { id: 'scene2', label: 'Scope 1: Google Contacts Import Flow' },
+  { id: 'scene3', label: 'Google Contacts — Permissions Detail' },
+  { id: 'scene4', label: 'Scope 2: Google Calendar Sync Flow' },
+  { id: 'scene5', label: 'Google Calendar — Permissions Detail' },
+  { id: 'scene6', label: 'Data Privacy & Security' },
+  { id: 'scene7', label: 'Summary' },
+];
+
+let current = 0;
+const INTERVAL = 6000; // 6 seconds per scene
+
+function showScene(index) {
+  scenes.forEach((s, i) => {
+    document.getElementById(s.id).classList.toggle('active', i === index);
+  });
+  document.getElementById('stepLabel').textContent = scenes[index].label;
+  document.getElementById('progress').style.width = ((index + 1) / scenes.length * 100) + '%';
+  document.getElementById('counter').textContent = (index + 1) + ' / ' + scenes.length;
+
+  // Re-trigger animations on contact rows
+  const scene = document.getElementById(scenes[index].id);
+  scene.querySelectorAll('.contact-row, .calendar-event').forEach((el, i) => {
+    el.style.opacity = '0';
+    el.style.animationDelay = (0.2 + i * 0.2) + 's';
+    el.style.animationFillMode = 'forwards';
+  });
+}
+
+function next() {
+  current = (current + 1) % scenes.length;
+  showScene(current);
+}
+
+// Auto-advance
+showScene(0);
+setInterval(next, INTERVAL);
+
+// Click to advance
+document.body.addEventListener('click', () => {
+  next();
+});
+
+// Keyboard navigation
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ') next();
+  if (e.key === 'ArrowLeft') { current = (current - 1 + scenes.length) % scenes.length; showScene(current); }
+});
+</script>
+
+</body>
+</html>

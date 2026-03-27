@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import * as d3 from "d3"
+import type * as D3Type from "d3"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -18,7 +18,7 @@ interface ContactNode {
   event_id: string | null
 }
 
-interface GraphNode extends d3.SimulationNodeDatum {
+interface GraphNode extends D3Type.SimulationNodeDatum {
   id: string
   name: string
   company: string | null
@@ -26,7 +26,7 @@ interface GraphNode extends d3.SimulationNodeDatum {
   initials: string
 }
 
-interface GraphLink extends d3.SimulationLinkDatum<GraphNode> {
+interface GraphLink extends D3Type.SimulationLinkDatum<GraphNode> {
   source: string | GraphNode
   target: string | GraphNode
   type: string
@@ -114,11 +114,18 @@ export default function GraphPage() {
   useEffect(() => {
     if (isLoading || !isPro || contacts.length === 0 || !svgRef.current || !containerRef.current) return
 
+    let cancelled = false
+    const svgEl = svgRef.current
     const container = containerRef.current
+
+    async function renderGraph() {
+      const d3 = await import("d3")
+      if (cancelled) return
+
     const width = container.clientWidth
     const height = Math.max(500, container.clientHeight)
 
-    const svg = d3.select(svgRef.current)
+    const svg = d3.select(svgEl)
     svg.selectAll("*").remove()
     svg.attr("width", width).attr("height", height)
 
@@ -258,6 +265,14 @@ export default function GraphPage() {
 
     return () => {
       simulation.stop()
+    }
+    }
+
+    const cleanup = renderGraph()
+
+    return () => {
+      cancelled = true
+      cleanup.then((fn) => fn?.())
     }
   }, [isLoading, isPro, contacts, router])
 

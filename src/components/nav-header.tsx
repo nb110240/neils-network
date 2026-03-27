@@ -56,7 +56,7 @@ export function NavHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b bg-background/85 backdrop-blur-md">
+      <header className="sticky top-0 z-40 w-full border-b bg-background">
         <div className="container mx-auto flex h-16 items-center px-4">
           {/* Mobile menu button */}
           <Button
@@ -142,7 +142,7 @@ export function NavHeader() {
         <div className="fixed inset-0 z-50 sm:hidden">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/50"
             onClick={closeMobileMenu}
             aria-hidden="true"
           />

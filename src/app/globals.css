@@ -316,6 +316,12 @@ h1, h2, h3, h4, h5, h6 {
     opacity: 1 !important;
   }
 
+  /* Disable fade-in animations on mobile for performance */
+  .animate-fade-in, .animate-fade-in-scale {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
   /* Larger touch targets on mobile buttons */
   button, a[role="button"], [role="link"] {
     min-height: 44px;
@@ -330,6 +336,7 @@ h1, h2, h3, h4, h5, h6 {
 /* Smooth transitions on interactive cards */
 .card-interactive {
   transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+  will-change: transform;
 }
 
 .card-interactive:hover {

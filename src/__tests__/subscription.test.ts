@@ -50,4 +50,40 @@ describe("Plan limits", () => {
       expect(typeof PLAN_LIMITS[plan].maxContacts).toBe("number")
     }
   })
+
+  // Team plan tests
+  it("team plan has unlimited contacts", () => {
+    const limits = getPlanLimits("team")
+    expect(limits.maxContacts).toBe(Infinity)
+  })
+
+  it("team plan has unlimited semantic searches", () => {
+    const limits = getPlanLimits("team")
+    expect(limits.semanticSearchLimit).toBe(Infinity)
+  })
+
+  it("team plan can import", () => {
+    const limits = getPlanLimits("team")
+    expect(limits.canImport).toBe(true)
+  })
+
+  it("team plan can sync calendar", () => {
+    const limits = getPlanLimits("team")
+    expect(limits.canCalendarSync).toBe(true)
+  })
+
+  it("team plan can digest", () => {
+    const limits = getPlanLimits("team")
+    expect(limits.canDigest).toBe(true)
+  })
+
+  it("pro plan can sync calendar", () => {
+    const limits = getPlanLimits("pro")
+    expect(limits.canCalendarSync).toBe(true)
+  })
+
+  it("free plan allows semantic search", () => {
+    const limits = getPlanLimits("free")
+    expect(limits.canSemanticSearch).toBe(true)
+  })
 })

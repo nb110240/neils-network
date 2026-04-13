@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { revalidatePath } from "next/cache"
 import { authenticateRequest, authFailed, badRequestResponse, notFoundResponse, errorResponse } from "@/lib/api-utils"
-import { calculateHealthScore } from "@/lib/health"
+import { calculateHealthScore, computeNextDueDate } from "@/lib/health"
 import { z } from "zod/v4"
 
 // Transform empty strings to null so Zod validators (like .email()) don't reject them
@@ -23,6 +23,9 @@ const UpdateContactSchema = z.object({
   follow_up_needed: z.boolean().optional(),
   last_contact_date: emptyToNull.pipe(z.string().nullable()).optional(),
   raw_note: emptyToNull.pipe(z.string().max(10000).nullable()).optional(),
+  cadence_days: z.number().int().min(1).max(365).nullable().optional(),
+  scheduled_follow_up: emptyToNull.pipe(z.string().nullable()).optional(),
+  snoozed_until: emptyToNull.pipe(z.string().nullable()).optional(),
 })
 
 export async function GET(
@@ -54,7 +57,7 @@ export async function GET(
     return NextResponse.json({
       contact: {
         ...contact,
-        health: calculateHealthScore(contact.last_contact_date, contact.created_at),
+        health: calculateHealthScore(contact.last_contact_date, contact.created_at, contact.cadence_days),
       },
     })
   } catch (error) {
@@ -105,6 +108,24 @@ export async function PUT(
     if (error) {
       console.error("Error updating contact:", error)
       return errorResponse("Failed to update contact")
+    }
+
+    // Recompute next_due_date if scheduling fields changed
+    if ("cadence_days" in updateData || "scheduled_follow_up" in updateData || "last_contact_date" in updateData) {
+      const nextDue = computeNextDueDate(
+        contact.last_contact_date,
+        contact.created_at,
+        contact.cadence_days,
+        contact.scheduled_follow_up
+      )
+      if (nextDue !== contact.next_due_date) {
+        await supabase
+          .from("contacts")
+          .update({ next_due_date: nextDue })
+          .eq("id", id)
+          .eq("created_by", user.id)
+        contact.next_due_date = nextDue
+      }
     }
 
     revalidatePath("/dashboard")

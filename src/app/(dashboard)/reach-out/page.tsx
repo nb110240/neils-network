@@ -27,7 +27,7 @@ export default async function ReachOutPage() {
 
   const { data: allContacts } = await supabase
     .from("contacts")
-    .select("id, name, email, phone, company, job_title, website, how_we_met, next_steps, follow_up_needed, last_contact_date, raw_note, source, created_by, created_at, updated_at, archived_at, embedding_status")
+    .select("id, name, email, phone, company, job_title, website, how_we_met, next_steps, follow_up_needed, last_contact_date, raw_note, source, created_by, created_at, updated_at, archived_at, embedding_status, cadence_days, scheduled_follow_up, snoozed_until, next_due_date")
     .eq("created_by", user.id)
     .is("archived_at", null)
     .order("created_at", { ascending: false })

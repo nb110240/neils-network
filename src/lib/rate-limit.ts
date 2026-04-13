@@ -95,10 +95,11 @@ export async function rateLimit(
   identifier: string,
   type: RateLimitType = "general"
 ): Promise<RateLimitResult> {
-  // If Upstash isn't configured, allow all requests but warn in production
+  // If Upstash isn't configured, fail secure in production, allow in dev
   if (!process.env.UPSTASH_REDIS_REST_URL) {
     if (process.env.NODE_ENV === "production") {
-      console.warn("[SECURITY] Rate limiting disabled: UPSTASH_REDIS_REST_URL not configured. All rate limits are bypassed.")
+      console.error("[SECURITY] Rate limiting disabled in production: UPSTASH_REDIS_REST_URL not configured. Blocking requests.")
+      return { success: false, limit: 0, remaining: 0, reset: 0 }
     }
     return { success: true, limit: 0, remaining: 0, reset: 0 }
   }

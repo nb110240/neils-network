@@ -205,6 +205,8 @@ function MarketingPage() {
           <div className="flex items-center gap-4 sm:gap-6">
             <Link href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Features</Link>
             <Link href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Pricing</Link>
+            <Link href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">FAQ</Link>
+            <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Privacy</Link>
             <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Log in</Link>
             <Link href="/login?mode=signup" className="inline-flex items-center px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity">
               Get Started
@@ -259,11 +261,11 @@ function MarketingPage() {
       <section className="py-12 sm:py-20 px-4 sm:px-6 bg-card/50" id="how">
         <div className="max-w-5xl mx-auto">
           <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper)] mb-2">How it works</p>
-          <h2 className="text-3xl tracking-tight mb-3">Three steps. No forms.</h2>
+          <h2 className="text-3xl tracking-tight mb-3">Three steps to get started</h2>
           <p className="text-muted-foreground mb-10 max-w-lg">Savvo replaces spreadsheets and forgotten business cards. Just talk about the people you meet.</p>
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { num: "01", title: "Write what you remember", desc: "No forms, no fields. Type a quick note like you'd text a friend.", example: '"Met John Doe at AI Summit, he\'s VP of Engineering at Nextera Health, wants to grab coffee next week"' },
+              { num: "01", title: "Write what you remember", desc: "Type a quick note like you'd text a friend. AI extracts the details you'd normally forget.", example: '"Met John Doe at AI Summit, he\'s VP of Engineering at Nextera Health, wants to grab coffee next week"' },
               { num: "02", title: "Details are extracted", desc: "Name, company, role, how you met, next steps — all structured automatically." },
               { num: "03", title: "Stay connected effortlessly", desc: "Health scores show which relationships are fading. Daily emails nudge you to reach out." },
             ].map((step) => (
@@ -470,7 +472,7 @@ function MarketingPage() {
             <Link href="/login?mode=signup" className="inline-flex items-center px-6 py-3 rounded-xl text-base font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity">
               Try it yourself — free
             </Link>
-            <p className="text-sm text-muted-foreground mt-3">No credit card required. Set up in 30 seconds.</p>
+            <p className="text-sm text-muted-foreground mt-3">No credit card required. Free plan, no strings attached.</p>
           </div>
         </div>
       </section>
@@ -543,7 +545,7 @@ function MarketingPage() {
               <div className="text-3xl font-normal mb-1">$0 <span className="text-base text-muted-foreground font-normal">/month</span></div>
               <p className="text-sm text-muted-foreground mb-4">For getting started</p>
               <ul className="space-y-2 text-sm mb-6">
-                {["50 contacts", "Health scores", "Natural language input", "5 smart searches / month"].map((f) => (
+                {["50 contacts", "Health scores", "Natural language input", "5 smart searches / month", "Weekly digest emails"].map((f) => (
                   <li key={f} className="flex items-center gap-2"><span className="text-emerald-500 font-bold">&#10003;</span> {f}</li>
                 ))}
                 {["Import (CSV & Gmail)", "Google Calendar sync", "Daily digest emails"].map((f) => (
@@ -556,9 +558,9 @@ function MarketingPage() {
               <div className="absolute -top-3 right-4 bg-[var(--copper)] text-white text-xs font-semibold uppercase tracking-wide px-3 py-1 rounded-full">Most popular</div>
               <div className="font-semibold mb-1">Pro</div>
               <div className="text-3xl font-normal mb-1"><span className="text-lg text-muted-foreground line-through mr-1">$8</span>$5 <span className="text-base text-muted-foreground font-normal">/month</span></div>
-              <p className="text-sm text-emerald-600 font-medium mb-4">Launch price until June 1 &middot; or <span className="line-through text-muted-foreground">$75</span> $50/year</p>
+              <p className="text-sm text-emerald-600 font-medium mb-4">Launch price until June 2026 &middot; or <span className="line-through text-muted-foreground">$75</span> $50/year</p>
               <ul className="space-y-2 text-sm mb-6">
-                {["Unlimited contacts", "Health scores", "Natural language input", "Unlimited smart search", "AI follow-up drafts (coming soon)", "CSV & Gmail import", "Google Calendar sync", "Daily digest emails", "Event mode", "LinkedIn import"].map((f) => (
+                {["Unlimited contacts", "Health scores", "Natural language input", "Unlimited smart search", "AI follow-up drafts", "CSV & Gmail import", "Google Calendar sync", "Daily digest emails", "Event mode", "LinkedIn import"].map((f) => (
                   <li key={f} className="flex items-center gap-2"><span className="text-emerald-500 font-bold">&#10003;</span> {f}</li>
                 ))}
               </ul>
@@ -566,7 +568,7 @@ function MarketingPage() {
             </div>
           </div>
           <p className="text-center text-sm text-muted-foreground mt-6">
-            Team plan coming soon — $12/user/mo. Shared graphs, intro requests, and admin tools.
+            Team plan available soon — $12/user/mo. Shared graphs, intro requests, and admin tools.
           </p>
         </div>
       </section>
@@ -602,7 +604,7 @@ function MarketingPage() {
             },
             {
               q: "How much does Savvo cost?",
-              a: "Savvo has a free plan with 50 contacts, health scores, and weekly digest emails. The Pro plan is $8/month (currently $5/month launch price until June 2026) and includes unlimited contacts, daily digests, unlimited semantic search, AI drafts, meeting prep, intro suggestions, CSV/Google import, and Google Calendar sync.",
+              a: "Savvo has a generous free plan with 50 contacts, health scores, weekly digest emails, and 5 smart searches per month. The Pro plan is $8/month (currently $5/month launch price until June 2026) and includes unlimited contacts, daily digests, unlimited semantic search, AI follow-up drafts, meeting prep, intro suggestions, CSV/Google import, and Google Calendar sync.",
             },
             {
               q: "Who is Savvo built for?",
@@ -621,8 +623,8 @@ function MarketingPage() {
       </section>
 
       <section className="py-12 sm:py-20 px-4 sm:px-6 text-center">
-        <h2 className="text-3xl tracking-tight mb-3">Your network is your net worth.<br />Stop letting it decay.</h2>
-        <p className="text-muted-foreground mb-6 max-w-md mx-auto">Join founders, VCs, and connectors who use Savvo to keep every connection alive.</p>
+        <h2 className="text-3xl tracking-tight mb-3">Your network is your most valuable asset.<br />Keep it alive.</h2>
+        <p className="text-muted-foreground mb-6 max-w-md mx-auto">Join founders, VCs, and connectors who use Savvo to stay on top of every relationship.</p>
         <Link href="/login?mode=signup" className="inline-flex items-center px-6 py-3 rounded-xl text-base font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity">
           Get Started Free
         </Link>

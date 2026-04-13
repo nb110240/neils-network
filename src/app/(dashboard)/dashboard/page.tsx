@@ -24,6 +24,14 @@ import { DashboardHeader } from "@/components/dashboard-header"
 import { FollowUpList, type FollowUpContact } from "@/components/follow-up-list"
 import { Plus, Users, ArrowRight, ThermometerSnowflake, Crown, HandHeart } from "lucide-react"
 
+function cadenceLabel(days: number): string {
+  if (days === 7) return "Weekly"
+  if (days === 14) return "Every 2 weeks"
+  if (days === 30) return "Monthly"
+  if (days === 90) return "Quarterly"
+  return `Every ${days} days`
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient()
   const {
@@ -58,7 +66,7 @@ export default async function DashboardPage() {
 
   const { data: allContacts } = await supabase
     .from("contacts")
-    .select("id, name, email, phone, company, job_title, website, how_we_met, next_steps, follow_up_needed, last_contact_date, raw_note, source, created_by, created_at, updated_at, archived_at, embedding_status")
+    .select("id, name, email, phone, company, job_title, website, how_we_met, next_steps, follow_up_needed, last_contact_date, raw_note, source, created_by, created_at, updated_at, archived_at, embedding_status, cadence_days, scheduled_follow_up, snoozed_until, next_due_date")
     .eq("created_by", user.id)
     .is("archived_at", null)
     .order("created_at", { ascending: false })
@@ -66,11 +74,12 @@ export default async function DashboardPage() {
   // Calculate health scores for all contacts
   const contactsWithHealth = (allContacts || []).map((c) => ({
     ...c,
-    health: calculateHealthScore(c.last_contact_date, c.created_at),
+    health: calculateHealthScore(c.last_contact_date, c.created_at, c.cadence_days),
   }))
 
   // --- Reach Out Today: unified prioritized list ---
   const now = new Date().getTime()
+  const todayStr = new Date().toISOString().split("T")[0]
   const daysSince = (dateStr: string | null, fallback: string) => {
     const ref = dateStr || fallback
     return Math.floor((now - new Date(ref).getTime()) / (1000 * 60 * 60 * 24))
@@ -84,9 +93,27 @@ export default async function DashboardPage() {
     return months === 1 ? "1 month ago" : `${months} months ago`
   }
 
+  // Filter out snoozed contacts from reach-out lists
+  const isSnoozed = (c: typeof contactsWithHealth[0]) =>
+    c.snoozed_until && c.snoozed_until >= todayStr
+  const activeContacts = contactsWithHealth.filter((c) => !isSnoozed(c))
+
+  // Priority 0 (NEW): Contacts with next_due_date <= today (user-scheduled)
+  const scheduledContacts: ReachOutContact[] = activeContacts
+    .filter((c) => c.next_due_date && c.next_due_date <= todayStr)
+    .sort((a, b) => (a.next_due_date || "").localeCompare(b.next_due_date || ""))
+    .map((c) => ({
+      ...c,
+      reason: c.cadence_days
+        ? `${cadenceLabel(c.cadence_days)} — due`
+        : "Scheduled follow-up",
+    }))
+
+  const scheduledIds = new Set(scheduledContacts.map((c) => c.id))
+
   // Priority 1: follow_up_needed contacts that aren't green (green = already healthy)
-  const followUpContacts: ReachOutContact[] = contactsWithHealth
-    .filter((c) => c.follow_up_needed && c.health.level !== "green")
+  const followUpContacts: ReachOutContact[] = activeContacts
+    .filter((c) => !scheduledIds.has(c.id) && c.follow_up_needed && c.health.level !== "green")
     .sort((a, b) => {
       const aDate = new Date(a.last_contact_date || a.created_at).getTime()
       const bDate = new Date(b.last_contact_date || b.created_at).getTime()
@@ -94,10 +121,10 @@ export default async function DashboardPage() {
     })
     .map((c) => ({ ...c, reason: "Follow-up needed" }))
 
-  // Priority 2: orange or red health, oldest first (exclude already in follow-ups)
-  const followUpIds = new Set(followUpContacts.map((c) => c.id))
-  const coldContacts: ReachOutContact[] = contactsWithHealth
-    .filter((c) => !followUpIds.has(c.id) && (c.health.level === "orange" || c.health.level === "red"))
+  // Priority 2: orange or red health, oldest first (exclude already listed)
+  const listedIds = new Set([...scheduledIds, ...followUpContacts.map((c) => c.id)])
+  const coldContacts: ReachOutContact[] = activeContacts
+    .filter((c) => !listedIds.has(c.id) && (c.health.level === "orange" || c.health.level === "red"))
     .sort((a, b) => {
       const aDate = new Date(a.last_contact_date || a.created_at).getTime()
       const bDate = new Date(b.last_contact_date || b.created_at).getTime()
@@ -108,13 +135,13 @@ export default async function DashboardPage() {
       reason: formatDaysAgo(daysSince(c.last_contact_date, c.created_at)),
     }))
 
-  // Combine priority 1 + 2
-  let reachOutContacts = [...followUpContacts, ...coldContacts]
+  // Combine priority 0 + 1 + 2
+  let reachOutContacts = [...scheduledContacts, ...followUpContacts, ...coldContacts]
 
   // Priority 3: yellow + 45+ days, only if list < 5
   if (reachOutContacts.length < 5) {
     const existingIds = new Set(reachOutContacts.map((c) => c.id))
-    const coolingContacts: ReachOutContact[] = contactsWithHealth
+    const coolingContacts: ReachOutContact[] = activeContacts
       .filter((c) => {
         if (existingIds.has(c.id)) return false
         if (c.health.level !== "yellow") return false
@@ -279,7 +306,7 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-refined" data-tour="stats-cold" title="Green: &lt;30 days, Yellow: 31-90, Orange: 91-180, Red: 180+">
+        <Card className="shadow-refined" data-tour="stats-cold">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Going Cold</CardTitle>
             <ThermometerSnowflake className="h-4 w-4 text-red-500" />

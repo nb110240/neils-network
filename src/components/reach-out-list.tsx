@@ -1,13 +1,16 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Contact, type HealthScore } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { HealthBadge } from "@/components/health-badge"
 import { DraftMessageButton } from "@/components/draft-message-button"
+import { useToast } from "@/components/ui/toast"
 import { getInitials } from "@/lib/utils"
-import { HandHeart, ArrowRight } from "lucide-react"
+import { HandHeart, ArrowRight, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export interface ReachOutContact extends Contact {
@@ -19,6 +22,66 @@ interface ReachOutListProps {
   contacts: ReachOutContact[]
   plan: string
   total: number
+}
+
+function SnoozeButton({ contactId }: { contactId: string }) {
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
+  const { addToast } = useToast()
+
+  async function snooze(days: number) {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/contacts/${contactId}/snooze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ days }),
+      })
+      if (!res.ok) throw new Error()
+      addToast({ title: "Snoozed", description: `Reminders paused for ${days} days` })
+      router.refresh()
+    } catch {
+      addToast({ title: "Error", description: "Failed to snooze", variant: "destructive" })
+    } finally {
+      setLoading(false)
+      setOpen(false)
+    }
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+        title="Snooze reminders"
+        aria-label="Snooze"
+      >
+        <Clock className="h-4 w-4" />
+      </button>
+      {open && (
+        <div
+          className="absolute right-0 top-full mt-1 w-32 rounded-lg border bg-background shadow-lg py-1 z-50"
+          onMouseLeave={() => setOpen(false)}
+        >
+          {[
+            { label: "3 days", days: 3 },
+            { label: "1 week", days: 7 },
+            { label: "2 weeks", days: 14 },
+          ].map((opt) => (
+            <button
+              key={opt.days}
+              onClick={() => snooze(opt.days)}
+              disabled={loading}
+              className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted/50 transition-colors"
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function ReachOutList({ contacts, plan, total }: ReachOutListProps) {
@@ -36,6 +99,9 @@ export function ReachOutList({ contacts, plan, total }: ReachOutListProps) {
             {total}
           </span>
         </CardTitle>
+        <p className="text-xs text-muted-foreground mt-1">
+          Based on your scheduled cadences, follow-up flags, and time since last contact.
+        </p>
       </CardHeader>
       <CardContent className="space-y-1">
         {contacts.map((contact) => (
@@ -71,7 +137,8 @@ export function ReachOutList({ contacts, plan, total }: ReachOutListProps) {
                 </div>
               </div>
             </Link>
-            <div className="shrink-0 ml-2">
+            <div className="shrink-0 ml-2 flex items-center gap-1">
+              <SnoozeButton contactId={contact.id} />
               <DraftMessageButton
                 contactId={contact.id}
                 contactName={contact.name || "Contact"}

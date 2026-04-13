@@ -24,6 +24,10 @@ describe("Reach Out Today prioritization", () => {
       created_by: "user1",
       created_at: daysAgo(30),
       updated_at: daysAgo(30),
+      cadence_days: null,
+      scheduled_follow_up: null,
+      snoozed_until: null,
+      next_due_date: null,
       archived_at: null,
       ...overrides,
     }

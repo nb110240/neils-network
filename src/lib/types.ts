@@ -15,6 +15,10 @@ export interface Contact {
   embedding_status: "pending" | "complete" | "failed"
   source: string
   created_by: string
+  cadence_days: number | null
+  scheduled_follow_up: string | null
+  snoozed_until: string | null
+  next_due_date: string | null
   created_at: string
   updated_at: string
   archived_at: string | null
@@ -42,6 +46,8 @@ export interface ContactFormData {
   next_steps?: string
   follow_up_needed?: boolean
   last_contact_date?: string
+  cadence_days?: number | null
+  scheduled_follow_up?: string | null
 }
 
 export interface SearchResult extends Contact {

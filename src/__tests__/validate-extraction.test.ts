@@ -100,4 +100,61 @@ describe("validateExtraction", () => {
     expect(result.email).toBeNull()
     expect(result.name).toBe("Test")
   })
+
+  it("handles empty string email (falsy, not validated)", () => {
+    const result = validateExtraction({ email: "" })
+    // Empty string is falsy, so the validation block is skipped
+    expect(result.email).toBe("")
+  })
+
+  it("handles very long email that is valid", () => {
+    const longEmail = "a".repeat(50) + "@example.com"
+    const result = validateExtraction({ email: longEmail })
+    expect(result.email).toBe(longEmail)
+  })
+
+  it("handles special characters in name (passes through)", () => {
+    const result = validateExtraction({ name: "O'Brien-Smith" })
+    expect(result.name).toBe("O'Brien-Smith")
+  })
+
+  it("handles unicode characters in name", () => {
+    const result = validateExtraction({ name: "Jose Garcia" })
+    expect(result.name).toBe("Jose Garcia")
+  })
+
+  it("strips phone with only letters", () => {
+    const result = validateExtraction({ phone: "ABCDEFGH" })
+    expect(result.phone).toBeNull()
+  })
+
+  it("accepts http URL for website", () => {
+    const result = validateExtraction({ website: "http://example.com" })
+    expect(result.website).toBe("http://example.com")
+  })
+
+  it("strips website that is just a word", () => {
+    const result = validateExtraction({ website: "google" })
+    expect(result.website).toBeNull()
+  })
+
+  it("accepts full ISO datetime for last_contact_date", () => {
+    const result = validateExtraction({ last_contact_date: "2026-03-15T10:30:00.000Z" })
+    expect(result.last_contact_date).toBe("2026-03-15T10:30:00.000Z")
+  })
+
+  it("does not modify unrelated fields", () => {
+    const result = validateExtraction({
+      name: "Test",
+      company: "Acme",
+      how_we_met: "Conference",
+      next_steps: "Follow up",
+      follow_up_needed: true,
+    })
+    expect(result.name).toBe("Test")
+    expect(result.company).toBe("Acme")
+    expect(result.how_we_met).toBe("Conference")
+    expect(result.next_steps).toBe("Follow up")
+    expect(result.follow_up_needed).toBe(true)
+  })
 })

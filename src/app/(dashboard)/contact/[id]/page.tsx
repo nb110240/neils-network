@@ -25,6 +25,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/toast"
 import { formatDate, getInitials } from "@/lib/utils"
 import { TagManager } from "@/components/tag-manager"
+import { ScheduleCard } from "@/components/schedule-card"
 import { DraftMessageButton } from "@/components/draft-message-button"
 import { MeetingPrepButton } from "@/components/meeting-prep-button"
 import {
@@ -381,7 +382,7 @@ export default function ContactDetailPage({
   }
 
   const health = (contact as Contact & { health?: import("@/lib/types").HealthScore }).health
-    ?? calculateHealthScore(contact.last_contact_date, contact.created_at)
+    ?? calculateHealthScore(contact.last_contact_date, contact.created_at, contact.cadence_days)
 
   const originalNote = getOriginalNote(contact.raw_note)
 
@@ -561,6 +562,12 @@ export default function ContactDetailPage({
           </div>
         </CardContent>
       </Card>
+
+      {/* Schedule */}
+      <ScheduleCard
+        contact={contact}
+        onUpdate={(updated) => setContact(updated)}
+      />
 
       {/* Tags */}
       <Card className="shadow-refined">

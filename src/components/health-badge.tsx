@@ -13,6 +13,8 @@ export function HealthBadge({ health, size = "sm" }: HealthBadgeProps) {
 
   return (
     <span
+      role="status"
+      aria-label={`Relationship health: ${health.label}`}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full font-semibold whitespace-nowrap",
         colors.bg,

@@ -18,7 +18,7 @@ export async function GET() {
       .single()
 
     return NextResponse.json({
-      digest_frequency: data?.digest_frequency || "daily",
+      digest_frequency: data?.digest_frequency || "weekly",
     })
   } catch (error) {
     console.error("Notification preferences GET error:", error)

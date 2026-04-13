@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Loader2, Plus, Linkedin, Crown, ScanLine, Check, Edit2 } from "lucide-react"
+import { Loader2, Plus, Linkedin, Crown, ScanLine, Check, Edit2, ArrowUpRight } from "lucide-react"
 import Link from "next/link"
 import { type NetworkingGoal, GOAL_CONFIGS } from "@/lib/personalization"
 import { Celebration, useFirstContactCelebration } from "@/components/celebration"
@@ -31,6 +31,7 @@ export default function AddContactPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isLinkedinLoading, setIsLinkedinLoading] = useState(false)
   const [linkedinSuccess, setLinkedinSuccess] = useState<{ id: string; name: string } | null>(null)
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false)
   const [placeholder, setPlaceholder] = useState(DEFAULT_PLACEHOLDER)
   const { showCelebration, triggerIfFirst, onComplete: onCelebrationComplete } = useFirstContactCelebration()
 
@@ -65,9 +66,13 @@ export default function AddContactPage() {
 
       const data = await response.json()
 
+      const c = data.contact
+      const extractedParts = [c?.name, c?.company, c?.job_title].filter(Boolean)
       addToast({
         title: "Contact added",
-        description: `${data.contact?.name || "New contact"} has been added to your network.`,
+        description: extractedParts.length > 0
+          ? `Extracted: ${extractedParts.join(" · ")}. Review and edit on the next page.`
+          : `${c?.name || "New contact"} has been added. Review details on the next page.`,
       })
 
       // Check if this was the user's first contact — celebrate!
@@ -108,14 +113,19 @@ export default function AddContactPage() {
       if (response.status === 409) {
         addToast({
           title: "Already in your network",
-          description: data.message,
+          description: data.error || data.message,
         })
         if (data.contactId) router.push(`/contact/${data.contactId}`)
         return
       }
 
+      if (response.status === 403) {
+        setShowUpgradePrompt(true)
+        return
+      }
+
       if (!response.ok) {
-        throw new Error(data.message || "Failed to import from LinkedIn")
+        throw new Error(data.error || data.message || "Failed to import from LinkedIn")
       }
 
       setLinkedinSuccess({
@@ -139,7 +149,7 @@ export default function AddContactPage() {
       <div>
         <h1 className="text-4xl font-normal tracking-tight">Add Contact</h1>
         <p className="text-muted-foreground mt-1 text-lg">
-          Describe who you met or paste a LinkedIn URL.
+          Describe who you met — AI extracts the details. You can always edit after.
         </p>
       </div>
 
@@ -212,32 +222,30 @@ export default function AddContactPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLinkedinImport} className="space-y-3">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Input
-                placeholder="https://linkedin.com/in/johndoe"
-                value={linkedinUrl}
-                onChange={(e) => setLinkedinUrl(e.target.value)}
-                className="flex-1 h-11"
-              />
-              <Button
-                type="submit"
-                disabled={isLinkedinLoading || !linkedinUrl.trim()}
-                variant="outline"
-                className="h-11"
-              >
-                {isLinkedinLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Import"
-                )}
-              </Button>
-            </div>
+            <Input
+              placeholder="https://linkedin.com/in/johndoe"
+              value={linkedinUrl}
+              onChange={(e) => setLinkedinUrl(e.target.value)}
+              className="h-11"
+            />
             <Input
               placeholder="Add context: met at AI Summit, she's in product (optional)"
               value={linkedinNote}
               onChange={(e) => setLinkedinNote(e.target.value)}
               className="h-11"
             />
+            <Button
+              type="submit"
+              disabled={isLinkedinLoading || !linkedinUrl.trim()}
+              variant="outline"
+              className="h-11 w-full sm:w-auto"
+            >
+              {isLinkedinLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Import from LinkedIn"
+              )}
+            </Button>
           </form>
           <div className="flex items-center justify-between mt-2">
             <p className="text-xs text-muted-foreground flex items-center gap-1.5">
@@ -287,6 +295,39 @@ export default function AddContactPage() {
             >
               <Edit2 className="mr-2 h-4 w-4" />
               Edit & Add Details
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Upgrade to Pro prompt */}
+      <Dialog open={showUpgradePrompt} onOpenChange={setShowUpgradePrompt}>
+        <DialogContent className="sm:max-w-md max-w-[calc(100vw-2rem)]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-[var(--copper)]/10 flex items-center justify-center">
+                <Crown className="h-4 w-4 text-[var(--copper)]" />
+              </div>
+              LinkedIn import is a Pro feature
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Upgrade to Pro to import contacts directly from LinkedIn URLs, plus get AI drafts, meeting prep, calendar sync, and unlimited contacts.
+          </p>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowUpgradePrompt(false)}
+            >
+              Maybe later
+            </Button>
+            <Button
+              asChild
+              className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+            >
+              <Link href="/pricing">
+                <ArrowUpRight className="mr-2 h-4 w-4" />
+                See Pro plans
+              </Link>
             </Button>
           </DialogFooter>
         </DialogContent>

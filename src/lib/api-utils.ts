@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { timingSafeEqual } from "crypto"
 import { createClient } from "@/lib/supabase/server"
 import { rateLimit, rateLimitHeaders, type RateLimitType } from "@/lib/rate-limit"
+import { auditAuthFailure, auditRateLimitHit, auditAdminAccess } from "@/lib/audit"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 // ─── Timing-safe secret comparison ───
@@ -49,6 +50,7 @@ export async function authenticateRequest(
   } = await supabase.auth.getUser()
 
   if (!user) {
+    auditAuthFailure("authenticateRequest")
     return {
       error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
     }
@@ -56,6 +58,7 @@ export async function authenticateRequest(
 
   const rl = await rateLimit(user.id, rateLimitType)
   if (!rl.success) {
+    auditRateLimitHit(user.id, "authenticateRequest", rateLimitType)
     return {
       error: NextResponse.json(
         { error: "Too many requests. Please slow down." },
@@ -113,10 +116,12 @@ export async function verifyDevAccess(request: Request): Promise<NextResponse | 
   if (user?.email) {
     const { isAdmin } = await import("@/lib/admin")
     if (isAdmin(user.email)) {
+      auditAdminAccess(user.id, request.url, true)
       return null
     }
   }
 
+  auditAdminAccess(user?.id || "anonymous", request.url, false)
   return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 }
 

@@ -15,7 +15,7 @@ const features = [
   { name: "Semantic search", free: "5/month", pro: "Unlimited", team: "Unlimited" },
   { name: "Import (CSV & Gmail)", free: false, pro: true, team: true },
   { name: "Google Calendar sync", free: false, pro: true, team: true },
-  { name: "Daily digest emails", free: false, pro: true, team: true },
+  { name: "Digest emails", free: "Weekly", pro: "Daily", team: "Daily" },
   { name: "Shared contact graph", free: false, pro: false, team: true },
   { name: "Team intro requests", free: false, pro: false, team: true },
   { name: "Admin dashboard", free: false, pro: false, team: true },
@@ -38,7 +38,7 @@ export default function PricingPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.message || "Failed to start checkout")
+        throw new Error(data.error || data.message || "Failed to start checkout")
       }
 
       if (data.url) {
@@ -167,7 +167,7 @@ export default function PricingPage() {
               </div>
               {isLaunchPromo && (
                 <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium mt-1">
-                  Launch price — ends June 1, 2026
+                  Launch price — ends June 2026
                 </p>
               )}
               {billing === "yearly" && !isLaunchPromo && (

@@ -73,4 +73,41 @@ describe("calculateHealthScore", () => {
     expect(result.level).toBe("green")
     expect(result.score).toBe(100)
   })
+
+  it("returns green/Active for today (0 days)", () => {
+    const result = calculateHealthScore(now.toISOString(), daysAgo(30))
+    expect(result.level).toBe("green")
+    expect(result.label).toBe("Active")
+    expect(result.score).toBe(100)
+  })
+
+  it("returns correct result when last_contact_date is null and created_at is recent", () => {
+    const result = calculateHealthScore(null, daysAgo(2))
+    expect(result.level).toBe("green")
+    expect(result.score).toBe(100)
+  })
+
+  it("returns red when last_contact_date is null and created_at is very old", () => {
+    const result = calculateHealthScore(null, daysAgo(365))
+    expect(result.level).toBe("red")
+    expect(result.score).toBe(10)
+  })
+
+  it("handles boundary: exactly 31 days (yellow)", () => {
+    const result = calculateHealthScore(daysAgo(31), daysAgo(60))
+    expect(result.level).toBe("yellow")
+    expect(result.score).toBe(50)
+  })
+
+  it("handles boundary: exactly 91 days (orange)", () => {
+    const result = calculateHealthScore(daysAgo(91), daysAgo(200))
+    expect(result.level).toBe("orange")
+    expect(result.score).toBe(25)
+  })
+
+  it("handles boundary: exactly 181 days (red)", () => {
+    const result = calculateHealthScore(daysAgo(181), daysAgo(365))
+    expect(result.level).toBe("red")
+    expect(result.score).toBe(10)
+  })
 })

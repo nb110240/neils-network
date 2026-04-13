@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { LogOut, Plus, Search, LayoutDashboard, Upload, Users, Settings, ScanLine, Code, Menu, X, Network, BookOpen, Sparkles } from "lucide-react"
+import { LogOut, Plus, Search, LayoutDashboard, Upload, Users, Settings, ScanLine, Code, Menu, X, Network, Sparkles, ChevronDown } from "lucide-react"
 
 // Client component can't read server env vars — hardcoded fallback matches .env ADMIN_EMAILS
 const ADMIN_EMAILS = ["neilbajaj72@gmail.com"]
@@ -16,11 +16,13 @@ const navItems = [
   { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/search", label: "Search", icon: Search },
   { href: "/add", label: "Add", icon: Plus },
-  { href: "/scan", label: "Scan", icon: ScanLine },
+]
+
+const moreNavItems = [
   { href: "/import", label: "Import", icon: Upload },
+  { href: "/scan", label: "Scan QR", icon: ScanLine },
   { href: "/graph", label: "Graph", icon: Network },
   { href: "/intros", label: "Intros", icon: Sparkles },
-  { href: "/", label: "Features", icon: BookOpen },
 ]
 
 export function NavHeader() {
@@ -30,6 +32,7 @@ export function NavHeader() {
   const [isAdmin, setIsAdmin] = useState(false)
   const isLocal = typeof window !== "undefined" && window.location.hostname === "localhost"
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -71,7 +74,7 @@ export function NavHeader() {
           </Button>
 
           <div className="mr-4 flex">
-            <Link href="/" className="mr-8 flex items-center gap-2 group">
+            <Link href="/dashboard" className="mr-8 flex items-center gap-2 group">
               <img src="/logo.svg" alt="Savvo" className="h-7 w-7" />
               <span className="text-xl font-medium tracking-tight text-[var(--copper)] group-hover:opacity-80 transition-opacity">Savvo</span>
             </Link>
@@ -95,6 +98,45 @@ export function NavHeader() {
                   </Link>
                 )
               })}
+              {/* More dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setMoreOpen(!moreOpen)}
+                  onBlur={() => setTimeout(() => setMoreOpen(false), 150)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                    moreNavItems.some((i) => pathname === i.href)
+                      ? "bg-[var(--copper)]/10 text-[var(--copper)]"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  )}
+                >
+                  More
+                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", moreOpen && "rotate-180")} />
+                </button>
+                {moreOpen && (
+                  <div className="absolute top-full left-0 mt-1 w-44 rounded-xl border bg-background shadow-lg py-1 z-50">
+                    {moreNavItems.map((item) => {
+                      const Icon = item.icon
+                      const isActive = pathname === item.href
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={cn(
+                            "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-all",
+                            isActive
+                              ? "bg-[var(--copper)]/10 text-[var(--copper)]"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                          )}
+                        >
+                          <Icon className="h-4 w-4" />
+                          <span>{item.label}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             </nav>
           </div>
           <div className="flex flex-1 items-center justify-end space-x-2">
@@ -162,6 +204,29 @@ export function NavHeader() {
             </div>
 
             {navItems.map((item) => {
+              const Icon = item.icon
+              const isActive = pathname === item.href
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={closeMobileMenu}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all touch-target",
+                    isActive
+                      ? "bg-[var(--copper)]/10 text-[var(--copper)]"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </Link>
+              )
+            })}
+
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-4 pt-4 pb-1">More</p>
+
+            {moreNavItems.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href
               return (

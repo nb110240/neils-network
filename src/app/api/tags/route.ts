@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server"
 import { revalidatePath } from "next/cache"
 import { authenticateRequest, authFailed, badRequestResponse, errorResponse } from "@/lib/api-utils"
+import { parseBody } from "@/lib/request"
+import { z } from "zod/v4"
+
+const CreateTagSchema = z.object({
+  name: z.string().min(1, "Tag name is required").max(50, "Tag name too long (max 50 characters)").transform(v => v.trim()),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Invalid hex color").optional(),
+})
 
 export async function GET() {
   try {
@@ -32,17 +39,14 @@ export async function POST(request: Request) {
     if (authFailed(auth)) return auth.error
     const { user, supabase } = auth
 
-    const body = await request.json()
-    const { name, color } = body
-
-    if (!name || typeof name !== "string" || name.trim().length === 0 || name.trim().length > 50) {
-      return badRequestResponse("Tag name must be 1-50 characters")
-    }
+    const result = await parseBody(request, CreateTagSchema, { route: "/api/tags", userId: user.id })
+    if (result.error) return result.error
+    const { name, color } = result.data
 
     const { data: tag, error } = await supabase
       .from("tags")
       .insert({
-        name: name.trim(),
+        name,
         color: color || "#78716c",
         created_by: user.id,
       })

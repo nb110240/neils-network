@@ -63,8 +63,8 @@ export async function GET(request: Request) {
         .eq("user_id", user_id)
         .single()
 
-      // Free users default to "weekly", Pro users default to "daily"
-      const frequency = prefs?.digest_frequency || (isPro ? "daily" : "weekly")
+      // Default all users to weekly digest
+      const frequency = prefs?.digest_frequency || "weekly"
 
       // Skip users who opted out
       if (frequency === "never") {

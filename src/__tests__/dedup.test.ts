@@ -21,6 +21,10 @@ function makeContact(overrides: Partial<Contact>): Contact {
     created_by: "user-1",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    cadence_days: null,
+    scheduled_follow_up: null,
+    snoozed_until: null,
+    next_due_date: null,
     archived_at: null,
     ...overrides,
   }
@@ -203,6 +207,65 @@ describe("findDuplicates", () => {
     const results = await findDuplicates(supabase, "user-1", {
       name: null,
       email: null,
+    })
+    expect(results).toHaveLength(0)
+  })
+
+  it("returns score 1.0 for same LinkedIn profile URL", async () => {
+    const supabase = mockSupabase([
+      { name: "Alice", website: "https://www.linkedin.com/in/alicesmith" },
+    ])
+    const results = await findDuplicates(supabase, "user-1", {
+      name: "Someone Else",
+      website: "https://linkedin.com/in/alicesmith",
+    })
+    expect(results).toHaveLength(1)
+    expect(results[0].score).toBe(1.0)
+    expect(results[0].reason).toBe("Same LinkedIn profile")
+  })
+
+  it("LinkedIn match is case-insensitive", async () => {
+    const supabase = mockSupabase([
+      { name: "Alice", website: "https://linkedin.com/in/AliceSmith" },
+    ])
+    const results = await findDuplicates(supabase, "user-1", {
+      name: "Someone",
+      website: "https://linkedin.com/in/alicesmith",
+    })
+    expect(results).toHaveLength(1)
+    expect(results[0].score).toBe(1.0)
+  })
+
+  it("handles empty string email without crashing", async () => {
+    const supabase = mockSupabase([
+      { name: "Alice", email: "" },
+    ])
+    const results = await findDuplicates(supabase, "user-1", {
+      name: "Bob",
+      email: "",
+    })
+    // Empty emails should not match
+    expect(results).toHaveLength(0)
+  })
+
+  it("handles empty string name without crashing", async () => {
+    const supabase = mockSupabase([
+      { name: "", email: "alice@example.com" },
+    ])
+    const results = await findDuplicates(supabase, "user-1", {
+      name: "",
+      email: "different@example.com",
+    })
+    expect(results).toHaveLength(0)
+  })
+
+  it("handles empty string phone without crashing", async () => {
+    const supabase = mockSupabase([
+      { name: "Alice", phone: "" },
+    ])
+    const results = await findDuplicates(supabase, "user-1", {
+      name: "Bob",
+      phone: "",
     })
     expect(results).toHaveLength(0)
   })

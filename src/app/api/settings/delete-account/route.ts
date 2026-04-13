@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { authenticateRequest, authFailed, errorResponse } from "@/lib/api-utils"
 import { createServiceClient } from "@/lib/supabase/server"
 import { log } from "@/lib/logger"
+import { auditAccountDeletion } from "@/lib/audit"
 
 export async function DELETE() {
   try {
@@ -31,6 +32,7 @@ export async function DELETE() {
     // Sign out the session
     await supabase.auth.signOut()
 
+    auditAccountDeletion(user.id)
     log("info", "Account deleted", { userId: user.id, action: "account.delete", route: "/api/settings/delete-account" })
 
     return NextResponse.json({ success: true })

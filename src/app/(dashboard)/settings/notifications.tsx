@@ -16,11 +16,11 @@ const FREQUENCY_OPTIONS: { value: DigestFrequency; label: string; description: s
 
 export function NotificationPreferences() {
   const { addToast } = useToast()
-  const [frequency, setFrequency] = useState<DigestFrequency>("daily")
+  const [frequency, setFrequency] = useState<DigestFrequency>("weekly")
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
-  const [savedFrequency, setSavedFrequency] = useState<DigestFrequency>("daily")
+  const [savedFrequency, setSavedFrequency] = useState<DigestFrequency>("weekly")
 
   useEffect(() => {
     async function load() {

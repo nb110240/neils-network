@@ -1,6 +1,93 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
+import { escapeHtml, emailLayout } from "@/lib/email"
 
-// ─── Email template tests ───
+// ─── escapeHtml ───
+
+describe("escapeHtml", () => {
+  it("escapes ampersand", () => {
+    expect(escapeHtml("Tom & Jerry")).toBe("Tom &amp; Jerry")
+  })
+
+  it("escapes less than", () => {
+    expect(escapeHtml("a < b")).toBe("a &lt; b")
+  })
+
+  it("escapes greater than", () => {
+    expect(escapeHtml("a > b")).toBe("a &gt; b")
+  })
+
+  it("escapes double quotes", () => {
+    expect(escapeHtml('say "hello"')).toBe("say &quot;hello&quot;")
+  })
+
+  it("escapes single quotes", () => {
+    expect(escapeHtml("it's")).toBe("it&#039;s")
+  })
+
+  it("escapes all special characters together", () => {
+    expect(escapeHtml(`<script>"alert('xss')"&</script>`)).toBe(
+      "&lt;script&gt;&quot;alert(&#039;xss&#039;)&quot;&amp;&lt;/script&gt;"
+    )
+  })
+
+  it("returns empty string unchanged", () => {
+    expect(escapeHtml("")).toBe("")
+  })
+
+  it("returns plain text unchanged", () => {
+    expect(escapeHtml("Hello World")).toBe("Hello World")
+  })
+})
+
+// ─── emailLayout ───
+
+describe("emailLayout", () => {
+  it("returns valid HTML document", () => {
+    const html = emailLayout({ body: "<p>Test</p>" })
+    expect(html).toContain("<!DOCTYPE html>")
+    expect(html).toContain("<html")
+    expect(html).toContain("</html>")
+    expect(html).toContain("</body>")
+  })
+
+  it("includes body content", () => {
+    const html = emailLayout({ body: "<p>Hello World</p>" })
+    expect(html).toContain("<p>Hello World</p>")
+  })
+
+  it("includes subtitle when provided", () => {
+    const html = emailLayout({ body: "<p>Test</p>", subtitle: "Daily digest" })
+    expect(html).toContain("Daily digest")
+  })
+
+  it("includes Savvo branding", () => {
+    const html = emailLayout({ body: "<p>Test</p>" })
+    expect(html).toContain("Savvo")
+  })
+
+  it("includes Open Savvo link with appUrl", () => {
+    const html = emailLayout({ body: "<p>Test</p>", appUrl: "https://savvo.app" })
+    expect(html).toContain("https://savvo.app/dashboard")
+  })
+
+  it("includes email preferences link by default", () => {
+    const html = emailLayout({ body: "<p>Test</p>", appUrl: "https://savvo.app" })
+    expect(html).toContain("Email preferences")
+    expect(html).toContain("https://savvo.app/settings")
+  })
+
+  it("hides unsubscribe link when showUnsubscribe is false", () => {
+    const html = emailLayout({ body: "<p>Test</p>", showUnsubscribe: false })
+    expect(html).not.toContain("Email preferences")
+  })
+
+  it("uses default appUrl when not provided", () => {
+    const html = emailLayout({ body: "<p>Test</p>" })
+    expect(html).toContain("/dashboard")
+  })
+})
+
+// ─── sendDigestEmail ───
 
 const mockSend = vi.fn().mockResolvedValue({ id: "test-email-id" })
 

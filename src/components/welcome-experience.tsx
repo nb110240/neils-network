@@ -134,149 +134,46 @@ export function WelcomeExperience({ userName, userEmail, plan }: WelcomeExperien
         </div>
       )}
 
-      {/* What you get — product capability showcase */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 mb-1">
-          <Sparkles className="h-4 w-4 text-[var(--copper)]" />
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-            What you get
-          </h2>
-        </div>
+      {/* How it works — quick 3-step explainer */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-center">
+          How it works
+        </h2>
 
-        {/* Capability 1: AI extraction */}
-        <div className="rounded-xl border bg-white dark:bg-stone-900 p-5 shadow-refined">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-[var(--copper)]/10 flex items-center justify-center shrink-0">
-              <Plus className="h-5 w-5 text-[var(--copper)]" />
+        <div className="grid sm:grid-cols-3 gap-3">
+          <div className="rounded-xl border bg-white dark:bg-stone-900 p-4 shadow-refined text-center">
+            <div className="w-9 h-9 rounded-xl bg-[var(--copper)]/10 flex items-center justify-center mx-auto mb-2">
+              <Plus className="h-4 w-4 text-[var(--copper)]" />
             </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-semibold mb-1">Type what you remember — AI does the rest</h3>
-              <div className="rounded-lg border p-3 text-xs text-stone-500 dark:text-stone-400 italic mt-2">
-                &ldquo;Met Sarah at TechCrunch. Partner at Sequoia, focused on B2B SaaS. Should send deck next week.&rdquo;
-              </div>
-              <div className="grid grid-cols-3 gap-2 mt-2">
-                {[{ l: "Name", v: "Sarah Chen" }, { l: "Company", v: "Sequoia" }, { l: "Next step", v: "Send deck" }].map((f) => (
-                  <div key={f.l} className="text-xs">
-                    <span className="text-muted-foreground">{f.l}</span>
-                    <p className="font-medium text-stone-800 dark:text-stone-200">{f.v}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Capability 2: Health scores */}
-        <div className="rounded-xl border bg-white dark:bg-stone-900 p-5 shadow-refined">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-950/30 flex items-center justify-center shrink-0">
-              <span className="text-lg">🌡️</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-semibold mb-1">Health scores show who needs attention</h3>
-              <p className="text-xs text-muted-foreground mb-2">Every contact gets a color that updates automatically.</p>
-              <div className="flex gap-3">
-                {[
-                  { color: "bg-green-500", label: "Active", sub: "< 30 days" },
-                  { color: "bg-yellow-400", label: "Cooling", sub: "31-90d" },
-                  { color: "bg-orange-500", label: "Cold", sub: "91-180d" },
-                  { color: "bg-red-500", label: "At risk", sub: "180d+" },
-                ].map((h) => (
-                  <div key={h.label} className="flex items-center gap-1.5">
-                    <span className={`w-2.5 h-2.5 rounded-full ${h.color}`} />
-                    <div>
-                      <p className="text-[11px] font-medium text-stone-700 dark:text-stone-300">{h.label}</p>
-                      <p className="text-[10px] text-muted-foreground">{h.sub}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Capability 3: Daily digest + Reach out */}
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div className="rounded-xl border bg-white dark:bg-stone-900 p-5 shadow-refined">
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-950/30 flex items-center justify-center shrink-0">
-                <span className="text-sm">📧</span>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold mb-1">Daily digest</h3>
-                <p className="text-xs text-muted-foreground">Every morning: who needs attention, with context and a link to reconnect.</p>
-              </div>
-            </div>
+            <h3 className="text-sm font-semibold mb-1">1. Describe who you met</h3>
+            <p className="text-xs text-muted-foreground">Type what you remember. AI extracts name, company, role, and next steps.</p>
           </div>
 
-          <div className="rounded-xl border bg-white dark:bg-stone-900 p-5 shadow-refined">
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-950/30 flex items-center justify-center shrink-0">
-                <span className="text-sm">🔍</span>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold mb-1">Smart search</h3>
-                <p className="text-xs text-muted-foreground">&ldquo;Who do I know in fintech?&rdquo; — search by meaning, not just names.</p>
-              </div>
+          <div className="rounded-xl border bg-white dark:bg-stone-900 p-4 shadow-refined text-center">
+            <div className="w-9 h-9 rounded-xl bg-green-100 dark:bg-green-950/30 flex items-center justify-center mx-auto mb-2">
+              <span className="text-sm">🌡️</span>
             </div>
+            <h3 className="text-sm font-semibold mb-1">2. We track the health</h3>
+            <p className="text-xs text-muted-foreground">Each contact gets a health score. Green is active, red means it&apos;s time to reconnect.</p>
           </div>
 
-          <div className="rounded-xl border bg-white dark:bg-stone-900 p-5 shadow-refined">
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-950/30 flex items-center justify-center shrink-0">
-                <span className="text-sm">✍️</span>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold mb-1">AI follow-up drafts</h3>
-                <p className="text-xs text-muted-foreground">One tap to draft a personalized message. AI reads your history and writes naturally.</p>
-              </div>
+          <div className="rounded-xl border bg-white dark:bg-stone-900 p-4 shadow-refined text-center">
+            <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950/30 flex items-center justify-center mx-auto mb-2">
+              <span className="text-sm">📧</span>
             </div>
-          </div>
-
-          <div className="rounded-xl border bg-white dark:bg-stone-900 p-5 shadow-refined">
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center shrink-0">
-                <span className="text-sm">📋</span>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold mb-1">Import from spreadsheet</h3>
-                <p className="text-xs text-muted-foreground">Upload a CSV or connect Google Contacts. Your existing network in 30 seconds.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Capability 4: Dashboard preview */}
-        <div className="rounded-xl border bg-white dark:bg-stone-900 p-5 shadow-refined">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-[var(--copper)]/10 flex items-center justify-center shrink-0">
-              <span className="text-lg">📊</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-semibold mb-1">Your daily dashboard</h3>
-              <p className="text-xs text-muted-foreground mb-3">See your network at a glance — who&apos;s active, who&apos;s going cold, who needs a follow-up.</p>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="p-2.5 rounded-lg bg-stone-50 dark:bg-stone-800">
-                  <p className="text-[10px] text-muted-foreground">Contacts</p>
-                  <p className="text-lg font-normal text-stone-800 dark:text-stone-200">—</p>
-                </div>
-                <div className="p-2.5 rounded-lg bg-stone-50 dark:bg-stone-800">
-                  <p className="text-[10px] text-muted-foreground">Reach Out</p>
-                  <p className="text-lg font-normal text-[var(--copper)]">—</p>
-                </div>
-                <div className="p-2.5 rounded-lg bg-stone-50 dark:bg-stone-800">
-                  <p className="text-[10px] text-muted-foreground">Going Cold</p>
-                  <p className="text-lg font-normal text-red-500">—</p>
-                </div>
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-2">Add your first contact and watch these numbers come alive.</p>
-            </div>
+            <h3 className="text-sm font-semibold mb-1">3. Never lose touch</h3>
+            <p className="text-xs text-muted-foreground">Daily digest tells you who needs attention. AI drafts the follow-up message.</p>
           </div>
         </div>
       </div>
 
+      {/* Jumpstart framing */}
+      <p className="text-xs text-center text-muted-foreground mt-6">
+        This is your quick-start screen. Once you add a contact, your dashboard will show your network overview.
+      </p>
+
       {/* Privacy reassurance */}
-      <div className="mt-8 text-center">
+      <div className="mt-4 text-center">
         <div className="inline-flex items-center gap-3 px-4 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-100 dark:border-stone-800">
           <Network className="h-4 w-4 text-[var(--copper)]" />
           <p className="text-xs text-muted-foreground">

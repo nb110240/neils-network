@@ -7,6 +7,7 @@ import {
   notFoundResponse,
   errorResponse,
 } from "@/lib/api-utils"
+import { computeNextDueDate } from "@/lib/health"
 import { z } from "zod/v4"
 
 const VALID_TYPES = ["meeting", "note", "call", "email", "message", "other"] as const
@@ -88,7 +89,7 @@ export async function POST(
     // Verify contact belongs to user
     const { data: contact, error: contactError } = await supabase
       .from("contacts")
-      .select("id, last_contact_date")
+      .select("id, last_contact_date, cadence_days, scheduled_follow_up, created_at")
       .eq("id", id)
       .eq("created_by", user.id)
       .single()
@@ -137,6 +138,30 @@ export async function POST(
     if (!currentLastContact || activityDate > currentLastContact) {
       updateData.last_contact_date = occurred_at
     }
+
+    // Clear scheduled follow-up if it's today or past (the user just interacted)
+    if (contact.scheduled_follow_up) {
+      const followUpDate = new Date(contact.scheduled_follow_up)
+      const today = new Date(new Date().toISOString().split("T")[0])
+      if (followUpDate <= today) {
+        updateData.scheduled_follow_up = null
+      }
+    }
+
+    // Clear snooze (user interacted, snooze is moot)
+    updateData.snoozed_until = null
+
+    // Recompute next_due_date with the new last_contact_date
+    const newLastContact = updateData.last_contact_date as string || contact.last_contact_date
+    const newScheduledFollowUp = (updateData.scheduled_follow_up !== undefined
+      ? updateData.scheduled_follow_up
+      : contact.scheduled_follow_up) as string | null
+    updateData.next_due_date = computeNextDueDate(
+      newLastContact,
+      contact.created_at,
+      contact.cadence_days,
+      newScheduledFollowUp
+    )
 
     await supabase
       .from("contacts")

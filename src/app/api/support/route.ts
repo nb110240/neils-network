@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server"
-import { authenticateRequest, authFailed, badRequestResponse, errorResponse } from "@/lib/api-utils"
+import { authenticateRequest, authFailed, errorResponse } from "@/lib/api-utils"
+import { parseBody } from "@/lib/request"
+import { z } from "zod/v4"
 import { Resend } from "resend"
 import { escapeHtml, emailLayout } from "@/lib/email"
+
+const SupportSchema = z.object({
+  subject: z.string().min(1, "Please select a topic").max(200),
+  message: z.string().min(5, "Please write a message (at least 5 characters)").max(5000, "Message too long (max 5000 characters)"),
+})
 
 export async function POST(request: Request) {
   try {
@@ -9,15 +16,9 @@ export async function POST(request: Request) {
     if (authFailed(auth)) return auth.error
     const { user } = auth
 
-    const { subject, message } = await request.json()
-
-    if (!message || typeof message !== "string" || message.trim().length < 5) {
-      return badRequestResponse("Please write a message (at least 5 characters)")
-    }
-
-    if (!subject || typeof subject !== "string") {
-      return badRequestResponse("Please select a topic")
-    }
+    const result = await parseBody(request, SupportSchema, { route: "/api/support", userId: user.id })
+    if (result.error) return result.error
+    const { subject, message } = result.data
 
     const resendKey = process.env.RESEND_API_KEY
     if (resendKey) {

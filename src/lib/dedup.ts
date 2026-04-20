@@ -73,6 +73,40 @@ function nameTokens(name: string | null | undefined): Set<string> {
 }
 
 /**
+ * Check whether two names are consistent enough to treat as the same
+ * person. Used as a secondary safety check before auto-merging: an
+ * identifier (email/LinkedIn) hit is necessary but not sufficient —
+ * if the extracted name clearly disagrees with the matched contact's
+ * name, the note is likely about a different person who happened to
+ * share an email, and we should route to explicit review instead.
+ *
+ * Returns true when:
+ *   - either name is missing (can't disagree),
+ *   - normalized names are identical,
+ *   - fuzzy-alpha normalization matches,
+ *   - or the names share at least one 3+ character token.
+ */
+export function namesAgree(
+  a: string | null | undefined,
+  b: string | null | undefined
+): boolean {
+  if (!a || !b) return true
+  const normA = normalizeName(a)
+  const normB = normalizeName(b)
+  if (!normA || !normB) return true
+  if (normA === normB) return true
+  const fuzzyA = fuzzyName(a)
+  const fuzzyB = fuzzyName(b)
+  if (fuzzyA && fuzzyA === fuzzyB) return true
+  const tokensA = nameTokens(a)
+  const tokensB = nameTokens(b)
+  for (const t of tokensA) {
+    if (tokensB.has(t)) return true
+  }
+  return false
+}
+
+/**
  * Score how likely two sets of contact fields represent the same person.
  * Returns null if no signal is strong enough to flag as a duplicate candidate.
  * Single source of truth used by both on-create dedup and scan clustering.

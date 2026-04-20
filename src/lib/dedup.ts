@@ -80,11 +80,14 @@ function nameTokens(name: string | null | undefined): Set<string> {
  * name, the note is likely about a different person who happened to
  * share an email, and we should route to explicit review instead.
  *
- * Returns true when:
+ * The check is deliberately STRICT — a single shared token (e.g.
+ * both "Smith") is not enough, because "John Smith" and "Jane Smith"
+ * would merge under a loose check. Agreement requires either:
  *   - either name is missing (can't disagree),
- *   - normalized names are identical,
- *   - fuzzy-alpha normalization matches,
- *   - or the names share at least one 3+ character token.
+ *   - normalized whole name match (case/whitespace-insensitive),
+ *   - fuzzy alpha-only match (handles punctuation/spacing variants),
+ *   - or BOTH tokens of a multi-word name match (first AND last).
+ * Anything weaker routes to explicit review.
  */
 export function namesAgree(
   a: string | null | undefined,
@@ -98,12 +101,21 @@ export function namesAgree(
   const fuzzyA = fuzzyName(a)
   const fuzzyB = fuzzyName(b)
   if (fuzzyA && fuzzyA === fuzzyB) return true
+
+  // Multi-token check: require every significant token in the shorter
+  // name to appear in the longer one. "Robert J Smith" vs "Robert Smith"
+  // agrees. "John Smith" vs "Jane Smith" does not (John ≠ Jane).
   const tokensA = nameTokens(a)
   const tokensB = nameTokens(b)
-  for (const t of tokensA) {
-    if (tokensB.has(t)) return true
+  if (tokensA.size === 0 || tokensB.size === 0) return false
+  const [shorter, longer] = tokensA.size <= tokensB.size
+    ? [tokensA, tokensB]
+    : [tokensB, tokensA]
+  if (shorter.size < 2) return false
+  for (const t of shorter) {
+    if (!longer.has(t)) return false
   }
-  return false
+  return true
 }
 
 /**

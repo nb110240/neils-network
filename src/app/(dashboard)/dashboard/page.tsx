@@ -348,7 +348,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Follow-ups Pending */}
-      <FollowUpList contacts={followUpList} />
+      <FollowUpList contacts={followUpList} nowMs={now} />
 
       {/* New in Your Network */}
       {newContacts.length > 0 && (

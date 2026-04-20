@@ -151,15 +151,16 @@ export default function RootLayout({
   }
 
   return (
-    <html lang="en">
+    <html lang="en" translate="no">
       <head>
+        <meta name="google" content="notranslate" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
       <body
-        className={`${dmSans.variable} ${dmSerif.variable} ${geistMono.variable} antialiased`}
+        className={`${dmSans.variable} ${dmSerif.variable} ${geistMono.variable} antialiased notranslate`}
       >
         <ToastProvider>{children}</ToastProvider>
         <Analytics />

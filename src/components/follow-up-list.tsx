@@ -20,10 +20,15 @@ export interface FollowUpContact extends Contact {
 
 interface FollowUpListProps {
   contacts: FollowUpContact[]
+  /** Server-provided reference time so age labels are stable across hydration. */
+  nowMs: number
 }
 
-function formatFollowUpAge(triggeredAt: string): { label: string; urgent: boolean } {
-  const days = Math.floor((Date.now() - new Date(triggeredAt).getTime()) / (1000 * 60 * 60 * 24))
+function formatFollowUpAge(
+  triggeredAt: string,
+  nowMs: number
+): { label: string; urgent: boolean } {
+  const days = Math.floor((nowMs - new Date(triggeredAt).getTime()) / (1000 * 60 * 60 * 24))
   if (days <= 0) return { label: "Today", urgent: false }
   if (days === 1) return { label: "1 day ago", urgent: false }
   if (days < 7) return { label: `${days} days ago`, urgent: false }
@@ -32,7 +37,7 @@ function formatFollowUpAge(triggeredAt: string): { label: string; urgent: boolea
   return { label: `${Math.floor(days / 30)} month${Math.floor(days / 30) > 1 ? "s" : ""} ago`, urgent: true }
 }
 
-export function FollowUpList({ contacts }: FollowUpListProps) {
+export function FollowUpList({ contacts, nowMs }: FollowUpListProps) {
   if (contacts.length === 0) return null
 
   return (
@@ -50,7 +55,7 @@ export function FollowUpList({ contacts }: FollowUpListProps) {
       </CardHeader>
       <CardContent className="space-y-1">
         {contacts.map((contact) => {
-          const age = formatFollowUpAge(contact.followUpTriggeredAt)
+          const age = formatFollowUpAge(contact.followUpTriggeredAt, nowMs)
           return (
             <Link
               key={contact.id}

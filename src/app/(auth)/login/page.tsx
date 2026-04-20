@@ -16,7 +16,10 @@ import {
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/toast"
+import { Turnstile } from "@/components/turnstile"
 import { Loader2, Mail } from "lucide-react"
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
 export default function LoginPage() {
   return (
@@ -39,6 +42,8 @@ function LoginPageInner() {
   const [password, setPassword] = useState("")
   const [signUpSent, setSignUpSent] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaNonce, setCaptchaNonce] = useState(0)
   const resendIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Clean up interval on unmount
@@ -54,11 +59,21 @@ function LoginPageInner() {
 
     try {
       if (isSignUp) {
+        if (TURNSTILE_SITE_KEY && !captchaToken) {
+          addToast({
+            title: "Verification required",
+            description: "Please complete the captcha before signing up.",
+            variant: "destructive",
+          })
+          setIsLoading(false)
+          return
+        }
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/auth/callback`,
+            ...(captchaToken ? { captchaToken } : {}),
           },
         })
         if (error) throw error
@@ -78,6 +93,8 @@ function LoginPageInner() {
         description: error instanceof Error ? error.message : "Authentication failed",
         variant: "destructive",
       })
+      setCaptchaToken(null)
+      setCaptchaNonce((n) => n + 1)
     } finally {
       setIsLoading(false)
     }
@@ -353,10 +370,21 @@ function LoginPageInner() {
                 <p className="text-xs text-muted-foreground">At least 6 characters</p>
               )}
             </div>
+            {isSignUp && TURNSTILE_SITE_KEY && (
+              <div className="flex justify-center">
+                <Turnstile
+                  siteKey={TURNSTILE_SITE_KEY}
+                  resetKey={captchaNonce}
+                  onVerify={(token) => setCaptchaToken(token)}
+                  onExpire={() => setCaptchaToken(null)}
+                  onError={() => setCaptchaToken(null)}
+                />
+              </div>
+            )}
             <Button
               type="submit"
               className="w-full h-11 text-base font-medium bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 transition-all shadow-md hover:shadow-lg border-0"
-              disabled={isLoading}
+              disabled={isLoading || (isSignUp && !!TURNSTILE_SITE_KEY && !captchaToken)}
             >
               {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
               {isSignUp ? "Create Account" : "Sign In"}

@@ -179,20 +179,41 @@ export async function findDuplicates(
  * Find an existing contact that strongly matches the given fields.
  * Returns the contact ID if a strong match is found (score >= threshold), null otherwise.
  *
- * Default threshold is 0.9 so only stable identifier matches auto-merge:
- * exact email (1.0), exact LinkedIn slug (1.0), or exact phone (0.9).
- * Name-based scores (same-name 0.75, name+company 0.85, similar-name 0.7,
- * email-matches-name 0.7, semantic 0.72) fall below and must be routed to
- * explicit user review — two different people can share a name, and a
- * silent auto-merge would corrupt one of their records irreversibly.
+ * Default threshold is 1.0 so only exact stable-identifier matches auto-merge:
+ * exact email (1.0) or exact LinkedIn slug (1.0). Phone (0.9) is deliberately
+ * below because different people can share a number (recycled lines, family
+ * plans). Name-based scores (0.75–0.85) also fall through. Any of those
+ * should route to the explicit review UI where the user picks the winner
+ * side-by-side; a silent merge would corrupt the record irreversibly.
  */
 export async function findStrongMatch(
   supabase: SupabaseClient,
   userId: string,
   fields: ScorableFields,
-  threshold: number = 0.9
+  threshold: number = 1.0
 ): Promise<{ contactId: string; reason: string } | null> {
   const matches = await findDuplicates(supabase, userId, fields)
   const strong = matches.find((m) => m.score >= threshold)
   return strong ? { contactId: strong.contact.id, reason: strong.reason } : null
+}
+
+/**
+ * Strong-match check against a pre-fetched contact list. Same semantics as
+ * findStrongMatch (default threshold 1.0 = exact stable identifier), but
+ * avoids the per-row database round trip that makes bulk imports O(rows ×
+ * existing_contacts) queries. Preload contacts once at the start of the
+ * import and pass them in.
+ */
+export function findStrongMatchInMemory(
+  fields: ScorableFields,
+  contacts: Array<ScorableFields & { id: string }>,
+  threshold: number = 1.0
+): { contactId: string; reason: string } | null {
+  for (const contact of contacts) {
+    const result = scorePair(fields, contact)
+    if (result && result.score >= threshold) {
+      return { contactId: contact.id, reason: result.reason }
+    }
+  }
+  return null
 }

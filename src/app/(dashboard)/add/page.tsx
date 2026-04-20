@@ -60,11 +60,35 @@ export default function AddContactPage() {
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || "Failed to add contact")
+        const payload = await response.json().catch(() => ({}))
+        // 409 name-mismatch conflict from the auto-merge safety check.
+        // Surface the structured message so the user can decide whether
+        // to force-create (skip_dedup) or open the matched contact.
+        if (response.status === 409 && payload.conflict) {
+          addToast({
+            title: "Possible duplicate found",
+            description:
+              payload.message ||
+              `Matches "${payload.candidate?.contactName ?? "existing contact"}". Review before saving.`,
+            variant: "destructive",
+          })
+          setIsLoading(false)
+          return
+        }
+        throw new Error(payload.error || payload.message || "Failed to add contact")
       }
 
       const data = await response.json()
+
+      // Handle merged response — note was added to existing contact
+      if (data.merged) {
+        addToast({
+          title: "Added to existing contact",
+          description: data.message || "Your note was added to a matching contact.",
+        })
+        router.push(`/contact/${data.contactId}`)
+        return
+      }
 
       const c = data.contact
       const extractedParts = [c?.name, c?.company, c?.job_title].filter(Boolean)

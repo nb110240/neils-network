@@ -6,8 +6,14 @@ export async function POST(request: NextRequest) {
     const devError = await verifyDevAccess(request)
     if (devError) return devError
 
-    // Call the digest endpoint with the cron secret
-    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/cron/daily-digest`, {
+    // Derive the base URL from the incoming request instead of reading an
+    // env var with a production fallback. The old `|| "https://savvo.app"`
+    // would silently forward a dev-triggered digest to production if
+    // NEXT_PUBLIC_APP_URL was unset — which, given dev routes share the
+    // same CRON_SECRET in some environments, would send real digest
+    // emails from a dev flow. Same-origin is always correct here.
+    const origin = new URL(request.url).origin
+    const res = await fetch(`${origin}/api/cron/daily-digest`, {
       headers: { Authorization: `Bearer ${process.env.CRON_SECRET}` },
     })
 

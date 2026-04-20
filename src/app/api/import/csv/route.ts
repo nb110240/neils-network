@@ -4,7 +4,7 @@ import { getUserPlan, getPlanLimits } from "@/lib/subscription"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 import Papa from "papaparse"
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { findDuplicates } from "@/lib/dedup"
+import { findDuplicates, findStrongMatchInMemory } from "@/lib/dedup"
 
 export async function POST(request: Request) {
   try {
@@ -92,9 +92,58 @@ export async function POST(request: Request) {
       return badRequestResponse("No valid contacts found in CSV")
     }
 
+    // Filter out contacts that already exist (dedup before insert).
+    // Preload once and match in-memory — per-row DB lookups are O(rows *
+    // existing_contacts) and time out on large imports.
+    const { data: existingForDedup } = await supabase
+      .from("contacts")
+      .select("id, name, email, phone, company, website")
+      .eq("created_by", user.id)
+      .is("archived_at", null)
+
+    const existingContacts = (existingForDedup ?? []) as Array<{
+      id: string
+      name: string | null
+      email: string | null
+      phone: string | null
+      company: string | null
+      website: string | null
+    }>
+
+    const deduped = []
+    let skippedDupes = 0
+    // seen is seeded with pre-existing DB rows and extended as we accept
+    // rows in this batch, so within-batch duplicates (same email appearing
+    // twice in the CSV) are also deduped.
+    const seen: typeof existingContacts = [...existingContacts]
+    for (const c of contacts as NonNullable<(typeof contacts)[number]>[]) {
+      const fields = {
+        name: (c.name as string) || null,
+        email: (c.email as string) || null,
+        phone: (c.phone as string) || null,
+        company: (c.company as string) || null,
+      }
+      const match = findStrongMatchInMemory(fields, seen)
+      if (match) {
+        skippedDupes++
+      } else {
+        deduped.push(c)
+        seen.push({ id: "", website: null, ...fields })
+      }
+    }
+
+    if (deduped.length === 0) {
+      return NextResponse.json({
+        imported: 0,
+        skipped: skippedDupes,
+        duplicates: [],
+        message: `All ${skippedDupes} contacts already exist in your network.`,
+      })
+    }
+
     const { data, error } = await supabase
       .from("contacts")
-      .insert(contacts)
+      .insert(deduped)
       .select()
 
     if (error) {

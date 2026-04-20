@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server"
+import { createHash } from "crypto"
 import { authenticateRequest, authFailed, badRequestResponse, errorResponse, forbiddenResponse } from "@/lib/api-utils"
 import { extractContactInfo } from "@/lib/extract-contact"
 import { checkContactLimit } from "@/lib/subscription"
-import { calculateHealthScore } from "@/lib/health"
+import { calculateHealthScore, computeNextDueDate } from "@/lib/health"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
-import { findDuplicates } from "@/lib/dedup"
+import { findDuplicates, findStrongMatch, namesAgree } from "@/lib/dedup"
 import { log } from "@/lib/logger"
 
 export async function POST(request: Request) {
@@ -12,14 +13,6 @@ export async function POST(request: Request) {
     const auth = await authenticateRequest("create")
     if (authFailed(auth)) return auth.error
     const { user, supabase } = auth
-
-    // Check contact limit based on plan
-    const { allowed, plan, count, limit } = await checkContactLimit(user.id)
-    if (!allowed) {
-      return forbiddenResponse(
-        `You've reached the ${limit}-contact limit on the free plan. Upgrade to Pro for unlimited contacts.`
-      )
-    }
 
     const url = new URL(request.url)
     const skipDedup = url.searchParams.get("skip_dedup") === "true"
@@ -45,6 +38,131 @@ export async function POST(request: Request) {
     // Check for duplicates before inserting
     let duplicates: Awaited<ReturnType<typeof findDuplicates>> = []
     if (!skipDedup) {
+      // Strong match check — block creation if high-confidence duplicate exists
+      const strongMatch = await findStrongMatch(supabase, user.id, {
+        name: extracted.name as string | null,
+        email: extracted.email as string | null,
+        phone: extracted.phone as string | null,
+        company: extracted.company as string | null,
+      })
+      if (strongMatch) {
+        // Secondary safety check: the free-form note may mention an
+        // unrelated email (a forwarded meeting invite, an assistant's
+        // address, etc.) and extractContactInfo would pull that into
+        // `email`, so a single identifier hit alone is not enough to
+        // mutate an existing contact. Confirm the extracted name agrees
+        // with the matched contact; if it clearly disagrees, route the
+        // decision to the user via a 409 conflict instead of silently
+        // attaching the note to the wrong person.
+        const { data: matchedContact } = await supabase
+          .from("contacts")
+          .select("name, last_contact_date, scheduled_follow_up, cadence_days, created_at")
+          .eq("id", strongMatch.contactId)
+          .eq("created_by", user.id)
+          .is("archived_at", null)
+          .maybeSingle()
+
+        if (!namesAgree(extracted.name as string | null, matchedContact?.name ?? null)) {
+          return NextResponse.json(
+            {
+              conflict: true,
+              reason: "name_mismatch",
+              message: `Found ${strongMatch.reason.toLowerCase()}, but the name in the note ("${extracted.name}") doesn't match the existing contact ("${matchedContact?.name ?? "unknown"}"). Please review.`,
+              candidate: {
+                contactId: strongMatch.contactId,
+                contactName: matchedContact?.name ?? null,
+                reason: strongMatch.reason,
+              },
+              extracted,
+            },
+            { status: 409 }
+          )
+        }
+
+        // Add the note as an activity on the existing contact instead of
+        // creating a duplicate. Deterministic source_event_id makes the
+        // insert idempotent across client retries: same (contact, raw_note,
+        // day) combo always produces the same key, and the partial unique
+        // index on (contact_id, source, source_event_id) turns a retry
+        // into a no-op instead of stacking duplicate timeline entries.
+        const today = new Date().toISOString().split("T")[0]
+        const dedupeKey = createHash("sha256")
+          .update(`${strongMatch.contactId}|${today}|${raw_note}`)
+          .digest("hex")
+
+        const { error: activityError } = await supabase
+          .from("contact_activities")
+          .upsert(
+            {
+              contact_id: strongMatch.contactId,
+              user_id: user.id,
+              type: "note",
+              content: raw_note,
+              occurred_at: `${today}T12:00:00`,
+              follow_up_needed: !!(extracted.follow_up_needed),
+              source: "auto_merge",
+              source_event_id: dedupeKey,
+            },
+            { onConflict: "contact_id,source,source_event_id", ignoreDuplicates: true }
+          )
+        if (activityError) {
+          log("error", "auto-merge: activity insert failed", {
+            action: "contacts.auto_merge",
+            contactId: strongMatch.contactId,
+            error: activityError.message,
+          })
+          return errorResponse("Failed to attach note to existing contact")
+        }
+
+        // Update contact-level scheduling invariants alongside
+        // last_contact_date. This mirrors what POST
+        // /api/contacts/[id]/activities does for manual activity writes,
+        // so a merged note doesn't leave the contact incorrectly snoozed,
+        // with a stale next_due_date, or missing a follow-up flag.
+        const scheduledFollowUp = matchedContact?.scheduled_follow_up as string | null | undefined
+        const todayDate = new Date(today)
+        const clearScheduledFollowUp = scheduledFollowUp
+          ? new Date(scheduledFollowUp) <= todayDate
+          : false
+
+        const updates: Record<string, unknown> = {
+          last_contact_date: today,
+          follow_up_needed: !!(extracted.follow_up_needed),
+          // New interaction supersedes any prior snooze.
+          snoozed_until: null,
+        }
+        if (clearScheduledFollowUp) {
+          updates.scheduled_follow_up = null
+        }
+        updates.next_due_date = computeNextDueDate(
+          today,
+          (matchedContact?.created_at as string | undefined) ?? today,
+          (matchedContact?.cadence_days as number | null | undefined) ?? null,
+          clearScheduledFollowUp ? null : (scheduledFollowUp ?? null)
+        )
+
+        const { error: updateError } = await supabase
+          .from("contacts")
+          .update(updates)
+          .eq("id", strongMatch.contactId)
+          .eq("created_by", user.id)
+        if (updateError) {
+          log("error", "auto-merge: contact update failed", {
+            action: "contacts.auto_merge",
+            contactId: strongMatch.contactId,
+            error: updateError.message,
+          })
+          return errorResponse("Failed to update existing contact")
+        }
+
+        return NextResponse.json({
+          success: true,
+          merged: true,
+          contactId: strongMatch.contactId,
+          message: `This looks like ${strongMatch.reason.toLowerCase()}. Added your note to the existing contact instead of creating a duplicate.`,
+        }, { status: 200 })
+      }
+
       duplicates = await findDuplicates(supabase, user.id, {
         name: extracted.name as string | null,
         email: extracted.email as string | null,
@@ -53,6 +171,18 @@ export async function POST(request: Request) {
       })
       // Filter to only meaningful matches
       duplicates = duplicates.filter((d) => d.score >= 0.6)
+    }
+
+    // Enforce the contact limit only on the create path — merging into an
+    // existing contact (handled above) must work even when the user is at
+    // the cap, otherwise capped free users can't log new interactions on
+    // their existing network, which is the most valuable thing the app
+    // does. The merge path returned before this check runs.
+    const { allowed, limit } = await checkContactLimit(user.id)
+    if (!allowed) {
+      return forbiddenResponse(
+        `You've reached the ${limit}-contact limit on the free plan. Upgrade to Pro for unlimited contacts.`
+      )
     }
 
     // Generate embedding for semantic search

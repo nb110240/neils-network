@@ -178,13 +178,19 @@ export async function findDuplicates(
 /**
  * Find an existing contact that strongly matches the given fields.
  * Returns the contact ID if a strong match is found (score >= threshold), null otherwise.
- * Use this to prevent duplicate creation — if a match is found, update instead of insert.
+ *
+ * Default threshold is 0.9 so only stable identifier matches auto-merge:
+ * exact email (1.0), exact LinkedIn slug (1.0), or exact phone (0.9).
+ * Name-based scores (same-name 0.75, name+company 0.85, similar-name 0.7,
+ * email-matches-name 0.7, semantic 0.72) fall below and must be routed to
+ * explicit user review — two different people can share a name, and a
+ * silent auto-merge would corrupt one of their records irreversibly.
  */
 export async function findStrongMatch(
   supabase: SupabaseClient,
   userId: string,
   fields: ScorableFields,
-  threshold: number = 0.7
+  threshold: number = 0.9
 ): Promise<{ contactId: string; reason: string } | null> {
   const matches = await findDuplicates(supabase, userId, fields)
   const strong = matches.find((m) => m.score >= threshold)

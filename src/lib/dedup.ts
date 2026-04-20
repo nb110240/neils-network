@@ -7,45 +7,152 @@ export interface DuplicateMatch {
   reason: string
 }
 
-/**
- * Normalize a name for comparison: lowercase, trim, collapse whitespace.
- */
+export interface PairScore {
+  score: number
+  reason: string
+}
+
+export type ConfidenceTier = "high" | "medium" | "low"
+
+export function tierForScore(score: number): ConfidenceTier {
+  if (score >= 0.9) return "high"
+  if (score >= 0.7) return "medium"
+  return "low"
+}
+
+export type ScorableFields = {
+  name?: string | null
+  email?: string | null
+  phone?: string | null
+  company?: string | null
+  website?: string | null
+  embedding?: number[] | null
+}
+
 function normalizeName(name: string): string {
   return name.toLowerCase().trim().replace(/\s+/g, " ")
 }
 
-/**
- * Normalize a phone number for comparison: strip non-digit characters.
- */
 function normalizePhone(phone: string): string {
   return phone.replace(/\D/g, "")
 }
 
-/**
- * Find potential duplicate contacts for the given fields among the user's
- * active (non-archived) contacts. Returns matches sorted by score descending.
- */
-/**
- * Extract the LinkedIn username slug from a URL for comparison.
- */
+function fuzzyName(name: string | null | undefined): string {
+  if (!name) return ""
+  return name.toLowerCase().replace(/[^a-z]/g, "")
+}
+
 function extractLinkedInSlug(url: string | null): string | null {
   if (!url) return null
   const match = url.match(/(?:\/\/|\.)(www\.)?linkedin\.com\/in\/([\w-]+)/i)
   return match ? match[2].toLowerCase() : null
 }
 
+function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) return 0
+  let dot = 0
+  let na = 0
+  let nb = 0
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i]
+    na += a[i] * a[i]
+    nb += b[i] * b[i]
+  }
+  const denom = Math.sqrt(na) * Math.sqrt(nb)
+  return denom === 0 ? 0 : dot / denom
+}
+
+function nameTokens(name: string | null | undefined): Set<string> {
+  if (!name) return new Set()
+  return new Set(
+    name
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((t) => t.length >= 3)
+  )
+}
+
+/**
+ * Score how likely two sets of contact fields represent the same person.
+ * Returns null if no signal is strong enough to flag as a duplicate candidate.
+ * Single source of truth used by both on-create dedup and scan clustering.
+ */
+export function scorePair(a: ScorableFields, b: ScorableFields): PairScore | null {
+  const emailA = a.email?.trim().toLowerCase() || null
+  const emailB = b.email?.trim().toLowerCase() || null
+  if (emailA && emailB && emailA === emailB) {
+    return { score: 1.0, reason: "Same email" }
+  }
+
+  const slugA = extractLinkedInSlug(a.website ?? null)
+  const slugB = extractLinkedInSlug(b.website ?? null)
+  if (slugA && slugB && slugA === slugB) {
+    return { score: 1.0, reason: "Same LinkedIn profile" }
+  }
+
+  const phoneA = a.phone ? normalizePhone(a.phone) : ""
+  const phoneB = b.phone ? normalizePhone(b.phone) : ""
+  if (phoneA && phoneA === phoneB) {
+    return { score: 0.9, reason: "Same phone number" }
+  }
+
+  const nameA = a.name ? normalizeName(a.name) : ""
+  const nameB = b.name ? normalizeName(b.name) : ""
+  const companyA = a.company?.trim().toLowerCase() || ""
+  const companyB = b.company?.trim().toLowerCase() || ""
+  if (nameA && nameA === nameB && companyA && companyA === companyB) {
+    return { score: 0.85, reason: "Same name and company" }
+  }
+
+  if (nameA && nameA === nameB) {
+    return { score: 0.75, reason: "Same name" }
+  }
+
+  const fuzzyA = fuzzyName(a.name)
+  const fuzzyB = fuzzyName(b.name)
+  if (fuzzyA.length >= 3 && fuzzyA === fuzzyB) {
+    return { score: 0.7, reason: "Similar name" }
+  }
+
+  if (emailA && fuzzyB.length >= 3) {
+    const prefix = emailA.split("@")[0].replace(/[^a-z0-9]/g, "")
+    if (prefix.length >= 3 && prefix === fuzzyB) {
+      return { score: 0.7, reason: "Email matches name" }
+    }
+  }
+  if (emailB && fuzzyA.length >= 3) {
+    const prefix = emailB.split("@")[0].replace(/[^a-z0-9]/g, "")
+    if (prefix.length >= 3 && prefix === fuzzyA) {
+      return { score: 0.7, reason: "Email matches name" }
+    }
+  }
+
+  // Semantic fallback: requires strong embedding similarity AND at least
+  // one shared name token to avoid "same company / different person" noise.
+  if (a.embedding && b.embedding && a.embedding.length === b.embedding.length) {
+    const sim = cosineSimilarity(a.embedding, b.embedding)
+    if (sim >= 0.93) {
+      const tokensA = nameTokens(a.name)
+      const tokensB = nameTokens(b.name)
+      const shared = [...tokensA].some((t) => tokensB.has(t))
+      if (shared) {
+        return { score: 0.72, reason: "Highly similar profile" }
+      }
+    }
+  }
+
+  return null
+}
+
+/**
+ * Find potential duplicate contacts for the given fields among the user's
+ * active (non-archived) contacts. Returns matches sorted by score descending.
+ */
 export async function findDuplicates(
   supabase: SupabaseClient,
   userId: string,
-  fields: {
-    name?: string | null
-    email?: string | null
-    phone?: string | null
-    company?: string | null
-    website?: string | null
-  }
+  fields: ScorableFields
 ): Promise<DuplicateMatch[]> {
-  // Fetch all active contacts for this user (single query)
   const { data: contacts, error } = await supabase
     .from("contacts")
     .select("*")
@@ -57,76 +164,29 @@ export async function findDuplicates(
   }
 
   const matches: DuplicateMatch[] = []
-
-  const inputEmail = fields.email?.trim().toLowerCase() || null
-  const inputName = fields.name ? normalizeName(fields.name) : null
-  const inputPhone = fields.phone ? normalizePhone(fields.phone) : null
-  const inputCompany = fields.company?.trim().toLowerCase() || null
-
   for (const contact of contacts as Contact[]) {
-    let bestScore = 0
-    let bestReason = ""
-
-    // Same LinkedIn profile → 1.0
-    const inputLinkedIn = extractLinkedInSlug(fields.website || null)
-    if (inputLinkedIn && contact.website) {
-      const existingLinkedIn = extractLinkedInSlug(contact.website)
-      if (existingLinkedIn && inputLinkedIn === existingLinkedIn) {
-        bestScore = 1.0
-        bestReason = "Same LinkedIn profile"
-      }
-    }
-
-    // Exact email match → 1.0
-    if (inputEmail && contact.email) {
-      const existingEmail = contact.email.trim().toLowerCase()
-      if (inputEmail === existingEmail) {
-        bestScore = 1.0
-        bestReason = "Same email"
-      }
-    }
-
-    // Same phone → 0.8
-    if (inputPhone && contact.phone) {
-      const existingPhone = normalizePhone(contact.phone)
-      if (inputPhone === existingPhone && inputPhone.length > 0) {
-        if (0.8 > bestScore) {
-          bestScore = 0.8
-          bestReason = "Same phone number"
-        }
-      }
-    }
-
-    // Same name + same company → 0.8
-    if (inputName && contact.name && inputCompany && contact.company) {
-      const existingName = normalizeName(contact.name)
-      const existingCompany = contact.company.trim().toLowerCase()
-      if (inputName === existingName && inputCompany === existingCompany) {
-        if (0.8 > bestScore) {
-          bestScore = 0.8
-          bestReason = "Same name and company"
-        }
-      }
-    }
-
-    // Same name only → 0.6
-    if (inputName && contact.name) {
-      const existingName = normalizeName(contact.name)
-      if (inputName === existingName) {
-        if (0.6 > bestScore) {
-          bestScore = 0.6
-          bestReason = "Same name"
-        }
-      }
-    }
-
-    if (bestScore >= 0.5) {
-      matches.push({ contact, score: bestScore, reason: bestReason })
+    const score = scorePair(fields, contact)
+    if (score && score.score >= 0.5) {
+      matches.push({ contact, score: score.score, reason: score.reason })
     }
   }
 
-  // Sort by score descending
   matches.sort((a, b) => b.score - a.score)
-
   return matches
+}
+
+/**
+ * Find an existing contact that strongly matches the given fields.
+ * Returns the contact ID if a strong match is found (score >= threshold), null otherwise.
+ * Use this to prevent duplicate creation — if a match is found, update instead of insert.
+ */
+export async function findStrongMatch(
+  supabase: SupabaseClient,
+  userId: string,
+  fields: ScorableFields,
+  threshold: number = 0.7
+): Promise<{ contactId: string; reason: string } | null> {
+  const matches = await findDuplicates(supabase, userId, fields)
+  const strong = matches.find((m) => m.score >= threshold)
+  return strong ? { contactId: strong.contact.id, reason: strong.reason } : null
 }

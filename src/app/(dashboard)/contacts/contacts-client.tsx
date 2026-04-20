@@ -7,6 +7,7 @@ import { ContactCard } from "@/components/contact-card"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ExportContactsButton } from "@/components/export-contacts-button"
+import { DuplicatesBanner } from "@/components/duplicates-banner"
 import { ArrowLeft, Plus, Users, Loader2 } from "lucide-react"
 
 interface Tag {
@@ -93,6 +94,7 @@ export function ContactsClient({ contacts: initialContacts, tags, contactTagMap:
 
   return (
     <div className="space-y-6">
+      <DuplicatesBanner />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" asChild>

@@ -60,7 +60,7 @@ describe("findDuplicates", () => {
     expect(results[0].reason).toBe("Same email")
   })
 
-  it("returns score 0.8 for same name and company", async () => {
+  it("returns score 0.85 for same name and company", async () => {
     const supabase = mockSupabase([
       { name: "Bob Jones", company: "Acme Corp" },
     ])
@@ -69,11 +69,11 @@ describe("findDuplicates", () => {
       company: "Acme Corp",
     })
     expect(results).toHaveLength(1)
-    expect(results[0].score).toBe(0.8)
+    expect(results[0].score).toBe(0.85)
     expect(results[0].reason).toBe("Same name and company")
   })
 
-  it("returns score 0.6 for same name only", async () => {
+  it("returns score 0.75 for same name only", async () => {
     const supabase = mockSupabase([
       { name: "Charlie Brown" },
     ])
@@ -81,11 +81,11 @@ describe("findDuplicates", () => {
       name: "Charlie Brown",
     })
     expect(results).toHaveLength(1)
-    expect(results[0].score).toBe(0.6)
+    expect(results[0].score).toBe(0.75)
     expect(results[0].reason).toBe("Same name")
   })
 
-  it("returns score 0.8 for same phone number", async () => {
+  it("returns score 0.9 for same phone number", async () => {
     const supabase = mockSupabase([
       { name: "Diana Prince", phone: "+1 (555) 123-4567" },
     ])
@@ -94,7 +94,7 @@ describe("findDuplicates", () => {
       phone: "15551234567",
     })
     expect(results).toHaveLength(1)
-    expect(results[0].score).toBe(0.8)
+    expect(results[0].score).toBe(0.9)
     expect(results[0].reason).toBe("Same phone number")
   })
 
@@ -106,7 +106,7 @@ describe("findDuplicates", () => {
       name: "alice smith",
     })
     expect(results).toHaveLength(1)
-    expect(results[0].score).toBe(0.6)
+    expect(results[0].score).toBe(0.75)
   })
 
   it("normalizes extra whitespace in names", async () => {
@@ -117,7 +117,7 @@ describe("findDuplicates", () => {
       name: "Alice Smith",
     })
     expect(results).toHaveLength(1)
-    expect(results[0].score).toBe(0.6)
+    expect(results[0].score).toBe(0.75)
   })
 
   it("returns empty array when no match", async () => {
@@ -159,11 +159,11 @@ describe("findDuplicates", () => {
     // First: email match (1.0)
     expect(results[0].score).toBe(1.0)
     expect(results[0].reason).toBe("Same email")
-    // Second: name + company (0.8)
-    expect(results[1].score).toBe(0.8)
+    // Second: name + company (0.85)
+    expect(results[1].score).toBe(0.85)
     expect(results[1].reason).toBe("Same name and company")
-    // Third: name only (0.6) — the one with OtherCo
-    expect(results[2].score).toBe(0.6)
+    // Third: name only (0.75) — the one with OtherCo
+    expect(results[2].score).toBe(0.75)
     expect(results[2].reason).toBe("Same name")
   })
 

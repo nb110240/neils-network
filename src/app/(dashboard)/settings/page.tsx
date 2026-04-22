@@ -35,6 +35,7 @@ import {
 import { NotificationPreferences } from "./notifications"
 import { ThemeSelector } from "@/components/theme-selector"
 import { RecentlyDeleted } from "@/components/recently-deleted"
+import { DuplicateReview } from "@/components/duplicate-review"
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -162,7 +163,7 @@ export default function SettingsPage() {
       const res = await fetch("/api/settings/delete-account", { method: "DELETE" })
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.message || "Failed to delete account")
+        throw new Error(data.error || "Failed to delete account")
       }
       await supabase.auth.signOut()
       router.push("/")
@@ -458,6 +459,11 @@ export default function SettingsPage() {
 
       {/* Data Section */}
       <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 pt-2">Data</h2>
+
+      {/* Duplicate Review */}
+      <div id="duplicates" className="scroll-mt-8">
+        <DuplicateReview />
+      </div>
 
       {/* Recently Deleted */}
       <RecentlyDeleted />

@@ -9,7 +9,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/toast"
-import { BookOpen, Loader2, Copy, Check } from "lucide-react"
+import { BookOpen, Loader2, Copy, Check, Crown, ArrowUpRight } from "lucide-react"
+import Link from "next/link"
 
 export function MeetingPrepButton({ contactId }: { contactId: string }) {
   const { addToast } = useToast()
@@ -17,6 +18,7 @@ export function MeetingPrepButton({ contactId }: { contactId: string }) {
   const [isLoading, setIsLoading] = useState(false)
   const [brief, setBrief] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [showUpgrade, setShowUpgrade] = useState(false)
 
   const handleGenerate = async () => {
     setIsOpen(true)
@@ -29,12 +31,8 @@ export function MeetingPrepButton({ contactId }: { contactId: string }) {
       })
 
       if (response.status === 403) {
-        addToast({
-          title: "Pro feature",
-          description: "Meeting prep briefs require Savvo Pro.",
-          variant: "destructive",
-        })
         setIsOpen(false)
+        setShowUpgrade(true)
         return
       }
 
@@ -95,6 +93,33 @@ export function MeetingPrepButton({ contactId }: { contactId: string }) {
               {brief}
             </div>
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showUpgrade} onOpenChange={setShowUpgrade}>
+        <DialogContent className="sm:max-w-md max-w-[calc(100vw-2rem)]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-[var(--copper)]/10 flex items-center justify-center">
+                <Crown className="h-4 w-4 text-[var(--copper)]" />
+              </div>
+              Meeting prep is a Pro feature
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Upgrade to Pro to get AI-generated meeting prep briefs, plus follow-up drafts, unlimited contacts, and daily digest emails.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowUpgrade(false)}>
+              Maybe later
+            </Button>
+            <Button asChild className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0">
+              <Link href="/pricing">
+                <ArrowUpRight className="mr-2 h-4 w-4" />
+                See Pro plans
+              </Link>
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </>

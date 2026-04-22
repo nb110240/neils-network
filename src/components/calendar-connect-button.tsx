@@ -23,7 +23,7 @@ export function CalendarConnectButton({ isConnected }: CalendarConnectButtonProp
         return
       }
       const data = await res.json()
-      if (!res.ok) throw new Error(data.message)
+      if (!res.ok) throw new Error(data.error || "Failed to connect calendar")
       if (data.url) {
         window.location.href = data.url
       }
@@ -42,7 +42,7 @@ export function CalendarConnectButton({ isConnected }: CalendarConnectButtonProp
     try {
       const res = await fetch("/api/calendar/sync", { method: "POST" })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.message)
+      if (!res.ok) throw new Error(data.error || "Failed to sync calendar")
       addToast({
         title: "Calendar synced",
         description: `${data.newContacts || 0} new contacts added from your calendar.`,
@@ -60,20 +60,24 @@ export function CalendarConnectButton({ isConnected }: CalendarConnectButtonProp
 
   if (isConnected) {
     return (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleSync}
-        disabled={syncing}
-        className="group"
-      >
-        {syncing ? (
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        ) : (
-          <Check className="mr-2 h-4 w-4 text-emerald-500" />
-        )}
-        {syncing ? "Syncing..." : "Calendar Connected"}
-      </Button>
+      <div className="relative group">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSync}
+          disabled={syncing}
+        >
+          {syncing ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Check className="mr-2 h-4 w-4 text-emerald-500" />
+          )}
+          {syncing ? "Syncing..." : "Calendar Connected"}
+        </Button>
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 px-3 py-2 rounded-lg bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-xs text-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+          Syncs automatically once a day. Click to sync now.
+        </div>
+      </div>
     )
   }
 

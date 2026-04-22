@@ -87,10 +87,10 @@ export async function GET(request: Request) {
       const { data: { user } } = await supabase.auth.admin.getUserById(user_id)
       if (!user?.email) continue
 
-      // Get user's contacts with tags for richer context
+      // Get user's contacts with scheduling fields for richer context
       const { data: contacts } = await supabase
         .from("contacts")
-        .select("id, name, company, job_title, how_we_met, next_steps, last_contact_date, created_at, follow_up_needed")
+        .select("id, name, company, job_title, how_we_met, next_steps, last_contact_date, created_at, follow_up_needed, cadence_days, snoozed_until, next_due_date")
         .eq("created_by", user_id)
         .is("archived_at", null)
 
@@ -135,15 +135,23 @@ export async function GET(request: Request) {
         suggestionCount.set(d.contact_id, (suggestionCount.get(d.contact_id) || 0) + 1)
       }
 
-      // Score contacts with variety logic
-      const eligible = contacts
+      // Filter out snoozed contacts
+      const todayStr = new Date().toISOString().split("T")[0]
+      const nonSnoozed = contacts.filter(
+        (c) => !c.snoozed_until || c.snoozed_until < todayStr
+      )
+
+      // Score contacts with variety logic + scheduling awareness
+      const eligible = nonSnoozed
         .filter((c) => !recentContactIds.has(c.id))
         .map((c) => {
-          const health = calculateHealthScore(c.last_contact_date, c.created_at)
+          const health = calculateHealthScore(c.last_contact_date, c.created_at, c.cadence_days)
           const timesShown = suggestionCount.get(c.id) || 0
           // Deprioritize contacts shown many times — add penalty per suggestion
           const varietyPenalty = timesShown * 15
-          const adjustedScore = health.score + varietyPenalty
+          // Boost scheduled contacts that are due today or overdue
+          const scheduledBoost = c.next_due_date && c.next_due_date <= todayStr ? -50 : 0
+          const adjustedScore = health.score + varietyPenalty + scheduledBoost
           const lastActivity = activityMap.get(c.id) || null
           return { ...c, health, adjustedScore, timesShown, lastActivity }
         })
@@ -183,7 +191,7 @@ export async function GET(request: Request) {
       // Compute network stats for the email
       const healthBreakdown = contacts.reduce(
         (acc, c) => {
-          const h = calculateHealthScore(c.last_contact_date, c.created_at)
+          const h = calculateHealthScore(c.last_contact_date, c.created_at, c.cadence_days)
           acc[h.level] = (acc[h.level] || 0) + 1
           return acc
         },

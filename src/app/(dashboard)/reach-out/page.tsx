@@ -34,10 +34,11 @@ export default async function ReachOutPage() {
 
   const contactsWithHealth = (allContacts || []).map((c) => ({
     ...c,
-    health: calculateHealthScore(c.last_contact_date, c.created_at),
+    health: calculateHealthScore(c.last_contact_date, c.created_at, c.cadence_days),
   }))
 
   const now = Date.now()
+  const todayStr = new Date().toISOString().split("T")[0]
   const daysSince = (dateStr: string | null, fallback: string) => {
     const ref = dateStr || fallback
     return Math.floor((now - new Date(ref).getTime()) / (1000 * 60 * 60 * 24))
@@ -51,27 +52,53 @@ export default async function ReachOutPage() {
     return months === 1 ? "1 month ago" : `${months} months ago`
   }
 
+  function cadenceLabel(days: number): string {
+    if (days === 7) return "Weekly"
+    if (days === 14) return "Every 2 weeks"
+    if (days === 30) return "Monthly"
+    if (days === 90) return "Quarterly"
+    return `Every ${days} days`
+  }
+
+  // Filter out snoozed contacts
+  const isSnoozed = (c: typeof contactsWithHealth[0]) =>
+    c.snoozed_until && c.snoozed_until >= todayStr
+  const activeContacts = contactsWithHealth.filter((c) => !isSnoozed(c))
+
+  // Priority 0: Scheduled contacts due today
+  const scheduledContacts: ReachOutContact[] = activeContacts
+    .filter((c) => c.next_due_date && c.next_due_date <= todayStr)
+    .sort((a, b) => (a.next_due_date || "").localeCompare(b.next_due_date || ""))
+    .map((c) => ({
+      ...c,
+      reason: c.cadence_days
+        ? `${cadenceLabel(c.cadence_days)} — due`
+        : "Scheduled follow-up",
+    }))
+
+  const scheduledIds = new Set(scheduledContacts.map((c) => c.id))
+
   // Priority 1: follow_up_needed that aren't green (green = already healthy)
-  const followUpContacts: ReachOutContact[] = contactsWithHealth
-    .filter((c) => c.follow_up_needed && c.health.level !== "green")
+  const followUpContacts: ReachOutContact[] = activeContacts
+    .filter((c) => !scheduledIds.has(c.id) && c.follow_up_needed && c.health.level !== "green")
     .sort((a, b) => new Date(a.last_contact_date || a.created_at).getTime() - new Date(b.last_contact_date || b.created_at).getTime())
     .map((c) => ({ ...c, reason: "Follow-up needed" }))
 
   // Priority 2: orange or red health
-  const followUpIds = new Set(followUpContacts.map((c) => c.id))
-  const coldContacts: ReachOutContact[] = contactsWithHealth
-    .filter((c) => !followUpIds.has(c.id) && (c.health.level === "orange" || c.health.level === "red"))
+  const listedIds = new Set([...scheduledIds, ...followUpContacts.map((c) => c.id)])
+  const coldContacts: ReachOutContact[] = activeContacts
+    .filter((c) => !listedIds.has(c.id) && (c.health.level === "orange" || c.health.level === "red"))
     .sort((a, b) => new Date(a.last_contact_date || a.created_at).getTime() - new Date(b.last_contact_date || b.created_at).getTime())
     .map((c) => ({ ...c, reason: formatDaysAgo(daysSince(c.last_contact_date, c.created_at)) }))
 
   // Priority 3: yellow + 45+ days
-  const existingIds = new Set([...followUpContacts, ...coldContacts].map((c) => c.id))
-  const coolingContacts: ReachOutContact[] = contactsWithHealth
+  const existingIds = new Set([...scheduledContacts, ...followUpContacts, ...coldContacts].map((c) => c.id))
+  const coolingContacts: ReachOutContact[] = activeContacts
     .filter((c) => !existingIds.has(c.id) && c.health.level === "yellow" && daysSince(c.last_contact_date, c.created_at) >= 45)
     .sort((a, b) => new Date(a.last_contact_date || a.created_at).getTime() - new Date(b.last_contact_date || b.created_at).getTime())
     .map((c) => ({ ...c, reason: formatDaysAgo(daysSince(c.last_contact_date, c.created_at)) }))
 
-  const allReachOut = [...followUpContacts, ...coldContacts, ...coolingContacts]
+  const allReachOut = [...scheduledContacts, ...followUpContacts, ...coldContacts, ...coolingContacts]
 
   return (
     <div className="space-y-6 animate-fade-in">

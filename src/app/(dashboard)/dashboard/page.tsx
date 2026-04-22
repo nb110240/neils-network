@@ -21,6 +21,7 @@ import { WelcomeExperience } from "@/components/welcome-experience"
 import { OnboardingChecklist } from "@/components/onboarding-checklist"
 import { DashboardWalkthrough } from "@/components/dashboard-walkthrough"
 import { DashboardHeader } from "@/components/dashboard-header"
+import { InstallPrompt } from "@/components/install-prompt"
 import { FollowUpList, type FollowUpContact } from "@/components/follow-up-list"
 import { Plus, Users, ArrowRight, ThermometerSnowflake, Crown, HandHeart } from "lucide-react"
 
@@ -236,6 +237,7 @@ export default async function DashboardPage() {
       <Suspense fallback={null}>
         <UpgradeToast />
       </Suspense>
+      <InstallPrompt />
       <EventModeBanner />
       {/* Walkthrough tooltip tour for users with 1-4 contacts */}
       <DashboardWalkthrough contactCount={totalContacts || 0} />

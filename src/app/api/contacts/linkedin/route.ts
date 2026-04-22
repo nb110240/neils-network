@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { authenticateRequest, authFailed, badRequestResponse, forbiddenResponse, errorResponse } from "@/lib/api-utils"
 import { checkContactLimit, getUserPlan } from "@/lib/subscription"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
-import { findDuplicates } from "@/lib/dedup"
+import { findDuplicates, findStrongMatch } from "@/lib/dedup"
 
 export async function POST(request: Request) {
   try {
@@ -99,12 +99,18 @@ export async function POST(request: Request) {
       note ? `\nNote: ${note}` : null,
     ].filter(Boolean).join(" ")
 
-    // Broader dedup check (name, email, phone, company, LinkedIn URL)
-    const duplicates = (await findDuplicates(supabase, user.id, {
+    // Block duplicate creation — if strong match found, return 409
+    const strongMatch = await findStrongMatch(supabase, user.id, {
       name,
       company,
       website: cleanUrl,
-    })).filter((d) => d.score >= 0.6)
+    })
+    if (strongMatch) {
+      return NextResponse.json({
+        error: "This person is already in your network.",
+        contactId: strongMatch.contactId,
+      }, { status: 409 })
+    }
 
     // Generate embedding using centralized utility
     const embeddingText = buildContactEmbeddingText({
@@ -146,7 +152,6 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       contact,
-      ...(duplicates.length > 0 ? { duplicates } : {}),
     })
   } catch (error) {
     console.error("LinkedIn import error:", error)

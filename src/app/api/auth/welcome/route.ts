@@ -27,7 +27,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Email is required" }, { status: 400 })
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://savvo.app"
     const userName = name || "there"
 
     const body = `

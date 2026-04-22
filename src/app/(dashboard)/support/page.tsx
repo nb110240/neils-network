@@ -37,7 +37,7 @@ export default function SupportPage() {
       })
 
       const data = await res.json()
-      if (!res.ok) throw new Error(data.message)
+      if (!res.ok) throw new Error(data.error || "Failed to send message")
 
       setIsSent(true)
     } catch (error) {

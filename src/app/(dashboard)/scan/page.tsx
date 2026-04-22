@@ -127,12 +127,12 @@ export default function ScanPage() {
       const data = await res.json()
 
       if (res.status === 409) {
-        addToast({ title: "Already in your network", description: data.message })
+        addToast({ title: "Already in your network", description: data.error || data.message })
         if (data.contactId) router.push(`/contact/${data.contactId}`)
         return
       }
 
-      if (!res.ok) throw new Error(data.message)
+      if (!res.ok) throw new Error(data.error || "Failed to import")
 
       setImportedContact({ id: data.contact.id, name: data.contact.name })
       addToast({

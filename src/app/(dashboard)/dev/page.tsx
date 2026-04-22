@@ -110,7 +110,7 @@ export default function DevPage() {
       const data = await res.json()
       addToast({
         title: res.ok ? "Digest triggered" : "Error",
-        description: res.ok ? `Sent to ${data.sent || 0} users` : data.message,
+        description: res.ok ? `Sent to ${data.sent || 0} users` : (data.error || "Failed"),
         variant: res.ok ? undefined : "destructive",
       })
     } catch {
@@ -126,7 +126,7 @@ export default function DevPage() {
       const data = await res.json()
       addToast({
         title: res.ok ? "Calendar synced" : "Error",
-        description: res.ok ? `${data.newContacts || 0} new contacts` : data.message,
+        description: res.ok ? `${data.newContacts || 0} new contacts` : (data.error || "Failed"),
         variant: res.ok ? undefined : "destructive",
       })
     } catch {
@@ -142,7 +142,7 @@ export default function DevPage() {
       const data = await res.json()
       addToast({
         title: res.ok ? "Re-embedding started" : "Error",
-        description: res.ok ? `Processing ${data.count || 0} contacts` : data.message,
+        description: res.ok ? `Processing ${data.count || 0} contacts` : (data.error || "Failed"),
         variant: res.ok ? undefined : "destructive",
       })
     } catch {

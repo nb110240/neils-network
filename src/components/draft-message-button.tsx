@@ -43,7 +43,7 @@ export function DraftMessageButton({ contactId, contactName, plan, variant = "fu
       })
 
       const data = await res.json()
-      if (!res.ok) throw new Error(data.message)
+      if (!res.ok) throw new Error(data.error || "Failed to generate draft")
       setDraft(data.draft)
     } catch (error) {
       addToast({

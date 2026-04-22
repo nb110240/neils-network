@@ -55,7 +55,7 @@ export function NotificationPreferences() {
       })
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.message || "Failed to save")
+        throw new Error(data.error || "Failed to save")
       }
       setSavedFrequency(frequency)
       setHasChanges(false)

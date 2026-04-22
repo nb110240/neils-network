@@ -57,7 +57,7 @@ export async function sendDigestEmail(
   contacts: DigestContact[],
   stats?: DigestStats
 ) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://savvo.app"
   const isPro = stats?.isPro ?? true
   const isWeekly = stats?.isWeekly ?? false
 
@@ -203,7 +203,7 @@ export function emailLayout(options: {
   appUrl?: string
   showUnsubscribe?: boolean
 }): string {
-  const appUrl = options.appUrl || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  const appUrl = options.appUrl || process.env.NEXT_PUBLIC_APP_URL || "https://savvo.app"
 
   return `<!DOCTYPE html>
 <html lang="en">

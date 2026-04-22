@@ -3,10 +3,10 @@ import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Switching from Spreadsheets? — Savvo",
-  description: "Your networking Google Sheet stops working at 50 contacts. Import your spreadsheet into Savvo in 30 seconds and get AI health scores, follow-up reminders, and semantic search.",
+  description: "Your networking Google Sheet stops working at 50 contacts. Import your spreadsheet into Savvo and get AI health scores, follow-up reminders, and semantic search.",
   openGraph: {
     title: "Your Networking Spreadsheet Is Holding You Back — Savvo",
-    description: "Import your contact spreadsheet into an AI-powered relationship manager. Health scores, daily digests, and semantic search — in 30 seconds.",
+    description: "Import your contact spreadsheet into an AI-powered relationship manager. Health scores, daily digests, and semantic search — set up in minutes.",
   },
 }
 
@@ -42,7 +42,7 @@ export default function FromSpreadsheetPage() {
         {/* Hero */}
         <section className="py-12 sm:py-20 text-center animate-fade-in">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--copper)]/10 text-[var(--copper)] text-xs font-medium mb-6">
-            📋 → ✨ Import in 30 seconds
+            📋 → ✨ Import your contacts
           </div>
           <h1 className="text-3xl sm:text-5xl font-normal tracking-tight mb-4 leading-tight">
             Your networking spreadsheet<br />
@@ -161,7 +161,7 @@ export default function FromSpreadsheetPage() {
           <div className="grid sm:grid-cols-3 gap-6">
             {[
               { step: "1", title: "Export your spreadsheet", description: "Download your Google Sheet, Excel, or Notion database as a CSV file. Any format works." },
-              { step: "2", title: "Upload to Savvo", description: "Drag and drop your CSV. Map columns to contact fields — name, company, email, notes. Takes 30 seconds." },
+              { step: "2", title: "Upload to Savvo", description: "Drag and drop your CSV. Map columns to contact fields — name, company, email, notes. Quick and painless." },
               { step: "3", title: "Watch it come alive", description: "Every contact gets a health score. AI generates embeddings for semantic search. Your daily digest starts tomorrow." },
             ].map((item, i) => (
               <div key={i} className="text-center">

@@ -118,7 +118,7 @@ function ImportPageInner() {
       })
       const data = await res.json()
 
-      if (!res.ok) throw new Error(data.message)
+      if (!res.ok) throw new Error(data.error || "Failed to parse CSV")
 
       setHeaders(data.headers)
       setPreviewRows(data.rows)
@@ -156,7 +156,7 @@ function ImportPageInner() {
       })
       const data = await res.json()
 
-      if (!res.ok) throw new Error(data.message)
+      if (!res.ok) throw new Error(data.error || "Failed to import contacts")
 
       setImportedCount(data.imported)
       setStep("done")
@@ -176,7 +176,7 @@ function ImportPageInner() {
       const res = await fetch("/api/import/google")
       const data = await res.json()
 
-      if (!res.ok) throw new Error(data.message)
+      if (!res.ok) throw new Error(data.error || "Failed to connect Google")
 
       if (data.url) {
         window.location.href = data.url

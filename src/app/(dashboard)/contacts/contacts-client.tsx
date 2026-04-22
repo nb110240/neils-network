@@ -8,7 +8,45 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ExportContactsButton } from "@/components/export-contacts-button"
 import { DuplicatesBanner } from "@/components/duplicates-banner"
-import { ArrowLeft, Plus, Users, Loader2 } from "lucide-react"
+import { ArrowLeft, Plus, Users, Loader2, ArrowUpDown } from "lucide-react"
+
+type SortOption = "recent" | "last-contacted" | "needs-attention" | "name" | "health"
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "recent", label: "Recently added" },
+  { value: "last-contacted", label: "Last contacted" },
+  { value: "needs-attention", label: "Needs attention" },
+  { value: "name", label: "Name A-Z" },
+  { value: "health", label: "Health (worst first)" },
+]
+
+const HEALTH_ORDER: Record<string, number> = { red: 0, orange: 1, yellow: 2, green: 3 }
+
+function sortContacts(contacts: ContactWithHealth[], sort: SortOption): ContactWithHealth[] {
+  const sorted = [...contacts]
+  switch (sort) {
+    case "recent":
+      return sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    case "last-contacted":
+      return sorted.sort((a, b) => {
+        const aDate = a.last_contact_date || a.created_at
+        const bDate = b.last_contact_date || b.created_at
+        return new Date(bDate).getTime() - new Date(aDate).getTime()
+      })
+    case "needs-attention":
+      return sorted.sort((a, b) => {
+        const aDate = a.last_contact_date || a.created_at
+        const bDate = b.last_contact_date || b.created_at
+        return new Date(aDate).getTime() - new Date(bDate).getTime()
+      })
+    case "name":
+      return sorted.sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+    case "health":
+      return sorted.sort((a, b) => (HEALTH_ORDER[a.health.level] ?? 3) - (HEALTH_ORDER[b.health.level] ?? 3))
+    default:
+      return sorted
+  }
+}
 
 interface Tag {
   id: string
@@ -39,10 +77,14 @@ export function ContactsClient({ contacts: initialContacts, tags, contactTagMap:
   const [pagination, setPagination] = useState<PaginationInfo>(initialPagination)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [activeTagId, setActiveTagId] = useState<string | null>(null)
+  const [sortBy, setSortBy] = useState<SortOption>("recent")
 
-  const filteredContacts = activeTagId
-    ? contacts.filter((c) => (contactTagMap[c.id] || []).includes(activeTagId))
-    : contacts
+  const filteredContacts = sortContacts(
+    activeTagId
+      ? contacts.filter((c) => (contactTagMap[c.id] || []).includes(activeTagId))
+      : contacts,
+    sortBy
+  )
 
   const loadMore = useCallback(async () => {
     if (!pagination.nextCursor || isLoadingMore) return
@@ -123,35 +165,52 @@ export function ContactsClient({ contacts: initialContacts, tags, contactTagMap:
         </div>
       </div>
 
-      {/* Tag filters */}
-      {tags.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => setActiveTagId(null)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-              activeTagId === null
-                ? "bg-[var(--copper)]/10 text-[var(--copper)] border border-[var(--copper)]/30"
-                : "border text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            }`}
+      {/* Sort + Tag filters */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        {/* Sort dropdown */}
+        <div className="flex items-center gap-2 shrink-0">
+          <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortOption)}
+            className="h-8 rounded-lg border border-input bg-background px-2.5 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            All
-          </button>
-          {tags.map((tag) => (
+            {SORT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Tag filters */}
+        {tags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
             <button
-              key={tag.id}
-              onClick={() => setActiveTagId(activeTagId === tag.id ? null : tag.id)}
+              onClick={() => setActiveTagId(null)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                activeTagId === tag.id
-                  ? "text-white"
+                activeTagId === null
+                  ? "bg-[var(--copper)]/10 text-[var(--copper)] border border-[var(--copper)]/30"
                   : "border text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
-              style={activeTagId === tag.id ? { backgroundColor: tag.color } : undefined}
             >
-              {tag.name}
+              All
             </button>
-          ))}
-        </div>
-      )}
+            {tags.map((tag) => (
+              <button
+                key={tag.id}
+                onClick={() => setActiveTagId(activeTagId === tag.id ? null : tag.id)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  activeTagId === tag.id
+                    ? "text-white"
+                    : "border text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                }`}
+                style={activeTagId === tag.id ? { backgroundColor: tag.color } : undefined}
+              >
+                {tag.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {filteredContacts.length > 0 ? (
         <>

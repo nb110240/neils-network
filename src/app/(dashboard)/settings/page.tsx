@@ -36,6 +36,8 @@ import { NotificationPreferences } from "./notifications"
 import { ThemeSelector } from "@/components/theme-selector"
 import { RecentlyDeleted } from "@/components/recently-deleted"
 import { DuplicateReview } from "@/components/duplicate-review"
+import { DataExportButton } from "@/components/data-export-button"
+import { MfaSettings } from "@/components/mfa-settings"
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -457,6 +459,10 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Security Section */}
+      <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 pt-2">Security</h2>
+      <MfaSettings />
+
       {/* Data Section */}
       <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 pt-2">Data</h2>
 
@@ -464,6 +470,19 @@ export default function SettingsPage() {
       <div id="duplicates" className="scroll-mt-8">
         <DuplicateReview />
       </div>
+
+      {/* Data export (GDPR Art. 20 portability) */}
+      <Card className="shadow-refined">
+        <CardHeader>
+          <CardTitle className="text-lg font-normal">Your data</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground">
+            Download everything Savvo stores about you as JSON — contacts, activities, tags, events, preferences.
+          </p>
+          <DataExportButton />
+        </CardContent>
+      </Card>
 
       {/* Recently Deleted */}
       <RecentlyDeleted />

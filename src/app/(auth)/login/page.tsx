@@ -44,6 +44,8 @@ function LoginPageInner() {
   const [resendCooldown, setResendCooldown] = useState(0)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const [captchaNonce, setCaptchaNonce] = useState(0)
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null)
+  const [mfaCode, setMfaCode] = useState("")
   const resendIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Clean up interval on unmount
@@ -84,6 +86,21 @@ function LoginPageInner() {
           password,
         })
         if (error) throw error
+
+        // MFA gate: if the user has a verified TOTP factor, Supabase
+        // leaves the session at aal1 and asks us to challenge up to aal2
+        // before letting them into the app.
+        const { data: aal } =
+          await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+        if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+          const { data: factorsData } = await supabase.auth.mfa.listFactors()
+          const totp = factorsData?.totp?.find((f) => f.status === "verified")
+          if (totp) {
+            setMfaFactorId(totp.id)
+            setIsLoading(false)
+            return
+          }
+        }
         router.push("/dashboard")
         router.refresh()
       }
@@ -95,6 +112,35 @@ function LoginPageInner() {
       })
       setCaptchaToken(null)
       setCaptchaNonce((n) => n + 1)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleMfaVerify = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!mfaFactorId || mfaCode.length !== 6) return
+    setIsLoading(true)
+    try {
+      const { data: challenge, error: challengeError } =
+        await supabase.auth.mfa.challenge({ factorId: mfaFactorId })
+      if (challengeError) throw challengeError
+      if (!challenge) throw new Error("Challenge failed")
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: mfaFactorId,
+        challengeId: challenge.id,
+        code: mfaCode,
+      })
+      if (verifyError) throw verifyError
+      router.push("/dashboard")
+      router.refresh()
+    } catch (error) {
+      addToast({
+        title: "Code didn't match",
+        description: error instanceof Error ? error.message : "Try again",
+        variant: "destructive",
+      })
+      setMfaCode("")
     } finally {
       setIsLoading(false)
     }
@@ -138,6 +184,65 @@ function LoginPageInner() {
       })
       setIsLoading(false)
     }
+  }
+
+  // MFA challenge view — shown after successful sign-in when the account
+  // has a verified TOTP factor and the current session is still aal1.
+  if (mfaFactorId) {
+    return (
+      <div className="animate-fade-in-scale">
+        <Card className="shadow-refined-lg border-0 overflow-hidden">
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-3xl font-normal text-[var(--copper)]">Savvo</CardTitle>
+            <CardDescription className="text-base mt-2">
+              Enter the 6-digit code from your authenticator app.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-2">
+            <form onSubmit={handleMfaVerify} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="mfa-code" className="text-sm font-medium">
+                  Authentication code
+                </Label>
+                <Input
+                  id="mfa-code"
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  placeholder="123456"
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ""))}
+                  className="h-11 font-mono text-lg tracking-widest text-center"
+                  autoFocus
+                  required
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full h-11 text-base font-medium bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 transition-all shadow-md hover:shadow-lg border-0"
+                disabled={isLoading || mfaCode.length !== 6}
+              >
+                {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                Verify and sign in
+              </Button>
+            </form>
+          </CardContent>
+          <CardFooter className="flex justify-center pb-6">
+            <button
+              type="button"
+              onClick={async () => {
+                await supabase.auth.signOut()
+                setMfaFactorId(null)
+                setMfaCode("")
+              }}
+              className="text-sm text-muted-foreground hover:text-[var(--copper)] transition-colors font-medium"
+            >
+              Cancel and sign in as someone else
+            </button>
+          </CardFooter>
+        </Card>
+      </div>
+    )
   }
 
   // Sign-up confirmation view

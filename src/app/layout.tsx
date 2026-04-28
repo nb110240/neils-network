@@ -6,7 +6,6 @@ import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ServiceWorkerRegistrar } from "@/components/sw-registrar"
 import { PostHogProvider } from "@/components/posthog-provider"
-import { createClient } from "@/lib/supabase/server"
 import "./globals.css"
 
 const dmSans = DM_Sans({
@@ -65,15 +64,11 @@ export const viewport: Viewport = {
   maximumScale: 1,
 }
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -170,7 +165,7 @@ export default async function RootLayout({
         className={`${dmSans.variable} ${dmSerif.variable} ${geistMono.variable} antialiased notranslate`}
       >
         <Suspense fallback={null}>
-          <PostHogProvider userId={user?.id ?? null} userEmail={user?.email ?? null} />
+          <PostHogProvider />
         </Suspense>
         <ToastProvider>{children}</ToastProvider>
         <Analytics />

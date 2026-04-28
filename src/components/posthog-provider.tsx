@@ -1,23 +1,26 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
 import posthog from "posthog-js"
+import { createClient } from "@/lib/supabase/client"
 
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY
 const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com"
 
-interface PostHogProviderProps {
-  /** Authenticated user id if known — triggers identify on mount. */
-  userId?: string | null
-  userEmail?: string | null
-}
-
-export function PostHogProvider({ userId, userEmail }: PostHogProviderProps) {
+/**
+ * Mounts client-side, initializes PostHog, listens for auth state
+ * changes, and captures pageviews. Doing the user lookup here (instead
+ * of passing user props from the root layout) keeps the root layout
+ * synchronous, which avoids forcing every route into dynamic rendering
+ * and the hydration regressions that come with it.
+ */
+export function PostHogProvider() {
   const initialized = useRef(false)
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const lastIdentified = useRef<string | null>(null)
+  const [identity, setIdentity] = useState<{ id: string; email: string | null } | null>(null)
 
   useEffect(() => {
     if (!POSTHOG_KEY || initialized.current) return
@@ -26,26 +29,35 @@ export function PostHogProvider({ userId, userEmail }: PostHogProviderProps) {
       capture_pageview: false,
       capture_pageleave: true,
       person_profiles: "identified_only",
-      // Respect user DNT and browser privacy signals by default; the
-      // product-analytics use case doesn't warrant overriding those.
       respect_dnt: true,
     })
     initialized.current = true
+
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setIdentity({ id: user.id, email: user.email ?? null })
+    })
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIdentity(
+        session?.user
+          ? { id: session.user.id, email: session.user.email ?? null }
+          : null
+      )
+    })
+    return () => sub.subscription.unsubscribe()
   }, [])
 
-  // Identify / reset on auth state change.
   useEffect(() => {
     if (!POSTHOG_KEY || !initialized.current) return
-    if (userId && lastIdentified.current !== userId) {
-      posthog.identify(userId, userEmail ? { email: userEmail } : undefined)
-      lastIdentified.current = userId
-    } else if (!userId && lastIdentified.current) {
+    if (identity && lastIdentified.current !== identity.id) {
+      posthog.identify(identity.id, identity.email ? { email: identity.email } : undefined)
+      lastIdentified.current = identity.id
+    } else if (!identity && lastIdentified.current) {
       posthog.reset()
       lastIdentified.current = null
     }
-  }, [userId, userEmail])
+  }, [identity])
 
-  // Manual pageview capture so app-router transitions are recorded.
   useEffect(() => {
     if (!POSTHOG_KEY || !initialized.current || !pathname) return
     const query = searchParams?.toString()

@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Check, Circle, Plus, Search, Users, Eye, X, Sparkles, ChevronRight } from "lucide-react"
+import { Check, Circle, Plus, Search, Users, Eye, X, Sparkles, ChevronRight, Download } from "lucide-react"
 
 const STORAGE_KEY = "savvo-onboarding-checklist"
 const DISMISSED_KEY = "savvo-onboarding-checklist-dismissed"
@@ -48,6 +48,13 @@ const CHECKLIST_ITEMS: ChecklistItem[] = [
     description: "See who needs attention and network health",
     href: "/dashboard",
     icon: Users,
+  },
+  {
+    id: "install-app",
+    label: "Add Savvo to your home screen",
+    description: "One-tap launch, offline access for recent contacts",
+    href: "/install",
+    icon: Download,
   },
 ]
 
@@ -92,6 +99,14 @@ export function OnboardingChecklist({ contactCount }: OnboardingChecklistProps) 
     }
     if (pathname === "/dashboard" && contactCount > 0) {
       newCompleted.add("explore-dashboard")
+    }
+    // Auto-complete the install step if running as an installed PWA
+    if (
+      typeof window !== "undefined" &&
+      (window.matchMedia?.("(display-mode: standalone)").matches ||
+        (navigator as { standalone?: boolean }).standalone)
+    ) {
+      newCompleted.add("install-app")
     }
 
     if (newCompleted.size !== completedSteps.size) {

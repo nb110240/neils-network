@@ -42,8 +42,8 @@ export function MeetingPrepButton({ contactId }: { contactId: string }) {
       setBrief(data.brief)
     } catch {
       addToast({
-        title: "Error",
-        description: "Failed to generate meeting prep",
+        title: "Couldn't generate meeting prep",
+        description: "AI is having a moment. Try again.",
         variant: "destructive",
       })
       setIsOpen(false)

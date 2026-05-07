@@ -81,8 +81,8 @@ export function RecentlyDeleted() {
       })
     } catch {
       addToast({
-        title: "Error",
-        description: "Failed to restore contact",
+        title: "Couldn't restore contact",
+        description: "Refresh the page and try again.",
         variant: "destructive",
       })
     } finally {
@@ -106,8 +106,8 @@ export function RecentlyDeleted() {
       })
     } catch {
       addToast({
-        title: "Error",
-        description: "Failed to delete contact",
+        title: "Couldn't delete contact",
+        description: "Refresh the page and try again.",
         variant: "destructive",
       })
     } finally {

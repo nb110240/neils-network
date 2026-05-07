@@ -37,8 +37,8 @@ export function MfaSettings() {
     const { data, error } = await supabase.auth.mfa.listFactors()
     if (error) {
       addToast({
-        title: "Could not load 2FA factors",
-        description: error.message,
+        title: "Couldn't load 2FA settings",
+        description: "Refresh the page and try again.",
         variant: "destructive",
       })
       setFactors([])
@@ -71,7 +71,7 @@ export function MfaSettings() {
     } catch (err) {
       addToast({
         title: "Couldn't start 2FA setup",
-        description: err instanceof Error ? err.message : "Please try again",
+        description: "Sign out, sign back in, and try again.",
         variant: "destructive",
       })
     } finally {
@@ -106,7 +106,7 @@ export function MfaSettings() {
     } catch (err) {
       addToast({
         title: "Code didn't match",
-        description: err instanceof Error ? err.message : "Try again",
+        description: "Make sure your authenticator app is showing the latest code, then try again.",
         variant: "destructive",
       })
     } finally {
@@ -138,8 +138,8 @@ export function MfaSettings() {
       refresh()
     } catch (err) {
       addToast({
-        title: "Couldn't remove factor",
-        description: err instanceof Error ? err.message : "Please try again",
+        title: "Couldn't remove 2FA",
+        description: "Refresh the page and try again.",
         variant: "destructive",
       })
     } finally {

@@ -44,7 +44,7 @@ export function ScheduleCard({ contact, onUpdate }: ScheduleCardProps) {
       onUpdate(updated)
       return true
     } catch {
-      addToast({ title: "Error", description: "Failed to update schedule", variant: "destructive" })
+      addToast({ title: "Couldn't save schedule", description: "Try again in a moment.", variant: "destructive" })
       return false
     } finally {
       setIsSaving(false)
@@ -97,7 +97,7 @@ export function ScheduleCard({ contact, onUpdate }: ScheduleCardProps) {
       onUpdate(updated)
       addToast({ title: "Snoozed", description: `Reminders paused for ${days} days` })
     } catch {
-      addToast({ title: "Error", description: "Failed to snooze", variant: "destructive" })
+      addToast({ title: "Couldn't snooze", description: "Try again in a moment.", variant: "destructive" })
     } finally {
       setIsSnoozing(false)
     }
@@ -112,7 +112,7 @@ export function ScheduleCard({ contact, onUpdate }: ScheduleCardProps) {
       onUpdate(updated)
       addToast({ title: "Unsnoozed" })
     } catch {
-      addToast({ title: "Error", description: "Failed to unsnooze", variant: "destructive" })
+      addToast({ title: "Couldn't unsnooze", description: "Try again in a moment.", variant: "destructive" })
     } finally {
       setIsSnoozing(false)
     }

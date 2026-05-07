@@ -32,8 +32,8 @@ export function DataExportButton() {
       })
     } catch (err) {
       addToast({
-        title: "Export failed",
-        description: err instanceof Error ? err.message : "Please try again",
+        title: "Export didn't work",
+        description: "Refresh the page and try again.",
         variant: "destructive",
       })
     } finally {

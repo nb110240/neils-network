@@ -33,8 +33,8 @@ export function ExportContactsButton() {
       })
     } catch {
       addToast({
-        title: "Error",
-        description: "Failed to export contacts",
+        title: "Export didn't work",
+        description: "Refresh the page and try again.",
         variant: "destructive",
       })
     } finally {

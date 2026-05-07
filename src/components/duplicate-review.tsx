@@ -158,8 +158,8 @@ export function DuplicateReview() {
       }
     } catch {
       addToast({
-        title: "Error",
-        description: "Failed to scan for duplicates",
+        title: "Scan didn't finish",
+        description: "Refresh the page and try again.",
         variant: "destructive",
       })
     } finally {
@@ -175,13 +175,13 @@ export function DuplicateReview() {
         body: JSON.stringify({ mergeLogId }),
       })
       if (!res.ok) throw new Error("Undo failed")
-      addToast({ title: "Undone", description: "Contacts restored." })
+      addToast({ title: "Merge undone", description: "Both contacts are back as separate records." })
       router.refresh()
       scan()
     } catch {
       addToast({
         title: "Couldn't undo",
-        description: "The merge may have already been undone.",
+        description: "This merge has already been undone or removed.",
         variant: "destructive",
       })
     }
@@ -218,7 +218,7 @@ export function DuplicateReview() {
       setGroups((prev) => prev.filter((_, i) => i !== groupIndex))
       addToast({
         title: losers.length === 1 ? "Merged" : `Merged ${losers.length + 1} contacts`,
-        description: "Activities and tags combined.",
+        description: "All notes, meetings, and tags now live on the kept contact.",
         action: firstLogId
           ? { label: "Undo", onClick: () => undoMerge(firstLogId) }
           : undefined,
@@ -226,8 +226,8 @@ export function DuplicateReview() {
       router.refresh()
     } catch (error) {
       addToast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to merge",
+        title: "Couldn't merge",
+        description: error instanceof Error ? error.message : "Refresh and try again.",
         variant: "destructive",
       })
     } finally {
@@ -246,8 +246,8 @@ export function DuplicateReview() {
       setGroups((prev) => prev.filter((_, i) => i !== groupIndex))
     } catch {
       addToast({
-        title: "Error",
-        description: "Failed to dismiss",
+        title: "Couldn't save your choice",
+        description: "Refresh and try again.",
         variant: "destructive",
       })
     }
@@ -278,8 +278,8 @@ export function DuplicateReview() {
       router.refresh()
     } catch {
       addToast({
-        title: "Error",
-        description: "Bulk merge failed",
+        title: "Bulk merge didn't finish",
+        description: "Some merges may have completed. Refresh to see the current state.",
         variant: "destructive",
       })
     } finally {

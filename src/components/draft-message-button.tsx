@@ -47,8 +47,8 @@ export function DraftMessageButton({ contactId, contactName, plan, variant = "fu
       setDraft(data.draft)
     } catch (error) {
       addToast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate draft",
+        title: "Couldn't generate draft",
+        description: "AI is having a moment. Try again.",
         variant: "destructive",
       })
       setIsOpen(false)

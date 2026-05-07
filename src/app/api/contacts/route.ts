@@ -67,7 +67,7 @@ export async function POST(request: Request) {
             {
               conflict: true,
               reason: "name_mismatch",
-              message: `Found ${strongMatch.reason.toLowerCase()}, but the name in the note ("${extracted.name}") doesn't match the existing contact ("${matchedContact?.name ?? "unknown"}"). Please review.`,
+              message: `An existing contact (${matchedContact?.name ?? "unnamed"}) shares this ${strongMatch.reason.toLowerCase().replace("same ", "")}, but the name in your note ("${extracted.name}") is different. Open that contact to update it, or change the email/phone in your note to create a new one.`,
               candidate: {
                 contactId: strongMatch.contactId,
                 contactName: matchedContact?.name ?? null,

@@ -10,8 +10,8 @@
 
 // Server-side vars the app fundamentally cannot function without.
 // Conservative on purpose: only vars the running production app already
-// depends on. Feature-scoped vars (Google OAuth, Resend, cron secrets) are
-// validated at their own call sites and degrade gracefully.
+// depends on. Purely feature-scoped vars (Google OAuth, Resend) are validated
+// at their own call sites and degrade gracefully.
 const REQUIRED_ENV = [
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
@@ -21,7 +21,20 @@ const REQUIRED_ENV = [
   "STRIPE_WEBHOOK_SECRET",
   "UPSTASH_REDIS_REST_URL",
   "UPSTASH_REDIS_REST_TOKEN",
+  // Used app-wide for redirect URLs (Stripe checkout/portal, OAuth callbacks)
+  // and outbound email links — several call sites use it with no fallback.
+  "NEXT_PUBLIC_APP_URL",
+  // Authenticates Vercel cron calls (daily digest, calendar sync, cleanup) and
+  // is the fallback signing key for OAuth state. Missing = crons silently
+  // no-op and calendar OAuth state signing breaks.
+  "CRON_SECRET",
 ] as const
+
+// A whitespace-only value (blank paste, stray space) counts as missing: it
+// passes a bare truthiness check but fails downstream HMAC / API / URL use.
+function isPresent(value: string | undefined): boolean {
+  return !!value && value.trim() !== ""
+}
 
 /**
  * Returns the env var or throws a clear, actionable error if it is missing.
@@ -29,13 +42,13 @@ const REQUIRED_ENV = [
  */
 export function requireEnv(name: string): string {
   const value = process.env[name]
-  if (!value) {
+  if (!isPresent(value)) {
     throw new Error(
       `Missing required environment variable: ${name}. ` +
         `Set it in .env.local (local dev) or the Vercel project settings (production).`
     )
   }
-  return value
+  return value as string
 }
 
 /**
@@ -43,6 +56,6 @@ export function requireEnv(name: string): string {
  * Does not throw — the caller decides how loudly to fail.
  */
 export function validateEnv(): { ok: boolean; missing: string[] } {
-  const missing = REQUIRED_ENV.filter((name) => !process.env[name])
+  const missing = REQUIRED_ENV.filter((name) => !isPresent(process.env[name]))
   return { ok: missing.length === 0, missing }
 }

@@ -13,8 +13,16 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${appUrl}/dashboard?calendar=error`)
   }
 
-  // Verify the HMAC-signed state to prevent IDOR attacks
-  const userId = verifyState(state)
+  // Verify the HMAC-signed state to prevent IDOR attacks.
+  // verifyState can throw if the signing secret is unconfigured — treat that
+  // as a connection failure rather than letting it bubble to a raw 500.
+  let userId: string | null
+  try {
+    userId = verifyState(state)
+  } catch (err) {
+    console.error("Calendar callback: state verification failed", err)
+    return NextResponse.redirect(`${appUrl}/dashboard?calendar=error`)
+  }
   if (!userId) {
     console.error("Calendar callback: invalid state signature")
     return NextResponse.redirect(`${appUrl}/dashboard?calendar=error`)

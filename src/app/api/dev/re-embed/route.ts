@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server"
+import * as Sentry from "@sentry/nextjs"
 import { createClient, createServiceClient } from "@/lib/supabase/server"
 import { verifyDevAccess } from "@/lib/api-utils"
 import { buildContactEmbeddingText } from "@/lib/openai"
@@ -26,8 +27,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "No contacts to embed", count: 0 })
     }
 
-    // Fire and forget — re-embed in background
-    reEmbedBatch(contacts, serviceSupabase).catch(console.error)
+    // Fire and forget — re-embed in background. Errors run after the response,
+    // so they must go to Sentry explicitly.
+    reEmbedBatch(contacts, serviceSupabase).catch((err) => {
+      console.error("Re-embed background batch failed:", err)
+      Sentry.captureException(err, { tags: { background: "dev-re-embed" } })
+    })
 
     return NextResponse.json({ success: true, count: contacts.length })
   } catch (error) {

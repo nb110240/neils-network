@@ -72,7 +72,16 @@ const aiLimiter = () =>
     prefix: "rl:ai",
   })
 
-export type RateLimitType = "general" | "create" | "search" | "import" | "auth" | "cron" | "ai"
+// Export: 10 per minute (bulk data export — tighter than general to limit
+// how fast a compromised session can exfiltrate a full contact list)
+const exportLimiter = () =>
+  new Ratelimit({
+    redis: getRedis(),
+    limiter: Ratelimit.slidingWindow(10, "1 m"),
+    prefix: "rl:export",
+  })
+
+export type RateLimitType = "general" | "create" | "search" | "import" | "auth" | "cron" | "ai" | "export"
 
 const limiters: Record<RateLimitType, () => Ratelimit> = {
   general: generalLimiter,
@@ -82,6 +91,7 @@ const limiters: Record<RateLimitType, () => Ratelimit> = {
   auth: authLimiter,
   cron: cronLimiter,
   ai: aiLimiter,
+  export: exportLimiter,
 }
 
 export interface RateLimitResult {

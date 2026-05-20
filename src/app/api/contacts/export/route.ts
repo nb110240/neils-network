@@ -12,7 +12,7 @@ function escapeCsvField(value: string | null): string {
 
 export async function GET() {
   try {
-    const auth = await authenticateRequest("general")
+    const auth = await authenticateRequest("export")
     if (authFailed(auth)) return auth.error
     const { user, supabase } = auth
 

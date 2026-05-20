@@ -4,6 +4,17 @@ import { withSentryConfig } from "@sentry/nextjs";
 const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
   poweredByHeader: false,
+  async redirects() {
+    return [
+      {
+        // Canonicalize www -> apex (www.savvo.app has its own cert; redirect for SEO)
+        source: "/:path*",
+        has: [{ type: "host", value: "www.savvo.app" }],
+        destination: "https://savvo.app/:path*",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

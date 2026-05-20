@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+import { NextResponse, after } from "next/server"
 import * as Sentry from "@sentry/nextjs"
 import { authenticateRequest, authFailed, badRequestResponse, forbiddenResponse, errorResponse } from "@/lib/api-utils"
 import { getUserPlan, getPlanLimits } from "@/lib/subscription"
@@ -152,12 +152,16 @@ export async function POST(request: Request) {
       return errorResponse("Failed to import contacts")
     }
 
-    // Generate embeddings in batch (fire and forget for speed).
-    // This runs after the response, so errors must go to Sentry explicitly —
-    // they never reach Next's onRequestError handler.
-    generateEmbeddingsBatch(data, supabase).catch((err) => {
-      console.error("CSV import embedding generation failed:", err)
-      Sentry.captureException(err, { tags: { background: "csv-import-embeddings" } })
+    // Generate embeddings after the response is sent. after() keeps the
+    // serverless instance alive until this finishes, so a frozen/reclaimed
+    // instance can't silently drop the embedding work or its Sentry events.
+    after(async () => {
+      try {
+        await generateEmbeddingsBatch(data, supabase)
+      } catch (err) {
+        console.error("CSV import embedding generation failed:", err)
+        Sentry.captureException(err, { tags: { background: "csv-import-embeddings" } })
+      }
     })
 
     // Check each imported contact for duplicates among pre-existing contacts

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+import { NextResponse, after } from "next/server"
 import * as Sentry from "@sentry/nextjs"
 import { cookies } from "next/headers"
 import { randomBytes } from "crypto"
@@ -223,12 +223,16 @@ export async function POST(request: Request) {
       return errorResponse("Failed to import contacts")
     }
 
-    // Generate embeddings in background (fire and forget for speed).
-    // This runs after the response, so errors must go to Sentry explicitly —
-    // they never reach Next's onRequestError handler.
-    generateEmbeddingsBatch(inserted, supabase).catch((err) => {
-      console.error("Google import embedding generation failed:", err)
-      Sentry.captureException(err, { tags: { background: "google-import-embeddings" } })
+    // Generate embeddings after the response is sent. after() keeps the
+    // serverless instance alive until this finishes, so a frozen/reclaimed
+    // instance can't silently drop the embedding work or its Sentry events.
+    after(async () => {
+      try {
+        await generateEmbeddingsBatch(inserted, supabase)
+      } catch (err) {
+        console.error("Google import embedding generation failed:", err)
+        Sentry.captureException(err, { tags: { background: "google-import-embeddings" } })
+      }
     })
 
     return NextResponse.json({

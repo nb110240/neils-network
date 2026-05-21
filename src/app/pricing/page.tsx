@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/toast"
@@ -24,10 +25,29 @@ const features = [
 export default function PricingPage() {
   const router = useRouter()
   const { addToast } = useToast()
+  const supabase = createClient()
   const [isLoading, setIsLoading] = useState(false)
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly")
+  // null = still checking. /pricing is publicly reachable, so default to the
+  // logged-out treatment until auth is confirmed.
+  const [isAuthed, setIsAuthed] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsAuthed(!!user)
+    })
+  }, [supabase])
 
   const handleUpgrade = async () => {
+    // Logged-out visitors can reach /pricing directly. Calling the
+    // authenticated checkout endpoint for them returns 401 and dead-ends
+    // them with an error toast — route them into signup instead.
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      router.push("/login?mode=signup")
+      return
+    }
+
     setIsLoading(true)
     try {
       const res = await fetch("/api/stripe/checkout", {
@@ -72,9 +92,9 @@ export default function PricingPage() {
       <div className="container mx-auto py-12 px-4 max-w-5xl">
         <div className="mb-6">
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/dashboard">
+            <Link href={isAuthed ? "/dashboard" : "/"}>
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Dashboard
+              {isAuthed ? "Back to Dashboard" : "Back to home"}
             </Link>
           </Button>
         </div>
@@ -144,9 +164,11 @@ export default function PricingPage() {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => router.push("/dashboard")}
+                onClick={() =>
+                  router.push(isAuthed ? "/dashboard" : "/login?mode=signup")
+                }
               >
-                Current Plan
+                {isAuthed ? "Current Plan" : "Get started free"}
               </Button>
             </CardContent>
           </Card>

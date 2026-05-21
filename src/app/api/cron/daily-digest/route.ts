@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { createServiceClient } from "@/lib/supabase/server"
 import { calculateHealthScore } from "@/lib/health"
-import { sendDigestEmail } from "@/lib/email"
+import { sendDigestEmail, sendNewUserNudgeEmail } from "@/lib/email"
 import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
 import { safeCompare } from "@/lib/api-utils"
 import { log } from "@/lib/logger"
@@ -50,8 +50,12 @@ export async function GET(request: Request) {
     }
 
     let emailsSent = 0
+    let nudgesSent = 0
     let skipped = 0
-    const isMonday = new Date().getDay() === 1
+    const day = new Date().getDay()
+    const isMonday = day === 1
+    // New users get a Mon/Wed/Fri nudge — more touchpoints during the habit window
+    const isNudgeDay = day === 1 || day === 3 || day === 5
 
     for (const user_id of allUserIds) {
       const isPro = proUserIds.has(user_id)
@@ -66,26 +70,18 @@ export async function GET(request: Request) {
       // Default all users to weekly digest
       const frequency = prefs?.digest_frequency || "weekly"
 
-      // Skip users who opted out
+      // Skip users who opted out entirely
       if (frequency === "never") {
         skipped++
         continue
       }
 
-      // Weekly users only get emails on Mondays
-      if (frequency === "weekly" && !isMonday) {
-        continue
-      }
-
-      // Free users can only have weekly frequency
-      if (!isPro && frequency === "daily") {
-        // Downgrade to weekly silently
-        if (!isMonday) continue
-      }
-
       // Get user email
       const { data: { user } } = await supabase.auth.admin.getUserById(user_id)
       if (!user?.email) continue
+
+      const userName =
+        user.user_metadata?.full_name || user.email.split("@")[0]
 
       // Get user's contacts with scheduling fields for richer context
       const { data: contacts } = await supabase
@@ -96,8 +92,34 @@ export async function GET(request: Request) {
 
       if (!contacts || contacts.length === 0) continue
 
-      // Need at least 5 contacts for digest to be useful
-      if (contacts.length < 5) continue
+      // New-user nudge path: users with 1-4 contacts can't get a useful
+      // digest yet, but they still need a recurring reason to come back.
+      // Without this they hear nothing from Savvo during the exact window
+      // when the habit forms. New accounts (<=21 days) get a Mon/Wed/Fri
+      // nudge; older accounts with a stalled network get a Monday-only one.
+      if (contacts.length < 5) {
+        const accountAgeDays = Math.floor(
+          (Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24)
+        )
+        const isNewAccount = accountAgeDays <= 21
+        if (isNewAccount ? !isNudgeDay : !isMonday) continue
+
+        await sendNewUserNudgeEmail(user.email, userName, contacts)
+        nudgesSent++
+        continue
+      }
+
+      // Full digest path (5+ contacts) — apply frequency-based cadence
+
+      // Weekly users only get emails on Mondays
+      if (frequency === "weekly" && !isMonday) {
+        continue
+      }
+
+      // Free users can only have weekly frequency — downgrade to weekly silently
+      if (!isPro && frequency === "daily" && !isMonday) {
+        continue
+      }
 
       // Get recent activities for context (last 30 days)
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
@@ -201,9 +223,6 @@ export async function GET(request: Request) {
       const followUpCount = contacts.filter((c) => c.follow_up_needed).length
 
       // Send email
-      const userName =
-        user.user_metadata?.full_name || user.email.split("@")[0]
-
       await sendDigestEmail(user.email, userName, picks, {
         totalContacts: contacts.length,
         healthBreakdown,
@@ -230,10 +249,11 @@ export async function GET(request: Request) {
       proUsers: proUserIds.size,
       freeUsers: allUserIds.length - proUserIds.size,
       emailsSent,
+      nudgesSent,
       skipped,
     })
 
-    return NextResponse.json({ success: true, sent: emailsSent, skipped })
+    return NextResponse.json({ success: true, sent: emailsSent, nudges: nudgesSent, skipped })
   } catch (error) {
     log("error", "Daily digest failed", { action: "cron.daily_digest", route: "/api/cron/daily-digest", error: String(error) })
     return NextResponse.json(

@@ -184,6 +184,78 @@ export async function sendDigestEmail(
   })
 }
 
+interface NudgeContact {
+  id: string
+  name: string | null
+  company: string | null
+  job_title: string | null
+}
+
+/**
+ * Nudge email for new users with 1-4 contacts.
+ * They can't get a useful digest yet (the digest needs 5+ contacts to be
+ * worth sending), but they still need a recurring reason to come back during
+ * the window when the habit forms. This keeps Savvo in contact with them and
+ * points them at the one action that matters: adding more people.
+ */
+export async function sendNewUserNudgeEmail(
+  to: string,
+  userName: string,
+  contacts: NudgeContact[]
+) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://savvo.app"
+  const count = contacts.length
+  const remaining = Math.max(0, 5 - count)
+
+  const contactRows = contacts
+    .map((c) => {
+      const name = c.name || "Unknown"
+      const role = [c.job_title, c.company].filter(Boolean).join(" at ")
+      return `
+        <div style="padding:12px 16px;border:1px solid #e7e5e4;border-radius:10px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <strong style="font-size:14px">${escapeHtml(name)}</strong>
+            <a href="${appUrl}/contact/${c.id}" style="color:#c2410c;text-decoration:none;font-size:12px;font-weight:500;margin-left:auto">View</a>
+          </div>
+          ${role ? `<p style="color:#78716c;font-size:12px;margin:3px 0 0">${escapeHtml(role)}</p>` : ""}
+        </div>`
+    })
+    .join("")
+
+  const progressLine =
+    remaining > 0
+      ? `<p style="font-size:13px;color:#c2410c;font-weight:500;margin:0 0 20px">You're ${remaining} contact${remaining > 1 ? "s" : ""} away from your first network digest.</p>`
+      : ""
+
+  const bodyContent = `
+    <p style="margin:0 0 4px">Hey ${escapeHtml(userName)},</p>
+    <p style="color:#44403c;margin:0 0 16px">You've added ${count} contact${count > 1 ? "s" : ""} to Savvo &mdash; nice start. Savvo gets useful once it knows your circle, so add the people you've met recently. A sentence each is enough; we'll pull out the details.</p>
+    ${progressLine}
+    <div style="margin:0 0 24px">
+      <a href="${appUrl}/add" style="display:inline-block;padding:10px 28px;background:#c2410c;color:white;text-decoration:none;border-radius:8px;font-size:14px;font-weight:500">Add a contact</a>
+    </div>
+    <p style="font-size:13px;font-weight:600;color:#1c1917;margin:0 0 8px">Your contacts so far</p>
+    ${contactRows}
+    <p style="color:#78716c;font-size:13px;margin:16px 0 0">Once you reach 5 contacts, Savvo starts sending a regular digest of who's worth reaching out to.</p>
+  `
+
+  const subject =
+    count === 1
+      ? "You've started your network on Savvo — add a few more"
+      : "Who else have you met recently?"
+
+  await getResend().emails.send({
+    from: process.env.RESEND_FROM_EMAIL || "Savvo <digest@savvo.app>",
+    to,
+    subject,
+    html: emailLayout({
+      subtitle: "Build your network",
+      body: bodyContent,
+      appUrl,
+    }),
+  })
+}
+
 export function escapeHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")

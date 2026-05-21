@@ -252,3 +252,73 @@ describe("sendDigestEmail", () => {
     expect(sentHtml).toContain("meeting")
   })
 })
+
+// ─── sendNewUserNudgeEmail ───
+
+describe("sendNewUserNudgeEmail", () => {
+  beforeEach(() => {
+    process.env.RESEND_API_KEY = "test-key"
+    process.env.NEXT_PUBLIC_APP_URL = "https://savvo.app"
+    mockSend.mockClear()
+  })
+
+  const oneContact = [
+    { id: "c1", name: "Alice Smith", company: "Acme Corp", job_title: "CTO" },
+  ]
+  const threeContacts = [
+    { id: "c1", name: "Alice Smith", company: "Acme Corp", job_title: "CTO" },
+    { id: "c2", name: "Bob Jones", company: null, job_title: null },
+    { id: "c3", name: "Carol Lee", company: "Globex", job_title: "Founder" },
+  ]
+
+  it("sends to the correct address with new-user subject", async () => {
+    const { sendNewUserNudgeEmail } = await import("@/lib/email")
+    await sendNewUserNudgeEmail("new@example.com", "Neil", oneContact)
+
+    expect(mockSend).toHaveBeenCalledTimes(1)
+    const call = mockSend.mock.calls[0][0]
+    expect(call.to).toBe("new@example.com")
+    expect(call.subject).toBe(
+      "You've started your network on Savvo — add a few more"
+    )
+  })
+
+  it("uses a different subject when the user has multiple contacts", async () => {
+    const { sendNewUserNudgeEmail } = await import("@/lib/email")
+    await sendNewUserNudgeEmail("new@example.com", "Neil", threeContacts)
+
+    expect(mockSend.mock.calls[0][0].subject).toBe(
+      "Who else have you met recently?"
+    )
+  })
+
+  it("shows how many contacts remain until the first digest", async () => {
+    const { sendNewUserNudgeEmail } = await import("@/lib/email")
+    await sendNewUserNudgeEmail("new@example.com", "Neil", threeContacts)
+
+    // 5 - 3 = 2 contacts away
+    expect(mockSend.mock.calls[0][0].html).toContain("2 contacts away")
+  })
+
+  it("lists the user's existing contacts and links to add more", async () => {
+    const { sendNewUserNudgeEmail } = await import("@/lib/email")
+    await sendNewUserNudgeEmail("new@example.com", "Neil", threeContacts)
+
+    const html = mockSend.mock.calls[0][0].html
+    expect(html).toContain("Alice Smith")
+    expect(html).toContain("Carol Lee")
+    expect(html).toContain("https://savvo.app/add")
+    expect(html).toContain("https://savvo.app/contact/c1")
+  })
+
+  it("escapes HTML in contact names", async () => {
+    const { sendNewUserNudgeEmail } = await import("@/lib/email")
+    await sendNewUserNudgeEmail("new@example.com", "Neil", [
+      { id: "x", name: "<script>alert(1)</script>", company: null, job_title: null },
+    ])
+
+    const html = mockSend.mock.calls[0][0].html
+    expect(html).not.toContain("<script>alert(1)</script>")
+    expect(html).toContain("&lt;script&gt;")
+  })
+})

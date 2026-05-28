@@ -17,6 +17,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/toast"
 import { Turnstile } from "@/components/turnstile"
+import { captureEvent } from "@/components/posthog-provider"
 import { Loader2, Mail } from "lucide-react"
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
@@ -87,6 +88,7 @@ function LoginPageInner() {
           },
         })
         if (error) throw error
+        captureEvent("signup_completed", { method: "email" })
         setSignUpSent(true)
       } else {
         const { error } = await supabase.auth.signInWithPassword({

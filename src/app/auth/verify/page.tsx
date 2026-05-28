@@ -27,10 +27,10 @@ export default function VerifyPage() {
           </p>
 
           <Link
-            href="/dashboard"
+            href="/add"
             className="inline-flex items-center justify-center w-full px-6 py-3 rounded-xl text-base font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity"
           >
-            Go to Dashboard
+            Add your first contact
           </Link>
         </div>
 

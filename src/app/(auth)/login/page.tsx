@@ -39,7 +39,15 @@ function LoginPageInner() {
   const [isForgotPassword, setIsForgotPassword] = useState(false)
   const [resetSent, setResetSent] = useState(false)
   const [email, setEmail] = useState("")
+  const [emailTouched, setEmailTouched] = useState(false)
   const [password, setPassword] = useState("")
+  // Lightweight invalid-state check that fires only after the user leaves the
+  // field. Catches obvious mistakes like "notanemail" without nagging while
+  // they're still typing.
+  const emailLooksInvalid =
+    emailTouched &&
+    email.length > 0 &&
+    !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)
   const [signUpSent, setSignUpSent] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
@@ -351,9 +359,20 @@ function LoginPageInner() {
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    onBlur={() => setEmailTouched(true)}
+                    aria-invalid={emailLooksInvalid || undefined}
                     required
-                    className="h-11 transition-all focus:shadow-md"
+                    className={`h-11 transition-all focus:shadow-md ${
+                      emailLooksInvalid
+                        ? "border-red-500 focus-visible:ring-red-500"
+                        : ""
+                    }`}
                   />
+                  {emailLooksInvalid && (
+                    <p className="text-xs text-red-600 dark:text-red-400">
+                      Please enter a valid email address
+                    </p>
+                  )}
                 </div>
                 <Button
                   type="submit"
@@ -444,9 +463,20 @@ function LoginPageInner() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => setEmailTouched(true)}
+                aria-invalid={emailLooksInvalid || undefined}
                 required
-                className="h-11 transition-all focus:shadow-md"
+                className={`h-11 transition-all focus:shadow-md ${
+                  emailLooksInvalid
+                    ? "border-red-500 focus-visible:ring-red-500"
+                    : ""
+                }`}
               />
+              {emailLooksInvalid && (
+                <p className="text-xs text-red-600 dark:text-red-400">
+                  Please enter a valid email address
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">

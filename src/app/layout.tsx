@@ -26,13 +26,13 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Savvo — AI Relationship Manager",
-  description: "Keep every connection alive. Type what you remember, get structured contacts, health scores, and daily nudges to stay connected.",
+  title: "Savvo — The investor CRM for founders raising a round",
+  description: "Type what you remember after every pitch. Savvo tracks who's interested, who went cold, and who's waiting on a follow-up, so you close the round. Works as a personal CRM for your broader network too.",
   manifest: "/manifest.json",
   metadataBase: new URL("https://savvo.app"),
   openGraph: {
-    title: "Savvo — Never Let a Relationship Drift",
-    description: "AI-powered relationship manager. Type what you remember about someone — Savvo extracts the details, tracks relationship health, and nudges you before connections go cold.",
+    title: "Savvo — Run your raise without a spreadsheet",
+    description: "The investor CRM for founders running a fundraise. Type what you remember after every pitch and Savvo tracks who's in, who's out, and who's waiting on a follow-up.",
     url: "https://savvo.app",
     siteName: "Savvo",
     type: "website",
@@ -40,8 +40,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Savvo — AI Relationship Manager",
-    description: "Keep every connection alive. Health scores, daily digests, and AI-powered follow-ups.",
+    title: "Savvo — Run your raise without a spreadsheet",
+    description: "The investor CRM for founders. Type what you remember after each pitch, track who's interested, who went cold, and who owes you a follow-up.",
   },
   appleWebApp: {
     capable: true,
@@ -78,7 +78,7 @@ export default function RootLayout({
         name: "Savvo",
         url: "https://savvo.app",
         logo: "https://savvo.app/logo.svg",
-        description: "AI-powered relationship manager for founders, VCs, and professional networkers. Keep every connection alive.",
+        description: "The investor CRM for founders raising a round. Tracks investor pipeline status, follow-ups, and intros. Also works as a personal CRM for VCs and professional networkers.",
         founder: {
           "@type": "Person",
           name: "Neil Bajaj",

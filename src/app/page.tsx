@@ -51,21 +51,24 @@ function MarketingPage() {
       <section className="pt-24 sm:pt-32 pb-12 sm:pb-20 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-8 sm:gap-12 items-center">
           <div>
-            <p className="text-sm font-medium text-[var(--copper)] mb-4">AI-powered relationship manager</p>
+            <p className="text-sm font-medium text-[var(--copper)] mb-4">The investor CRM for founders</p>
             <h1 className="text-4xl sm:text-5xl leading-[1.08] tracking-tight mb-4">
-              Keep every connection <em className="not-italic text-[var(--copper)]">alive</em>
+              Run your raise without a <em className="not-italic text-[var(--copper)]">spreadsheet</em>
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed mb-6 max-w-md">
-              Type what you remember about someone. Savvo extracts the details, tracks relationship health, and nudges you before connections go cold.
+              Met 12 investors this week? Type what you remember after every pitch. Savvo tracks who&apos;s in, who&apos;s out, and who&apos;s waiting on a follow-up, so you close the round.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link href="/login?mode=signup" className="inline-flex items-center px-6 py-3 rounded-xl text-base font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity">
-                Start free
+                Start tracking your raise
               </Link>
               <Link href="#how" className="inline-flex items-center px-6 py-3 rounded-xl text-base font-medium border border-border hover:border-[var(--copper)]/30 transition-colors">
                 See how it works
               </Link>
             </div>
+            <p className="text-sm text-muted-foreground mt-4 max-w-md">
+              After the round closes, Savvo keeps every relationship alive: hires, board, customers, and your broader network.
+            </p>
             <Link href="/from-spreadsheet" className="inline-flex items-center gap-2 mt-4 text-sm text-muted-foreground hover:text-[var(--copper)] transition-colors group">
               <span>📋</span>
               <span className="underline underline-offset-2 decoration-stone-300 group-hover:decoration-[var(--copper)]">Using a spreadsheet? See how to import</span>
@@ -75,16 +78,16 @@ function MarketingPage() {
           <div className="relative mt-4 md:mt-0">
             <div className="rounded-2xl border shadow-refined-lg p-6 rotate-1">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-11 h-11 rounded-xl bg-[var(--copper)]/10 flex items-center justify-center text-[var(--copper)] font-semibold text-sm">JD</div>
+                <div className="w-11 h-11 rounded-xl bg-[var(--copper)]/10 flex items-center justify-center text-[var(--copper)] font-semibold text-sm">SC</div>
                 <div>
-                  <div className="font-semibold">John Doe</div>
-                  <div className="text-sm text-muted-foreground">VP of Engineering at Nextera Health</div>
+                  <div className="font-semibold">Sarah Chen</div>
+                  <div className="text-sm text-muted-foreground">Partner at Sequoia</div>
                 </div>
               </div>
               <div className="space-y-2 pt-3 border-t text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">How we met</span><span>AI Summit 2026</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Health</span><span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500 text-white"><span className="w-1.5 h-1.5 rounded-full bg-white" />Active</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Next step</span><span>Grab coffee next week</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Status</span><span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500 text-white"><span className="w-1.5 h-1.5 rounded-full bg-white" />Interested</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Intro&apos;d by</span><span>Marcus at YC</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Next step</span><span>Send Q2 metrics</span></div>
               </div>
             </div>
           </div>

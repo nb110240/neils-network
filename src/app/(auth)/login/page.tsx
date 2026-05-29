@@ -18,7 +18,7 @@ import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/toast"
 import { Turnstile } from "@/components/turnstile"
 import { captureEvent } from "@/components/posthog-provider"
-import { Loader2, Mail } from "lucide-react"
+import { Loader2, Mail, Eye, EyeOff } from "lucide-react"
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
@@ -42,6 +42,7 @@ function LoginPageInner() {
   const [email, setEmail] = useState("")
   const [emailTouched, setEmailTouched] = useState(false)
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   // Lightweight invalid-state check that fires only after the user leaves the
   // field. Catches obvious mistakes like "notanemail" without nagging while
   // they're still typing.
@@ -63,6 +64,23 @@ function LoginPageInner() {
       if (resendIntervalRef.current) clearInterval(resendIntervalRef.current)
     }
   }, [])
+
+  // Reset transient auth state whenever we switch between the sign-up /
+  // sign-in / forgot-password / check-email views. Without this a revealed
+  // password would re-render in plaintext after a view switch (credential
+  // exposure on shared screens), a stale captcha token could enable submit
+  // before a fresh Turnstile widget re-verifies, and a resend cooldown could
+  // carry over to a corrected email.
+  useEffect(() => {
+    setShowPassword(false)
+    setCaptchaToken(null)
+    setCaptchaNonce((n) => n + 1)
+    setResendCooldown(0)
+    if (resendIntervalRef.current) {
+      clearInterval(resendIntervalRef.current)
+      resendIntervalRef.current = null
+    }
+  }, [isSignUp, isForgotPassword, signUpSent])
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -317,6 +335,13 @@ function LoginPageInner() {
             </Button>
             <button
               type="button"
+              onClick={() => { setSignUpSent(false); setIsSignUp(true) }}
+              className="text-sm text-muted-foreground hover:text-[var(--copper)] transition-colors font-medium"
+            >
+              Wrong email? Go back and edit it
+            </button>
+            <button
+              type="button"
               onClick={() => { setSignUpSent(false); setIsSignUp(false) }}
               className="text-sm text-muted-foreground hover:text-[var(--copper)] transition-colors font-medium"
             >
@@ -462,6 +487,7 @@ function LoginPageInner() {
               <Input
                 id="email"
                 type="email"
+                autoComplete="email"
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -493,16 +519,28 @@ function LoginPageInner() {
                   </button>
                 )}
               </div>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                className="h-11 transition-all focus:shadow-md"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={isSignUp ? "new-password" : "current-password"}
+                  required
+                  minLength={6}
+                  className="h-11 pr-10 transition-all focus:shadow-md"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-500 hover:text-[var(--copper)] dark:text-stone-400 dark:hover:text-[var(--copper)] transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               {isSignUp && (
                 <p className="text-xs text-muted-foreground">At least 6 characters</p>
               )}
@@ -524,8 +562,13 @@ function LoginPageInner() {
               disabled={isLoading || (isSignUp && !!TURNSTILE_SITE_KEY && !captchaToken)}
             >
               {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-              {isSignUp ? "Create Account" : "Sign In"}
+              {isSignUp ? "Create my free account" : "Sign In"}
             </Button>
+            {isSignUp && (
+              <p className="text-xs text-center text-stone-700 dark:text-stone-300">
+                Free to start, no credit card. Your data stays private. No social scraping.
+              </p>
+            )}
           </form>
         </CardContent>
         <CardFooter className="flex justify-center pb-6 relative">

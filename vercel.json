@@ -12,5 +12,8 @@
       "path": "/api/cron/cleanup-unverified",
       "schedule": "0 3 * * 0"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": false
+  }
 }

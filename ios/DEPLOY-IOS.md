@@ -338,13 +338,43 @@ than resubmitting unchanged.
 
 These came out of cross-model adversarial review. None affect the web build; all are native-only and any one can break the iOS app or get it rejected. Decide each before you submit.
 
-1. **Auth callback must return to the app, not Safari (HIGH).** Email verification and password reset link to `https://savvo.app/auth/callback`. Without Associated Domains + an AASA file, tapping the link in Mail opens Safari, authenticates there, and leaves the WKWebView app logged out. Make universal links MANDATORY for the native release: serve `public/.well-known/apple-app-site-association`, add the `applinks:savvo.app` entitlement, whitelist the redirect in Supabase, and smoke-test signup + reset from Mail into the app. (The "Associated Domains optional" note elsewhere in this doc does NOT apply once email-link auth is in play.)
+1. **Auth callback returns to the app (universal links) — CODE IN PLACE.** `public/.well-known/apple-app-site-association` is committed (with a `TEAMID` placeholder) and served as JSON via a `next.config.ts` header. Remaining config (see setup section below): replace `TEAMID` with your Apple Team ID, add the Associated Domains entitlement (`applinks:savvo.app`, `webcredentials:savvo.app`) in Xcode, and smoke-test signup + reset from Mail. MANDATORY for native release: without it, email-link auth opens Safari and leaves the app logged out.
 
-2. **Google sign-in is blocked in embedded WebViews (HIGH).** Google rejects OAuth in embedded user agents (`disallowed_useragent`), so "Continue with Google" via `supabase.auth.signInWithOAuth` will likely fail inside the wrapper. Either implement a native auth flow (ASWebAuthenticationSession / Capacitor Browser plugin opening the system browser, with a deep-link callback) or hide the Google button when `isNative()` until that exists. Verify on a device before shipping.
+2. **Google sign-in via the system browser — CODE IN PLACE.** The `login` page branches on `isNative()` to `signInWithGoogleNative()` (opens Google in the system browser via `@capacitor/browser`, returns through the `app.savvo://auth/callback` deep link, exchanges the PKCE code). Remaining config: register the `app.savvo` URL scheme in Xcode and add `app.savvo://auth/callback` to the Supabase Auth redirect allowlist.
 
-3. **In-app purchase of Pro = Guideline 3.1.1 (HIGH).** Selling the Pro tier via Stripe Checkout inside the iOS app is a rejection path; Apple requires StoreKit/IAP for digital goods consumed in-app. Decide: implement IAP for iOS subscriptions, OR suppress all in-app upgrade/payment entry points in native (`isNative()` gate on the pricing/upgrade CTAs) and keep purchasing on the web only. Do not submit with a live in-app Stripe upgrade.
+3. **In-app purchase via RevenueCat — CODE IN PLACE.** The Pro CTA branches on `isNative()` to RevenueCat (`src/lib/native/purchases.ts`); Stripe stays web-only, satisfying Guideline 3.1.1. The webhook at `/api/native/revenuecat-webhook` mirrors entitlements into the `subscriptions` table. Remaining config: create the auto-renewable products in App Store Connect, configure RevenueCat (entitlement `pro`, an offering with monthly + annual packages), set the env vars, and point the RevenueCat webhook at the route.
 
 4. **PostHog analytics blocked by CSP (MEDIUM, pre-existing — verify).** `connect-src` in next.config.ts does not list the PostHog ingestion host (e.g. `https://us.i.posthog.com`), so analytics may be blocked on web AND in the WebView while the privacy label claims PostHog collection. This is a pre-existing web issue, not introduced by the wrapper. Confirm whether PostHog is proxied; if not, add the host to `connect-src` or correct the privacy disclosure.
+
+## Setup: IAP, native Google sign-in, universal links
+
+The app code for all three is committed and the web build is unaffected. These are the remaining account/Xcode/env steps (none can be done from the repo).
+
+### A. Universal links (auth callback returns to the app)
+
+1. In `public/.well-known/apple-app-site-association`, replace both `TEAMID` values with your Apple Developer Team ID, so the appID is `<TeamID>.app.savvo`. Deploy the web app so the file is live at `https://savvo.app/.well-known/apple-app-site-association` (must return 200, `Content-Type: application/json`, no redirect — the `next.config.ts` header handles the type).
+2. In Xcode: target → Signing & Capabilities → add **Associated Domains** with `applinks:savvo.app` and `webcredentials:savvo.app`.
+3. Supabase: keep the email/reset redirect at `https://savvo.app/auth/callback` (already used). With the AASA live, Mail opens the app instead of Safari.
+4. Smoke-test: sign up + reset password on device, tap the email link, confirm it lands in the app authenticated.
+
+### B. Native Google sign-in
+
+1. Xcode: target → Info → URL Types → add a scheme `app.savvo` (CFBundleURLSchemes).
+2. Supabase: Auth → URL Configuration → add `app.savvo://auth/callback` to the Redirect URLs allowlist. (No separate Google iOS OAuth client is needed; this reuses your existing Supabase Google provider, just opened in the system browser.)
+3. Smoke-test "Continue with Google" on device: the system browser opens, and after consent you return to the app signed in.
+
+### C. In-App Purchase (RevenueCat)
+
+1. App Store Connect: create two auto-renewable subscription products (monthly + annual) under a subscription group; set prices to match web ($5/mo, $50/yr launch).
+2. RevenueCat dashboard: add the iOS app, attach the App Store products, create an **entitlement with identifier `pro`**, and an **offering** whose current packages include the monthly and annual products (package types `MONTHLY` and `ANNUAL`).
+3. Env vars:
+   - `NEXT_PUBLIC_REVENUECAT_IOS_KEY` = the RevenueCat public iOS SDK key (build-time, set in all envs you build native from).
+   - `REVENUECAT_WEBHOOK_AUTH` = a random secret; set the same value as the Authorization header in the RevenueCat webhook config.
+4. RevenueCat → Integrations → Webhooks: point at `https://savvo.app/api/native/revenuecat-webhook`, Authorization header = `REVENUECAT_WEBHOOK_AUTH`.
+5. Xcode: add the **In-App Purchase** capability.
+6. Smoke-test with a Sandbox Apple ID: upgrade flows through the StoreKit sheet, the `pro` entitlement activates, the webhook flips `subscriptions.plan` to `pro`, and "Restore Purchases" works (App Store requires a restore path — surface a Restore button in native account/settings).
+
+> Note: the RevenueCat appUserID is set to the Supabase user id in code, so webhook `app_user_id` maps directly to `subscriptions.user_id`. No DB migration is required (reuses the existing Stripe `subscriptions` table).
 
 ## Native safe-area polish (do on a simulator, before first TestFlight)
 

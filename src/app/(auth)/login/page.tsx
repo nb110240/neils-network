@@ -197,6 +197,29 @@ function LoginPageInner() {
   const handleGoogleAuth = async () => {
     setIsLoading(true)
     try {
+      // Native (iOS): Google blocks OAuth in embedded WebViews, so run the
+      // system-browser flow and exchange the code, rather than redirecting the
+      // in-app WebView. No-op path on web falls through to the redirect below.
+      const { isNative } = await import("@/lib/native/capacitor")
+      if (isNative()) {
+        const { signInWithGoogleNative } = await import("@/lib/native/google-auth")
+        const result = await signInWithGoogleNative()
+        if (!result.ok) {
+          if (result.error && result.error !== "cancelled") {
+            addToast({
+              title: "Error",
+              description: result.error,
+              variant: "destructive",
+            })
+          }
+          setIsLoading(false)
+          return
+        }
+        router.push("/dashboard")
+        router.refresh()
+        return
+      }
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {

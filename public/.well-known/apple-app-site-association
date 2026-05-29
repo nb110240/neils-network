@@ -1,0 +1,16 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["TEAMID.app.savvo"],
+        "components": [
+          { "/": "/auth/callback*", "comment": "Supabase email verify / password reset returns into the app instead of Safari" },
+          { "/": "/auth/*", "comment": "Other auth deep links" }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["TEAMID.app.savvo"]
+  }
+}

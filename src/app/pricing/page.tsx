@@ -50,6 +50,34 @@ export default function PricingPage() {
 
     setIsLoading(true)
     try {
+      // Native (iOS): Apple Guideline 3.1.1 requires In-App Purchase for digital
+      // goods, so route the upgrade through RevenueCat instead of Stripe. Web
+      // falls through to Stripe Checkout below.
+      const { isNative } = await import("@/lib/native/capacitor")
+      if (isNative()) {
+        const { configurePurchases, purchasePro } = await import(
+          "@/lib/native/purchases"
+        )
+        await configurePurchases(user.id)
+        const result = await purchasePro(billing)
+        if (result.ok) {
+          addToast({
+            title: "You're on Pro",
+            description: "Your upgrade is active.",
+          })
+          router.push("/dashboard")
+          router.refresh()
+        } else if (result.error && result.error !== "cancelled") {
+          addToast({
+            title: "Error",
+            description: result.error,
+            variant: "destructive",
+          })
+        }
+        setIsLoading(false)
+        return
+      }
+
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

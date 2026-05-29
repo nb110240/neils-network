@@ -334,6 +334,18 @@ than resubmitting unchanged.
 
 ---
 
+## Native release blockers (resolve before first submission)
+
+These came out of cross-model adversarial review. None affect the web build; all are native-only and any one can break the iOS app or get it rejected. Decide each before you submit.
+
+1. **Auth callback must return to the app, not Safari (HIGH).** Email verification and password reset link to `https://savvo.app/auth/callback`. Without Associated Domains + an AASA file, tapping the link in Mail opens Safari, authenticates there, and leaves the WKWebView app logged out. Make universal links MANDATORY for the native release: serve `public/.well-known/apple-app-site-association`, add the `applinks:savvo.app` entitlement, whitelist the redirect in Supabase, and smoke-test signup + reset from Mail into the app. (The "Associated Domains optional" note elsewhere in this doc does NOT apply once email-link auth is in play.)
+
+2. **Google sign-in is blocked in embedded WebViews (HIGH).** Google rejects OAuth in embedded user agents (`disallowed_useragent`), so "Continue with Google" via `supabase.auth.signInWithOAuth` will likely fail inside the wrapper. Either implement a native auth flow (ASWebAuthenticationSession / Capacitor Browser plugin opening the system browser, with a deep-link callback) or hide the Google button when `isNative()` until that exists. Verify on a device before shipping.
+
+3. **In-app purchase of Pro = Guideline 3.1.1 (HIGH).** Selling the Pro tier via Stripe Checkout inside the iOS app is a rejection path; Apple requires StoreKit/IAP for digital goods consumed in-app. Decide: implement IAP for iOS subscriptions, OR suppress all in-app upgrade/payment entry points in native (`isNative()` gate on the pricing/upgrade CTAs) and keep purchasing on the web only. Do not submit with a live in-app Stripe upgrade.
+
+4. **PostHog analytics blocked by CSP (MEDIUM, pre-existing — verify).** `connect-src` in next.config.ts does not list the PostHog ingestion host (e.g. `https://us.i.posthog.com`), so analytics may be blocked on web AND in the WebView while the privacy label claims PostHog collection. This is a pre-existing web issue, not introduced by the wrapper. Confirm whether PostHog is proxied; if not, add the host to `connect-src` or correct the privacy disclosure.
+
 ## Native safe-area polish (do on a simulator, before first TestFlight)
 
 The safe-area CSS in `globals.css` is intentionally inert until you turn it on, because enabling it half-way (insets without fixing the fixed/sticky chrome) makes the native UI look worse, not better. Do this whole step at once with an iOS simulator open.

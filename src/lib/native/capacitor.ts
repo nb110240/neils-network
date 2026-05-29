@@ -63,7 +63,15 @@ export async function initNative(): Promise<void> {
           url.protocol === "https:" &&
           (host === "savvo.app" || host.endsWith(".savvo.app"))
         ) {
-          window.location.href = url.pathname + url.search + url.hash
+          // Navigate to an absolute SAME-ORIGIN target. A protocol-relative
+          // pathname like "//evil.example/x" (from a link such as
+          // https://savvo.app//evil.example/x) would otherwise be assigned
+          // verbatim and the WebView would treat "//evil.example" as a
+          // cross-origin host. Reject "//" paths and always prefix our origin.
+          const path = url.pathname.startsWith("//") ? "/" : url.pathname
+          window.location.assign(
+            window.location.origin + path + url.search + url.hash,
+          )
         }
       } catch {
         // Malformed URL — ignore.

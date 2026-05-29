@@ -181,9 +181,11 @@ Notes:
 | Copyright | 2026 Savvo |
 
 Action item: confirm https://savvo.app/support and https://savvo.app/privacy both return
-200 before submission. App Review rejects dead support or privacy URLs. If /support does not
-exist yet, point Support URL at https://savvo.app and provide support@savvo.app as the
-in-listing contact.
+200 to a LOGGED-OUT visitor before submission. App Review rejects dead support or privacy
+URLs. NOTE: `/support` is currently behind auth (protected in src/middleware.ts), so an
+unauthenticated reviewer gets redirected to login and the URL effectively fails review.
+Either ship a public `/support` page or set the Support URL to a public page (or
+https://savvo.app) and rely on support@savvo.app as the in-listing contact.
 
 ---
 
@@ -225,10 +227,15 @@ Top-level answer to "Do you or your third-party partners collect data from this 
   Purchase History). If you later store card brand or last4 in your own DB, add
   Financial Info > Payment Info.
 - Location (precise or coarse): NOT collected.
-- Contacts (the iOS system address book / Contact Picker): NOT collected. Savvo stores only
-  contacts the user manually enters, which are declared as User Content > Other User Content,
-  not as the device "Contacts" permission. If you later import from the iOS address book via a
-  native plugin, you must add the Apple "Contacts" data type and an NSContactsUsageDescription.
+- Contacts (Apple "Contacts" data type): the iOS system address book / Contact Picker is NOT
+  read. BUT the app offers a Google Contacts import (src/app/api/import/google/route.ts requests
+  contacts.readonly and stores imported names/emails/phones), which pulls third-party contact
+  data. Apple's "Contacts" data type covers contacts from a user's address book or social graph,
+  so if the Google import ships in the iOS build you should declare the Apple "Contacts" data
+  type as collected + linked (in addition to User Content > Other User Content). If you suppress
+  the Google import in native, the device address book remains untouched and Contacts stays
+  not-collected. Decide this before filling the questionnaire. (A native iOS address-book import
+  would additionally require an NSContactsUsageDescription.)
 - Health, Browsing History, Search History, Sensitive Info, Audio Data, Photos/Videos,
   Gameplay Content, Customer Support free-text beyond email: NOT collected.
 

@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ServiceWorkerRegistrar } from "@/components/sw-registrar"
 import { PostHogProvider } from "@/components/posthog-provider"
+import { NativeBootstrap } from "@/components/native-bootstrap"
 import "./globals.css"
 
 const dmSans = DM_Sans({
@@ -171,6 +172,7 @@ export default function RootLayout({
         <Analytics />
         <SpeedInsights />
         <ServiceWorkerRegistrar />
+        <NativeBootstrap />
       </body>
     </html>
   )

@@ -356,14 +356,13 @@ h1, h2, h3, h4, h5, h6 {
 /*
  * iOS safe-area insets (Capacitor native WebView).
  *
- * env(safe-area-inset-*) resolves to 0 unless the page opts in with
- * viewport-fit=cover. We deliberately do NOT set viewport-fit globally, so
- * these rules are currently inert on web (no layout change for browser/PWA
- * users) and inert on native. Turning on the full native safe-area treatment
- * (viewport-fit=cover plus insetting the fixed/sticky chrome) is a tracked
- * step in ios/DEPLOY-IOS.md that must be verified on a simulator before it is
- * enabled. These body paddings and the .safe-area-inset-* utilities are kept
- * here ready for that step.
+ * env(safe-area-inset-*) resolves to 0 unless the page opts into
+ * viewport-fit=cover. We enable that ONLY on native (initNative in
+ * src/lib/native/capacitor.ts sets it at runtime), so on web/PWA these rules
+ * stay inert and mobile-web layout is unchanged, while inside the iOS app they
+ * push the body and the .safe-area-inset-* chrome (sticky header, full-screen
+ * mobile overlay) clear of the notch and home indicator. Verify on a simulator
+ * before release.
  */
 body {
   padding-top: env(safe-area-inset-top, 0px);

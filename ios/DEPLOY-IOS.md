@@ -376,17 +376,11 @@ The app code for all three is committed and the web build is unaffected. These a
 
 > Note: the RevenueCat appUserID is set to the Supabase user id in code, so webhook `app_user_id` maps directly to `subscriptions.user_id`. No DB migration is required (reuses the existing Stripe `subscriptions` table).
 
-## Native safe-area polish (do on a simulator, before first TestFlight)
+## Native safe-area polish — WIRED IN CODE, verify on a simulator
 
-The safe-area CSS in `globals.css` is intentionally inert until you turn it on, because enabling it half-way (insets without fixing the fixed/sticky chrome) makes the native UI look worse, not better. Do this whole step at once with an iOS simulator open.
+This is implemented native-only and does not touch mobile-web layout: `initNative()` sets `viewport-fit=cover` on the viewport meta at runtime (native only), the `body` padding + `.safe-area-inset-*` utilities live in `globals.css`, and the sticky header + full-screen mobile overlay carry the inset classes (the FAB already insets inline). On web `env()` insets are 0, so all of it is inert there.
 
-1. Enable the opt-in: in `src/app/layout.tsx`, add `viewportFit: "cover"` to the exported `viewport` object. Only then does iOS expose non-zero `env(safe-area-inset-*)`. Note this also makes mobile-web Safari/PWA go edge-to-edge, so re-check the web layout on a notched device too.
-2. Inset the fixed/sticky chrome (viewport-relative, so the global `body` padding does NOT move them):
-   - `src/components/nav-header.tsx` sticky header (`sticky top-0`): add `.safe-area-inset-top`.
-   - `src/components/nav-header.tsx` full-screen mobile overlay (`fixed inset-0`): add `.safe-area-inset-top` and `.safe-area-inset-bottom`.
-   - `src/components/mobile-fab.tsx` FAB (`fixed bottom-5 right-4`): add `.safe-area-inset-bottom`.
-3. Verify on a notched simulator in BOTH light and dark mode: header clears the status bar, FAB clears the home indicator, no content under the notch, no double-gap.
-4. Re-run `npm run ios:sync` and re-archive.
+Remaining: just verify on a notched simulator in BOTH light and dark mode — header clears the status bar, FAB clears the home indicator, no content under the notch, no double-gap. If anything looks off, adjust the `.safe-area-inset-*` placements. Then `npm run ios:sync` and re-archive.
 
 ## Native feature wiring (optional, before relying on them)
 

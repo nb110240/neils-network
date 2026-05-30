@@ -45,6 +45,14 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: "no-store" },
         ],
       },
+      {
+        // Apple App Site Association must be served as JSON for iOS universal
+        // links (the file in public/ has no extension, so set the type here).
+        source: "/.well-known/apple-app-site-association",
+        headers: [
+          { key: "Content-Type", value: "application/json" },
+        ],
+      },
     ];
   },
 };

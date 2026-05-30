@@ -38,6 +38,19 @@ export async function initNative(): Promise<void> {
   if (!isNative() || nativeInitialized) return
   nativeInitialized = true
 
+  // Opt into edge-to-edge so iOS exposes non-zero env(safe-area-inset-*) values
+  // (otherwise the safe-area CSS in globals.css is inert). Native only — the web
+  // viewport is never touched, so mobile-web layout is unchanged.
+  try {
+    const viewport = document.querySelector('meta[name="viewport"]')
+    const content = viewport?.getAttribute("content") ?? ""
+    if (viewport && !content.includes("viewport-fit")) {
+      viewport.setAttribute("content", `${content}, viewport-fit=cover`)
+    }
+  } catch {
+    // Non-critical.
+  }
+
   try {
     const { StatusBar, Style } = await import("@capacitor/status-bar")
     // Default (light content background) status bar; matches the light-mode

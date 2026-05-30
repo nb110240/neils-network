@@ -59,7 +59,7 @@ export function NavHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b bg-background">
+      <header className="sticky top-0 z-40 w-full border-b bg-background safe-area-inset-top">
         <div className="container mx-auto flex h-16 items-center px-4">
           {/* Mobile menu button */}
           <Button
@@ -181,7 +181,7 @@ export function NavHeader() {
 
       {/* Mobile slide-out menu overlay */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 sm:hidden">
+        <div className="fixed inset-0 z-50 sm:hidden safe-area-inset-top safe-area-inset-bottom">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/50"

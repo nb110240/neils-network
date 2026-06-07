@@ -2,6 +2,11 @@ import { NextResponse } from "next/server"
 import { timingSafeEqual } from "node:crypto"
 import { createServiceClient } from "@/lib/supabase/server"
 import { log } from "@/lib/logger"
+import {
+  attributeVerificationEnabled,
+  verifySubscriberAttribute,
+} from "@/lib/revenuecat"
+import { isValidUUID } from "@/lib/api-utils"
 
 /**
  * RevenueCat webhook -> Pro entitlement sync.
@@ -47,15 +52,46 @@ export async function POST(request: Request) {
       app_user_id?: string
       expiration_at_ms?: number
       entitlement_ids?: string[] | null
+      subscriber_attributes?: Record<string, { value?: string }> | null
     }
   } | null
   const event = body?.event
-  if (!event?.type || !event.app_user_id) {
+  // app_user_id is used as the DB key and HMAC input; require a well-formed
+  // UUID (it should equal a Supabase user id) before any crypto/DB work.
+  if (
+    !event?.type ||
+    typeof event.app_user_id !== "string" ||
+    !isValidUUID(event.app_user_id)
+  ) {
     return NextResponse.json({ message: "Bad payload" }, { status: 400 })
   }
 
   const userId = event.app_user_id
   const type = event.type
+
+  // Defense in depth: app_user_id is set by the native client with the PUBLIC
+  // SDK key, so by itself it is not authoritative. When a server secret is
+  // configured, require a valid server-minted signed subscriber attribute that
+  // only a session legitimately holding this account could have produced.
+  // If verification is not enabled, proceed as before (documented degradation).
+  if (attributeVerificationEnabled()) {
+    const sig = event.subscriber_attributes?.savvo_sig?.value
+    if (!verifySubscriberAttribute(userId, sig)) {
+      // Missing or invalid signature. The client sets savvo_sig BEFORE a
+      // purchase can proceed (see configurePurchases), so a legitimate purchase
+      // event always carries a valid one — anything else is a forgery, a wrong
+      // account, or a misconfigured client. Ack (200) WITHOUT granting. We do
+      // NOT 425/retry: RevenueCat replays the same snapshot payload, so a
+      // missing attribute would never appear on retry and would loop forever.
+      log("warn", "RevenueCat webhook rejected: missing or invalid subscriber signature", {
+        action: "revenuecat.webhook",
+        route: "/api/native/revenuecat-webhook",
+        eventType: type,
+        userId,
+      })
+      return NextResponse.json({ received: true })
+    }
+  }
   // Only treat events that actually carry the "pro" entitlement as Pro grants,
   // so unrelated/future products can never flip a user to Pro.
   const grantsPro =
@@ -82,16 +118,28 @@ export async function POST(request: Request) {
   let dbError: { message: string } | null = null
 
   if (ACTIVATE.includes(type) && grantsPro) {
-    const { error } = await supabase.from("subscriptions").upsert(
-      {
-        user_id: userId,
-        plan: "pro",
-        status: "active",
-        current_period_end: currentPeriodEnd,
-      },
-      { onConflict: "user_id" },
-    )
-    dbError = error
+    if (!attributeVerificationEnabled() && process.env.NODE_ENV === "production") {
+      // Fail closed: granting Pro in production WITHOUT the signing secret would
+      // let the client-set app_user_id alone grant Pro. Do not grant, and log an
+      // error so the missing REVENUECAT_ATTRIBUTE_SECRET is caught immediately.
+      log("error", "RevenueCat grant blocked: REVENUECAT_ATTRIBUTE_SECRET unset in production", {
+        action: "revenuecat.webhook",
+        route: "/api/native/revenuecat-webhook",
+        eventType: type,
+        userId,
+      })
+    } else {
+      const { error } = await supabase.from("subscriptions").upsert(
+        {
+          user_id: userId,
+          plan: "pro",
+          status: "active",
+          current_period_end: currentPeriodEnd,
+        },
+        { onConflict: "user_id" },
+      )
+      dbError = error
+    }
   } else if (DEACTIVATE.includes(type)) {
     // Guard against a stale/out-of-order expiration overwriting a newer
     // renewal: only downgrade if this event is not older than what we have.

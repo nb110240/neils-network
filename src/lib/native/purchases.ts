@@ -33,6 +33,17 @@ export async function configurePurchases(appUserId: string): Promise<void> {
   if (!isNative() || !RC_API_KEY || configuredFor === appUserId) return
   const { Purchases } = await import("@revenuecat/purchases-capacitor")
   await Purchases.configure({ apiKey: RC_API_KEY, appUserID: appUserId })
+
+  // Set a server-minted signed subscriber attribute BEFORE marking configured,
+  // so a purchase can never proceed unsigned under enforcement (which would
+  // take the user's money and then be denied by the webhook). If we cannot
+  // obtain/set the signature, leave configuredFor unset and throw so the caller
+  // blocks the purchase and the next attempt retries.
+  const res = await fetch("/api/native/revenuecat-attribute")
+  if (!res.ok) throw new Error("Could not prepare purchase. Please try again.")
+  const { sig } = (await res.json()) as { sig: string | null }
+  if (sig) await Purchases.setAttributes({ savvo_sig: sig })
+
   configuredFor = appUserId
 }
 

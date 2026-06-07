@@ -370,11 +370,14 @@ The app code for all three is committed and the web build is unaffected. These a
 3. Env vars:
    - `NEXT_PUBLIC_REVENUECAT_IOS_KEY` = the RevenueCat public iOS SDK key (build-time, set in all envs you build native from).
    - `REVENUECAT_WEBHOOK_AUTH` = a random secret; set the same value as the Authorization header in the RevenueCat webhook config.
+   - `REVENUECAT_ATTRIBUTE_SECRET` = a random server secret (server-only, do not expose to the client). Enables the signed subscriber attribute below. **REQUIRED before charging real money:** if unset, the defense degrades off (client skips the attribute, webhook skips enforcement) and `app_user_id` alone can grant Pro. Setting it in production is the only thing that closes that gap — treat it as a launch gate, not an optional extra.
 4. RevenueCat → Integrations → Webhooks: point at `https://savvo.app/api/native/revenuecat-webhook`, Authorization header = `REVENUECAT_WEBHOOK_AUTH`.
 5. Xcode: add the **In-App Purchase** capability.
 6. Smoke-test with a Sandbox Apple ID: upgrade flows through the StoreKit sheet, the `pro` entitlement activates, the webhook flips `subscriptions.plan` to `pro`, and "Restore Purchases" works (App Store requires a restore path — surface a Restore button in native account/settings).
 
 > Note: the RevenueCat appUserID is set to the Supabase user id in code, so webhook `app_user_id` maps directly to `subscriptions.user_id`. No DB migration is required (reuses the existing Stripe `subscriptions` table).
+>
+> Defense in depth: `purchases.ts` fetches an HMAC of the signed-in user id from the authenticated `/api/native/revenuecat-attribute` route and sets it as the `savvo_sig` subscriber attribute, which the webhook recomputes and verifies (`REVENUECAT_ATTRIBUTE_SECRET`) before granting — so `app_user_id` alone (set with the public SDK key) cannot grant Pro.
 
 ## Native safe-area polish — WIRED IN CODE, verify on a simulator
 

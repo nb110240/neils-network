@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/nextjs"
 import { createClient, createServiceClient } from "@/lib/supabase/server"
 import { verifyDevAccess } from "@/lib/api-utils"
 import { buildContactEmbeddingText } from "@/lib/openai"
+import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,6 +15,9 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
+
+    const rl = await rateLimit(user.id, "ai")
+    if (!rl.success) return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: rateLimitHeaders(rl) })
 
     const serviceSupabase = await createServiceClient()
 

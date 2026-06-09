@@ -52,6 +52,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Logged-in visitors who land on the marketing homepage go straight to the
+  // app. Doing this here (the middleware already resolved `user`) lets `/` stay
+  // a static, CDN-served page for logged-out visitors — for whom getUser() with
+  // no session is a fast no-op — instead of a dynamic, cold-start-prone route.
+  if (request.nextUrl.pathname === "/" && user) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/dashboard"
+    return NextResponse.redirect(url)
+  }
+
   return supabaseResponse
 }
 

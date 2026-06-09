@@ -17,21 +17,32 @@ export default async function ContactsPage() {
     return null
   }
 
-  // Get total count (exclude archived)
-  const { count: total } = await supabase
-    .from("contacts")
-    .select("*", { count: "exact", head: true })
-    .eq("created_by", user.id)
-    .is("archived_at", null)
+  // The full Contact shape MINUS the 1536-dim `embedding` vector (~6-20KB/row),
+  // which the UI never reads — `select("*")` was shipping it on every row.
+  const CONTACT_COLUMNS =
+    "id, name, email, phone, company, job_title, website, how_we_met, next_steps, follow_up_needed, last_contact_date, raw_note, embedding_status, source, created_by, cadence_days, scheduled_follow_up, snoozed_until, next_due_date, created_at, updated_at, archived_at"
 
-  // Fetch the first page ordered by created_at DESC (exclude archived)
-  const { data: contacts } = await supabase
-    .from("contacts")
-    .select("*")
-    .eq("created_by", user.id)
-    .is("archived_at", null)
-    .order("created_at", { ascending: false })
-    .limit(PAGE_SIZE + 1)
+  // total, the first page, and tags are independent (only need user.id) — run
+  // them in parallel instead of three serial round-trips.
+  const [{ count: total }, { data: contacts }, { data: tags }] = await Promise.all([
+    supabase
+      .from("contacts")
+      .select("*", { count: "exact", head: true })
+      .eq("created_by", user.id)
+      .is("archived_at", null),
+    supabase
+      .from("contacts")
+      .select(CONTACT_COLUMNS)
+      .eq("created_by", user.id)
+      .is("archived_at", null)
+      .order("created_at", { ascending: false })
+      .limit(PAGE_SIZE + 1),
+    supabase
+      .from("tags")
+      .select("*")
+      .eq("created_by", user.id)
+      .order("name", { ascending: true }),
+  ])
 
   const results = contacts || []
   const hasMore = results.length > PAGE_SIZE
@@ -44,13 +55,6 @@ export default async function ContactsPage() {
 
   const lastItem = contactsWithHealth[contactsWithHealth.length - 1]
   const nextCursor = hasMore && lastItem ? lastItem.created_at : null
-
-  // Fetch tags
-  const { data: tags } = await supabase
-    .from("tags")
-    .select("*")
-    .eq("created_by", user.id)
-    .order("name", { ascending: true })
 
   // Fetch contact-tag mappings for the first page
   const contactIds = contactsWithHealth.map((c) => c.id)

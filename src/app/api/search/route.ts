@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+import { NextResponse, after } from "next/server"
 import { authenticateRequest, authFailed, errorResponse } from "@/lib/api-utils"
 import { parseBody } from "@/lib/request"
 import { z } from "zod/v4"
@@ -38,53 +38,60 @@ export async function POST(request: Request) {
     const searchFields = ["name", "email", "company", "job_title", "how_we_met", "next_steps", "raw_note"]
     const orFilter = searchFields.map((f) => `${f}.ilike.${searchPattern}`).join(",")
 
+    // Fired immediately (the trailing .then() starts execution now) so the
+    // keyword query runs concurrently with the semantic-limit check + OpenAI
+    // embedding below. Explicit columns = the Contact shape minus the large
+    // `embedding` vector, which results never display.
     const keywordPromise = supabase
       .from("contacts")
-      .select("*")
+      .select("id, name, email, phone, company, job_title, website, how_we_met, next_steps, follow_up_needed, last_contact_date, raw_note, embedding_status, source, created_by, cadence_days, scheduled_follow_up, snoozed_until, next_due_date, created_at, updated_at, archived_at")
       .eq("created_by", user.id)
       .is("archived_at", null)
       .or(orFilter)
       .order("created_at", { ascending: false })
       .limit(30)
+      .then((r) => r)
 
-    // Vector search (if user has quota)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let vectorPromise: Promise<any> | null = null
-    let usedSemantic = false
-
-    const { allowed } = await checkSemanticSearchLimit(user.id)
-    if (allowed) {
+    // Vector pipeline (limit check -> embedding -> match RPC) as one async unit,
+    // run in parallel with the keyword query so the ~300-800ms embedding latency
+    // overlaps the keyword round-trip instead of stacking before it.
+    const vectorPromise = (async () => {
+      const { allowed } = await checkSemanticSearchLimit(user.id)
+      if (!allowed) return { data: null, error: null, usedSemantic: false }
       const queryEmbedding = await generateEmbedding(query)
-      if (queryEmbedding) {
-        usedSemantic = true
-        vectorPromise = Promise.resolve(supabase.rpc("match_contacts", {
-          query_embedding: queryEmbedding,
-          match_threshold: 0.25,
-          match_count: 30,
-          user_id: user.id,
-        }))
-      }
-    }
+      if (!queryEmbedding) return { data: null, error: null, usedSemantic: false }
+      const res = await supabase.rpc("match_contacts", {
+        query_embedding: queryEmbedding,
+        match_threshold: 0.25,
+        match_count: 30,
+        user_id: user.id,
+      })
+      return { data: res.data, error: res.error, usedSemantic: true }
+    })()
 
-    // Await both in parallel
-    const [keywordResult, vectorResult] = await Promise.all([
-      keywordPromise,
-      vectorPromise || Promise.resolve({ data: null, error: null }),
-    ])
+    const [keywordResult, vectorResult] = await Promise.all([keywordPromise, vectorPromise])
+    const usedSemantic = vectorResult.usedSemantic
 
     if (keywordResult.error) {
       console.error("Keyword search error:", keywordResult.error)
     }
-    if (vectorResult?.error) {
+    if (vectorResult.error) {
       console.error("Vector search error:", vectorResult.error)
     }
 
     const keywordResults = (keywordResult.data || []) as ScoredContact[]
-    const vectorResults = ((vectorResult?.data) || []) as ScoredContact[]
+    const vectorResults = (vectorResult.data || []) as ScoredContact[]
 
-    // Record semantic usage if we used it
+    // Record semantic usage without blocking the response. after() needs a
+    // request scope (always present for a real request); fall back to a
+    // fire-and-forget call where it isn't (e.g. a unit test invoking the
+    // handler directly), so the route never 500s on the recording step.
     if (usedSemantic) {
-      await recordSemanticSearch(user.id)
+      try {
+        after(() => recordSemanticSearch(user.id))
+      } catch {
+        void recordSemanticSearch(user.id)
+      }
     }
 
     // ─── Merge with Reciprocal Rank Fusion ───

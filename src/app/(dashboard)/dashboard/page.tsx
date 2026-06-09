@@ -43,9 +43,23 @@ export default async function DashboardPage() {
     return null
   }
 
-  const plan = await getUserPlan(user.id)
+  // Plan and the full unarchived contact set are independent (both only need
+  // user.id), so fetch them in parallel instead of serially. The list IS the
+  // complete unarchived set, so its length is the total contact count — a
+  // separate COUNT round-trip was redundant.
+  const [plan, { data: allContacts }] = await Promise.all([
+    getUserPlan(user.id),
+    supabase
+      .from("contacts")
+      .select("id, name, email, phone, company, job_title, website, how_we_met, next_steps, follow_up_needed, last_contact_date, raw_note, source, created_by, created_at, updated_at, archived_at, embedding_status, cadence_days, scheduled_follow_up, snoozed_until, next_due_date")
+      .eq("created_by", user.id)
+      .is("archived_at", null)
+      .order("created_at", { ascending: false }),
+  ])
 
-  // Check if calendar is connected
+  const totalContacts = allContacts?.length ?? 0
+
+  // Check if calendar is connected (Pro only)
   let calendarConnected = false
   if (plan === "pro") {
     const serviceSupabase = await createServiceClient()
@@ -57,20 +71,6 @@ export default async function DashboardPage() {
       .single()
     calendarConnected = !!integration
   }
-
-  // Fetch stats (exclude archived)
-  const { count: totalContacts } = await supabase
-    .from("contacts")
-    .select("*", { count: "exact", head: true })
-    .eq("created_by", user.id)
-    .is("archived_at", null)
-
-  const { data: allContacts } = await supabase
-    .from("contacts")
-    .select("id, name, email, phone, company, job_title, website, how_we_met, next_steps, follow_up_needed, last_contact_date, raw_note, source, created_by, created_at, updated_at, archived_at, embedding_status, cadence_days, scheduled_follow_up, snoozed_until, next_due_date")
-    .eq("created_by", user.id)
-    .is("archived_at", null)
-    .order("created_at", { ascending: false })
 
   // Calculate health scores for all contacts
   const contactsWithHealth = (allContacts || []).map((c) => ({

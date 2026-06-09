@@ -1,30 +1,13 @@
-import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
 import Link from "next/link"
 import { TypingDemo } from "@/components/typing-demo"
 
-export default async function Home() {
-  // Check for auth cookie before making a network call to Supabase
-  // This avoids a ~500ms+ getUser() roundtrip for logged-out visitors
-  const { cookies } = await import("next/headers")
-  const cookieStore = await cookies()
-  const hasAuthCookie = cookieStore.getAll().some((c) => c.name.includes("auth-token"))
-
-  if (!hasAuthCookie) {
-    return <MarketingPage />
-  }
-
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return <MarketingPage />
-  }
-
-  // Logged-in users go straight to dashboard — no intermediate features page
-  redirect("/dashboard")
+// The homepage is a fully static marketing page (prerendered, served from the
+// CDN) so logged-out visitors get an instant load with no serverless cold
+// start. Logged-in users are redirected to /dashboard by the middleware before
+// this renders, which keeps the auth check off the anonymous, conversion-
+// critical path and lets this route prerender statically (no cookies()/getUser).
+export default function Home() {
+  return <MarketingPage />
 }
 
 // ─── Logged-out users: Marketing Page ───

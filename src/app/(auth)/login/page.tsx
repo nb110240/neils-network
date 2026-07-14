@@ -309,17 +309,17 @@ function LoginPageInner() {
               <div className="mx-auto w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center">
                 <Mail className="h-6 w-6 text-emerald-600" />
               </div>
-              <h2 className="text-lg font-medium">Check your email</h2>
-              <p className="text-sm text-muted-foreground">
-                We sent a confirmation link to <strong>{email}</strong>. Click the link to verify your account and get started.
+              <h2 className="text-lg font-medium">One last step: check your email</h2>
+              <p className="text-sm text-stone-700 dark:text-stone-300">
+                We sent a confirmation link to <strong>{email}</strong>. Click it and you&apos;ll land straight in your dashboard, ready to add your first contact.
               </p>
-              <div className="text-left text-xs text-muted-foreground space-y-1.5 mt-2 p-3 rounded-lg bg-stone-50 dark:bg-stone-800/50">
+              <div className="text-left text-xs text-stone-700 dark:text-stone-300 space-y-1.5 mt-2 p-3 rounded-lg bg-stone-50 dark:bg-stone-800/50">
                 <p className="font-medium text-foreground">Can&apos;t find it?</p>
                 <ul className="space-y-1 list-disc list-inside">
                   <li>Check your <strong>spam or junk</strong> folder</li>
                   <li>Look for an email from <strong>hello@savvo.app</strong></li>
                   <li>The email may take up to 2 minutes to arrive</li>
-                  <li>Try the resend button below if needed</li>
+                  <li>Still nothing? Use the resend button below</li>
                 </ul>
               </div>
             </div>
@@ -465,15 +465,17 @@ function LoginPageInner() {
         </CardHeader>
         <CardContent className="space-y-4 relative pt-2">
           <Button
-            variant="outline"
-            className="w-full h-11 text-base font-medium transition-all hover:shadow-md hover:border-[var(--copper)]/30"
+            className="w-full h-11 text-base font-medium bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-all shadow-md hover:shadow-lg border-0"
             onClick={handleGoogleAuth}
             disabled={isLoading}
           >
             {isLoading ? (
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              <span className="mr-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
+                <Loader2 className="h-4 w-4 animate-spin text-[var(--copper)]" />
+              </span>
             ) : (
-              <svg className="mr-3 h-5 w-5" viewBox="0 0 24 24">
+              <span className="mr-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
+                <svg className="h-4 w-4" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -490,7 +492,8 @@ function LoginPageInner() {
                   fill="#EA4335"
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
-              </svg>
+                </svg>
+              </span>
             )}
             Continue with Google
           </Button>
@@ -499,8 +502,8 @@ function LoginPageInner() {
               <Separator className="w-full" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-[var(--card)] px-3 text-muted-foreground font-medium tracking-wider">
-                or
+              <span className="bg-[var(--card)] px-3 text-stone-700 dark:text-stone-300 font-medium tracking-wider">
+                or continue with email
               </span>
             </div>
           </div>
@@ -581,7 +584,7 @@ function LoginPageInner() {
             )}
             <Button
               type="submit"
-              className="w-full h-11 text-base font-medium bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 transition-all shadow-md hover:shadow-lg border-0"
+              className="w-full h-11 text-base font-medium bg-stone-900 text-white hover:bg-stone-800 dark:bg-stone-800 dark:text-stone-100 dark:hover:bg-stone-700 transition-all shadow-md hover:shadow-lg border-0"
               disabled={isLoading || (isSignUp && !!TURNSTILE_SITE_KEY && !captchaToken)}
             >
               {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}

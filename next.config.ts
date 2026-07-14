@@ -13,6 +13,12 @@ const nextConfig: NextConfig = {
         destination: "https://savvo.app/:path*",
         permanent: true,
       },
+      {
+        // /signup is a common guess; send it to the signup mode of /login
+        source: "/signup",
+        destination: "/login?mode=signup",
+        permanent: false,
+      },
     ];
   },
   async headers() {

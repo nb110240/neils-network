@@ -1,4 +1,18 @@
+import type { Metadata } from "next"
 import Link from "next/link"
+
+export const metadata: Metadata = {
+  title: "Terms of Service",
+  description:
+    "The terms that govern your use of Savvo, including accounts, subscriptions, acceptable use, and cancellation.",
+  alternates: { canonical: "/terms" },
+  openGraph: {
+    title: "Terms of Service | Savvo",
+    description:
+      "The terms that govern your use of Savvo, including accounts, subscriptions, and cancellation.",
+    url: "/terms",
+  },
+}
 
 export default function TermsPage() {
   return (

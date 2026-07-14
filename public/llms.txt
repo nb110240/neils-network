@@ -1,46 +1,42 @@
-# Savvo — AI Relationship Manager
+# Savvo
 
-> Keep every connection alive. Savvo is an AI-powered personal CRM built for founders, VCs, and professional networkers.
+> Savvo is the investor CRM for founders raising a round. Run your raise without a spreadsheet: type what you remember after every pitch, and Savvo tracks who's in, who's out, and who's waiting on a follow-up. After the round closes, it keeps every relationship alive: hires, board, customers, and your broader network.
 
-## What Savvo Does
+Savvo is built for startup founders managing investor pipelines, and more broadly for anyone whose network is their most valuable professional asset (VCs tracking dealflow, community builders, relationship-first sales professionals).
 
-Savvo helps professionals manage their network relationships. Users type natural language notes about people they meet, and AI extracts structured contact data (name, company, role, follow-ups). Every contact gets a health score that tracks relationship freshness — green means active, red means going cold. Daily digest emails remind users who needs attention.
+How it works: you type a quick note like you'd text a friend ("Met Sarah Chen at Founders Dinner, partner at Sequoia, wants Q2 metrics"). AI extracts the name, company, role, how you met, and next steps into structured contact data. Every contact gets a color-coded health score based on when you last interacted (green is active, red is at risk), and a daily digest email tells you each morning who needs attention.
 
-## Key Features
+Key capabilities:
 
-- **Natural Language Contact Capture**: Type messy meeting notes, AI extracts name, company, job title, how you met, and next steps
-- **Relationship Health Scores**: Color-coded scores (green/yellow/orange/red) based on last contact date
-- **Semantic Search**: Search contacts by meaning, not just keywords ("who was the fintech person at the conference?")
-- **Daily Digest Emails**: Morning summary of relationships that need attention
-- **AI Follow-Up Drafts**: One-tap personalized outreach messages
-- **LinkedIn QR Code Import**: Scan LinkedIn QR codes to add contacts
-- **CSV & Google Contacts Import**: Bring your existing network
-- **Google Calendar Sync**: Auto-detect meetings and attendees
-- **Relationship Graph**: Visual network map showing connections
-- **AI Intro Suggestions**: Discover high-value introductions across your network
+- Natural language contact capture with AI extraction
+- Relationship health scores, color-coded by freshness
+- Semantic search over your network ("who do I know in healthcare AI?")
+- Daily digest emails listing relationships that need attention
+- AI follow-up drafts based on your interaction history
+- Follow-up cadences (weekly, monthly, quarterly, or custom), scheduled one-off follow-ups, and snooze
+- CSV and Google Contacts import with column mapping and automatic deduplication
+- Google Calendar sync that detects meetings and adds attendees
+- LinkedIn URL import
+- AI intro suggestions across your network
 
-## Pricing
+Pricing: Free plan at $0/month (50 contacts, health scores, natural language input, 5 smart searches per month, weekly digest). Pro at $8/month or $75/year (unlimited contacts, unlimited search, AI follow-up drafts, imports, calendar sync, daily digest). Team plan ($12/user/month) is coming soon. No credit card required to start.
 
-- **Free**: 50 contacts, health scores, weekly digest, 5 semantic searches/month
-- **Pro**: $8/month (launch price $5/month) — unlimited contacts, daily digest, unlimited search, all AI features
-- **Team**: $12/user/month — coming soon, shared graphs and intro requests
+Privacy: Savvo never sells or shares your contact data and does not train AI models on your network. All integrations (Google sync, imports, calendar) are opt-in. Per-user data isolation is enforced with row-level security, and you can export everything or delete your account at any time.
 
-## Who It's For
+## Pages
 
-- Startup founders managing investor, partner, and hire relationships
-- Venture capitalists tracking portfolio founders and dealflow
-- Community builders maintaining large professional networks
-- Sales professionals who value relationship-first selling
+- [Homepage](https://savvo.app/): Product overview, how it works, live feature walkthroughs, pricing, and FAQ
+- [Pricing](https://savvo.app/pricing): Free, Pro, and Team plan comparison with full feature table
+- [Changelog](https://savvo.app/changelog): Recent updates, features, and fixes, versioned by release
+- [Switching from Spreadsheets](https://savvo.app/from-spreadsheet): How to import an existing spreadsheet of contacts into Savvo
+- [Install](https://savvo.app/install): Add Savvo to your home screen
 
-## Technology
+## Policies
 
-Built with Next.js, Supabase (PostgreSQL + pgvector), OpenAI for extraction and embeddings, Stripe for payments. Hosted on Vercel. All data encrypted, row-level security on all tables, no data sharing with third parties.
+- [Privacy Policy](https://savvo.app/privacy): What data Savvo stores and how it is protected
+- [Terms of Service](https://savvo.app/terms): Terms of use
 
-## Links
+## Optional
 
-- Website: https://savvo.app
-- Pricing: https://savvo.app/pricing
-- Switching from Spreadsheets: https://savvo.app/from-spreadsheet
-- Privacy Policy: https://savvo.app/privacy
-- Terms of Service: https://savvo.app/terms
+- [Full product details](https://savvo.app/llms-full.txt): Expanded feature descriptions, pricing detail, FAQ answers, and data practices
 - Contact: neil@savvo.app

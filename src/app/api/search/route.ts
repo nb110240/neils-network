@@ -4,6 +4,7 @@ import { parseBody } from "@/lib/request"
 import { z } from "zod/v4"
 import { checkSemanticSearchLimit, recordSemanticSearch } from "@/lib/subscription"
 import { calculateHealthScore } from "@/lib/health"
+import { CONTACT_COLUMNS } from "@/lib/contact-columns"
 import { generateEmbedding } from "@/lib/openai"
 import { reciprocalRankFusion, recencyBoost, exactMatchBoost, healthBoost, type ScoredContact } from "@/lib/search-utils"
 import type { HealthScore } from "@/lib/types"
@@ -40,11 +41,11 @@ export async function POST(request: Request) {
 
     // Fired immediately (the trailing .then() starts execution now) so the
     // keyword query runs concurrently with the semantic-limit check + OpenAI
-    // embedding below. Explicit columns = the Contact shape minus the large
+    // embedding below. CONTACT_COLUMNS = the Contact shape minus the large
     // `embedding` vector, which results never display.
     const keywordPromise = supabase
       .from("contacts")
-      .select("id, name, email, phone, company, job_title, website, how_we_met, next_steps, follow_up_needed, last_contact_date, raw_note, embedding_status, source, created_by, cadence_days, scheduled_follow_up, snoozed_until, next_due_date, created_at, updated_at, archived_at")
+      .select(CONTACT_COLUMNS)
       .eq("created_by", user.id)
       .is("archived_at", null)
       .or(orFilter)

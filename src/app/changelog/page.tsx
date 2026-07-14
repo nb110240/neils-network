@@ -3,12 +3,13 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 
 export const metadata: Metadata = {
-  title: "Changelog — Savvo",
+  title: "Changelog",
   description: "What's new in Savvo. Recent updates, features, and fixes.",
+  alternates: { canonical: "/changelog" },
   openGraph: {
-    title: "Changelog — Savvo",
-    description: "What's new in Savvo.",
-    url: "https://savvo.app/changelog",
+    title: "Changelog | Savvo",
+    description: "What's new in Savvo. Recent updates, features, and fixes.",
+    url: "/changelog",
   },
 }
 

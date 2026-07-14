@@ -65,7 +65,10 @@
   --ring: #c2410c;
   --radius: 0.75rem;
   --copper: #c2410c;
-  --copper-light: #ea580c;
+  /* Light end of the CTA gradient. #cc4a0d (was #ea580c) is the lightest
+     copper where white button text still passes WCAG AA (4.61:1 >= 4.5:1) —
+     every copper CTA renders white text on this gradient. */
+  --copper-light: #cc4a0d;
 }
 
 .dark {

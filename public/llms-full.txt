@@ -1,0 +1,138 @@
+# Savvo (Full Product Details)
+
+> Savvo is the investor CRM for founders raising a round. Run your raise without a spreadsheet: type what you remember after every pitch, and Savvo tracks who's in, who's out, and who's waiting on a follow-up, so you close the round. After the round closes, Savvo keeps every relationship alive: hires, board, customers, and your broader network.
+
+Website: https://savvo.app
+Contact: neil@savvo.app
+
+## What Savvo Is
+
+Savvo is an AI-powered relationship manager. Its primary use case is fundraising: founders who meet many investors each week use it to track pitch status (interested, passed, waiting on a follow-up), who made each intro, and the next step for every conversation, without maintaining a spreadsheet. Beyond the raise, the same system works as a personal CRM for any professional network.
+
+Instead of filling in form fields, you type a quick note the way you'd text a friend:
+
+"Met John Doe at AI Summit, he's VP of Engineering at Nextera Health, wants to grab coffee next week"
+
+AI extracts the structured details automatically: name, company, role, how you met, and next steps. From there, health scores show which relationships are fading and daily digest emails nudge you to reach out.
+
+## Who It Is For
+
+- Startup founders running a fundraise: tracking investor status, intro sources, and follow-ups
+- Founders after the round: managing hires, board members, customers, and their broader network
+- Venture capitalists tracking founders and dealflow
+- Community builders maintaining large professional networks
+- Sales professionals who value relationship-first selling
+
+## How It Works
+
+1. Write what you remember. Type a quick note like you'd text a friend. AI extracts the details you'd normally forget.
+2. Details are extracted. Name, company, role, how you met, next steps, all structured automatically.
+3. Stay connected effortlessly. Health scores show which relationships are fading. Daily emails nudge you to reach out.
+
+## Features
+
+- Natural Language Input: Just type what you remember. Name, company, context, and next steps are extracted automatically.
+- Health Scores: Every contact gets a color-coded score based on when you last interacted. Green means active (within the last 30 days), yellow means cooling (31 to 90 days), orange means going cold (91 to 180 days), and red means at risk (180+ days). Cadence-aware: if you set your own follow-up pace, it overrides the default thresholds.
+- Smart (Semantic) Search: Ask natural questions like "who do I know in healthcare AI?" Savvo searches by meaning, not just names and keywords.
+- AI Follow-Up Drafts: One tap to draft a personalized follow-up message. AI reads your history with that person and writes something natural.
+- Daily Digest Email: Every morning, an email lists the relationships that need attention, with context and a one-click link. No app to open.
+- "Going Cold" Dashboard: See every fading relationship at a glance, sorted by urgency, plus counts of contacts to reach out to today.
+- Scheduling and Cadence: Set a cadence on any contact (weekly, every 2 weeks, monthly, quarterly, or custom), schedule one-off follow-ups for a specific date, or snooze a contact for 3 days, 1 week, or 2 weeks. Cadence shapes the daily digest and reach-out priority order.
+- CSV and Google Contacts Import: Upload any CSV or connect Google Contacts. Savvo maps your columns, deduplicates during import, and generates health scores automatically.
+- Duplicate Detection and Merge: Side-by-side diff, merge preview, confidence tiers, bulk high-confidence merge, and one-click undo. Semantic similarity catches near-duplicates like "Bob Smith" vs "Robert Smith, Inc."
+- Google Calendar Sync: Had a 1:1 meeting? Savvo detects it and adds the person automatically. Syncs daily with a manual sync option.
+- LinkedIn URL Import: Add contacts from LinkedIn profile URLs, with duplicate blocking.
+- Meeting Prep: AI-assisted preparation before meetings (Pro feature).
+- Intro Suggestions: Savvo suggests who in your network to introduce to each other.
+- Contact Detail Timeline: Full activity history per person (meetings, emails, notes) with follow-up drafting and editing from one screen.
+- Data Export: Download everything Savvo stores about you as JSON in one click, or export contacts as CSV.
+- Install to Home Screen: Savvo can be installed on supported browsers; see https://savvo.app/install.
+
+## Pricing
+
+Details at https://savvo.app/pricing. No credit card required to start.
+
+Free ($0/month), for getting started:
+- 50 contacts
+- Health scores
+- Natural language input
+- 5 smart searches per month
+- Weekly digest emails
+
+Pro ($8/month, or $75/year which works out to $6.25/month):
+- Unlimited contacts
+- Health scores and natural language input
+- Unlimited smart search
+- AI follow-up drafts
+- CSV and Gmail (Google Contacts) import
+- Google Calendar sync
+- Daily digest emails
+- Event mode
+- LinkedIn import
+
+Team ($12/user/month, coming soon):
+- Everything in Pro
+- Shared contact graph
+- Team intro requests
+- Admin dashboard
+
+## Frequently Asked Questions
+
+Q: What is Savvo?
+A: Savvo is an AI-powered CRM built first for founders raising a round, and for VCs and professional networkers more broadly. You add contacts by typing what you remember about someone, like messy meeting notes, and Savvo automatically extracts their name, company, role, and follow-up actions. Every contact gets a health score that tracks how fresh the relationship is, and you get daily digest emails reminding you who needs attention.
+
+Q: How does the health score work?
+A: Every contact gets a color-coded health score based on when you last interacted. Green means active (within the last 30 days), yellow means cooling (31 to 90 days), orange means going cold (91 to 180 days), and red means at risk (180+ days). Your dashboard shows you exactly who needs a reach-out, prioritized by urgency.
+
+Q: Is my data private and secure?
+A: Yes. Savvo uses Supabase with PostgreSQL and row-level security, so every user can only access their own data. All data is encrypted in transit (HTTPS) and at rest. Savvo never sells your data, never shares contacts with third parties, and you can export or delete everything at any time. AI processing happens through OpenAI's API with no data retention.
+
+Q: How is Savvo different from a spreadsheet or Notion?
+A: Spreadsheets and Notion require you to manually create columns, type structured data, and remember to check them. Savvo lets you type naturally, like "Met Sarah at TechCrunch, she runs a fintech startup", and AI handles the structure. Plus, you get automatic health scores, follow-up reminders via daily digest emails, and semantic search so you can find people by context, not just names. See https://savvo.app/from-spreadsheet for how to switch.
+
+Q: Can I import my existing contacts?
+A: Yes. Pro users can import via CSV upload (works with any spreadsheet export) or connect Google Contacts for a one-click import. Savvo automatically deduplicates during import so you won't get duplicate entries. Your existing spreadsheet becomes your starting point.
+
+Q: What does the AI actually do?
+A: Savvo uses AI in four ways: (1) Contact extraction, parsing natural language notes into structured data. (2) Semantic search, finding contacts by meaning rather than keywords. (3) Follow-up drafts, generating personalized outreach messages based on your history. (4) Intro suggestions, identifying high-value introductions across your network.
+
+Q: How much does Savvo cost?
+A: Savvo has a free plan with 50 contacts, health scores, weekly digest emails, and 5 smart searches per month. The Pro plan is $8/month or $75/year and includes unlimited contacts, daily digests, unlimited semantic search, AI follow-up drafts, meeting prep, intro suggestions, CSV/Google import, and Google Calendar sync.
+
+Q: Who is Savvo built for?
+A: Savvo is built for people whose network is their most valuable professional asset: startup founders managing investor and partner relationships, VCs tracking portfolio founders and dealflow, community builders maintaining large networks, and sales professionals who value relationship-first selling. If you meet a lot of people and struggle to keep every connection warm, Savvo is for you.
+
+## Data and Privacy
+
+- We never sell your data. Your contacts are yours. Savvo does not share, sell, or train AI models on your network data.
+- Everything is optional. Google sync, imports, and calendar are all opt-in. You can use Savvo with just manual notes; no account linking is required.
+- Export anytime. Download all your contacts as a CSV whenever you want, or export everything Savvo stores about you as JSON in one click. Delete your account and all data is permanently removed within 30 days.
+- Per-user isolation. Row-level security is enforced on every table, so each user can only access their own data.
+- Encryption. Data is encrypted in transit (HTTPS) and at rest.
+- Security contact published at /.well-known/security.txt.
+- Full policies: https://savvo.app/privacy and https://savvo.app/terms
+
+## Technology
+
+Built with Next.js, Supabase (PostgreSQL with pgvector), OpenAI for extraction and embeddings, and Stripe for payments. Hosted on Vercel.
+
+## Changelog Highlights
+
+Full changelog at https://savvo.app/changelog.
+
+- v0.6 (2026-04-22): Contact sorting options, cadence-aware digest and reach-out priority, one-click JSON data export, install prompt, public changelog.
+- v0.5 (2026-04-20): Rebuilt duplicate detection with merge preview and undo, semantic-similarity duplicate matching, signup bot protection, security hardening.
+- v0.4 (2026-04-13): Follow-up cadences, scheduled one-off follow-ups, snooze, cadence-aware health scores.
+- v0.3 (2026-03-24): First users, onboarding checklist, intro suggestions flow.
+- v0.2 (2026-03-21): Health scoring, digest emails, CSV/Google/LinkedIn import, semantic search, row-level security on every table.
+
+## Links
+
+- Homepage: https://savvo.app/
+- Pricing: https://savvo.app/pricing
+- Changelog: https://savvo.app/changelog
+- Install: https://savvo.app/install
+- Switching from Spreadsheets: https://savvo.app/from-spreadsheet
+- Privacy Policy: https://savvo.app/privacy
+- Terms of Service: https://savvo.app/terms
+- Concise version: https://savvo.app/llms.txt

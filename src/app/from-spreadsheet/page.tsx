@@ -2,11 +2,13 @@ import Link from "next/link"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Switching from Spreadsheets? — Savvo",
+  title: "Switching from Spreadsheets?",
   description: "Your networking Google Sheet stops working at 50 contacts. Import your spreadsheet into Savvo and get AI health scores, follow-up reminders, and semantic search.",
+  alternates: { canonical: "/from-spreadsheet" },
   openGraph: {
-    title: "Your Networking Spreadsheet Is Holding You Back — Savvo",
-    description: "Import your contact spreadsheet into an AI-powered relationship manager. Health scores, daily digests, and semantic search — set up in minutes.",
+    title: "Your Networking Spreadsheet Is Holding You Back | Savvo",
+    description: "Import your contact spreadsheet into an AI-powered relationship manager. Health scores, daily digests, and semantic search, set up in minutes.",
+    url: "/from-spreadsheet",
   },
 }
 

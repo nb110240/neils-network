@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/server"
 
 import { calculateHealthScore } from "@/lib/health"
+import { CONTACT_COLUMNS } from "@/lib/contact-columns"
 import { getUserPlan } from "@/lib/subscription"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -51,7 +52,7 @@ export default async function DashboardPage() {
     getUserPlan(user.id),
     supabase
       .from("contacts")
-      .select("id, name, email, phone, company, job_title, website, how_we_met, next_steps, follow_up_needed, last_contact_date, raw_note, source, created_by, created_at, updated_at, archived_at, embedding_status, cadence_days, scheduled_follow_up, snoozed_until, next_due_date")
+      .select(CONTACT_COLUMNS)
       .eq("created_by", user.id)
       .is("archived_at", null)
       .order("created_at", { ascending: false }),

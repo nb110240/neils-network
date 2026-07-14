@@ -6,6 +6,7 @@ import { checkContactLimit } from "@/lib/subscription"
 import { calculateHealthScore, computeNextDueDate } from "@/lib/health"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 import { findDuplicates, findStrongMatch, namesAgree } from "@/lib/dedup"
+import { CONTACT_COLUMNS } from "@/lib/contact-columns"
 import { log } from "@/lib/logger"
 
 export async function POST(request: Request) {
@@ -288,7 +289,7 @@ export async function GET(request: Request) {
     if (!limitParam) {
       const { data: contacts, error } = await supabase
         .from("contacts")
-        .select("*")
+        .select(CONTACT_COLUMNS)
         .eq("created_by", user.id)
         .is("archived_at", null)
         .order("created_at", { ascending: false })
@@ -327,7 +328,7 @@ export async function GET(request: Request) {
     // direction=prev: newer items (created_at > cursor), then reverse
     let query = supabase
       .from("contacts")
-      .select("*")
+      .select(CONTACT_COLUMNS)
       .eq("created_by", user.id)
       .is("archived_at", null)
 

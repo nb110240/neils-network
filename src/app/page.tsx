@@ -1,5 +1,12 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { TypingDemo } from "@/components/typing-demo"
+
+// Title and description are inherited from the root layout (the homepage keeps
+// the site-wide default title). Only the canonical URL is set here.
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+}
 
 // The homepage is a fully static marketing page (prerendered, served from the
 // CDN) so logged-out visitors get an instant load with no serverless cold
@@ -376,8 +383,8 @@ function MarketingPage() {
             <div className="p-6 rounded-2xl border border-[var(--copper)]/30 relative">
               <div className="absolute -top-3 right-4 bg-[var(--copper)] text-white text-xs font-semibold uppercase tracking-wide px-3 py-1 rounded-full">Most popular</div>
               <div className="font-semibold mb-1">Pro</div>
-              <div className="text-3xl font-normal mb-1"><span className="text-lg text-muted-foreground line-through mr-1">$8</span>$5 <span className="text-base text-muted-foreground font-normal">/month</span></div>
-              <p className="text-sm text-emerald-600 font-medium mb-4">Launch price until June 2026 &middot; or <span className="line-through text-muted-foreground">$75</span> $50/year</p>
+              <div className="text-3xl font-normal mb-1">$8 <span className="text-base text-muted-foreground font-normal">/month</span></div>
+              <p className="text-sm text-stone-700 dark:text-stone-300 mb-4">or $75/year</p>
               <ul className="space-y-2 text-sm mb-6">
                 {["Unlimited contacts", "Health scores", "Natural language input", "Unlimited smart search", "AI follow-up drafts", "CSV & Gmail import", "Google Calendar sync", "Daily digest emails", "Event mode", "LinkedIn import"].map((f) => (
                   <li key={f} className="flex items-center gap-2"><span className="text-emerald-500 font-bold">&#10003;</span> {f}</li>
@@ -423,7 +430,7 @@ function MarketingPage() {
             },
             {
               q: "How much does Savvo cost?",
-              a: "Savvo has a generous free plan with 50 contacts, health scores, weekly digest emails, and 5 smart searches per month. The Pro plan is $8/month (currently $5/month launch price until June 2026) and includes unlimited contacts, daily digests, unlimited semantic search, AI follow-up drafts, meeting prep, intro suggestions, CSV/Google import, and Google Calendar sync.",
+              a: "Savvo has a generous free plan with 50 contacts, health scores, weekly digest emails, and 5 smart searches per month. The Pro plan is $8/month (or $75/year) and includes unlimited contacts, daily digests, unlimited semantic search, AI follow-up drafts, meeting prep, intro suggestions, CSV/Google import, and Google Calendar sync.",
             },
             {
               q: "Who is Savvo built for?",

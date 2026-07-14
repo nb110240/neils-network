@@ -1,4 +1,18 @@
+import type { Metadata } from "next"
 import Link from "next/link"
+
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+  description:
+    "How Savvo handles your data: what we collect, how it's protected, and your rights to export or delete everything at any time.",
+  alternates: { canonical: "/privacy" },
+  openGraph: {
+    title: "Privacy Policy | Savvo",
+    description:
+      "How Savvo handles your data: what we collect, how it's protected, and your rights.",
+    url: "/privacy",
+  },
+}
 
 export default function PrivacyPage() {
   return (

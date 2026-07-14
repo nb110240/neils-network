@@ -19,6 +19,20 @@ check "$URL/login"
 check "$URL/pricing"
 check "$URL/privacy"
 check "$URL/terms"
+check "$URL/sitemap.xml"
+check "$URL/opengraph-image"
+
+# /signup must redirect (307/308, no -L) to /login?mode=signup
+SIGNUP_HEADERS=$(curl -sI "$URL/signup" --max-time 10 2>/dev/null)
+SIGNUP_STATUS=$(echo "$SIGNUP_HEADERS" | head -1 | grep -o '30[78]')
+SIGNUP_LOCATION=$(echo "$SIGNUP_HEADERS" | grep -i "^location:" | head -1)
+if [ -z "$SIGNUP_STATUS" ]; then
+  echo "FAIL: $URL/signup did not return 307/308"
+  ERRORS=$((ERRORS + 1))
+elif ! echo "$SIGNUP_LOCATION" | grep -q "/login?mode=signup"; then
+  echo "FAIL: $URL/signup redirect location is not /login?mode=signup ($SIGNUP_LOCATION)"
+  ERRORS=$((ERRORS + 1))
+fi
 
 # Check camera permissions header
 PERMS=$(curl -sI "$URL" --max-time 10 2>/dev/null | grep -i "permissions-policy" | head -1)

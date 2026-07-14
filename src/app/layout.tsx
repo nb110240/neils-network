@@ -27,7 +27,10 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Savvo — The investor CRM for founders raising a round",
+  title: {
+    default: "Savvo — The investor CRM for founders raising a round",
+    template: "%s | Savvo",
+  },
   description: "Type what you remember after every pitch. Savvo tracks who's interested, who went cold, and who's waiting on a follow-up, so you close the round. Works as a personal CRM for your broader network too.",
   manifest: "/manifest.json",
   metadataBase: new URL("https://savvo.app"),
@@ -62,7 +65,6 @@ export const viewport: Viewport = {
   themeColor: "#c2410c",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
 }
 
 export default function RootLayout({
@@ -84,6 +86,7 @@ export default function RootLayout({
           "@type": "Person",
           name: "Neil Bajaj",
           email: "neil@savvo.app",
+          sameAs: ["https://x.com/neilbajaj"],
         },
         contactPoint: {
           "@type": "ContactPoint",
@@ -97,7 +100,7 @@ export default function RootLayout({
         name: "Savvo",
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web",
-        description: "AI-powered personal CRM that extracts contact details from natural language notes, tracks relationship health scores, and sends daily digest reminders.",
+        description: "The investor CRM for founders raising a round. Type what you remember after every pitch and Savvo tracks your fundraising pipeline: who's interested, who went cold, and who's waiting on a follow-up. Health scores, semantic search, and daily digest reminders keep the raise moving.",
         url: "https://savvo.app",
         provider: { "@id": "https://savvo.app/#organization" },
         offers: [
@@ -146,7 +149,7 @@ export default function RootLayout({
           { "@type": "Question", name: "Is my data private and secure?", acceptedAnswer: { "@type": "Answer", text: "Yes. Savvo uses Supabase with PostgreSQL and row-level security. All data is encrypted in transit and at rest. We never sell your data, never share contacts with third parties, and you can export or delete everything at any time." } },
           { "@type": "Question", name: "How is Savvo different from a spreadsheet?", acceptedAnswer: { "@type": "Answer", text: "Spreadsheets require manual data entry and structure. Savvo lets you type naturally and AI handles the structure. Plus you get automatic health scores, follow-up reminders, and semantic search to find people by context, not just names." } },
           { "@type": "Question", name: "Can I import my existing contacts?", acceptedAnswer: { "@type": "Answer", text: "Yes. Pro users can import via CSV upload (works with any spreadsheet export) or connect Google Contacts for a one-click import. Savvo automatically deduplicates during import." } },
-          { "@type": "Question", name: "How much does Savvo cost?", acceptedAnswer: { "@type": "Answer", text: "Free plan includes 50 contacts, health scores, and weekly digest. Pro is $8/month (launch price $5/month) with unlimited contacts, daily digests, unlimited search, all AI features, and import capabilities." } },
+          { "@type": "Question", name: "How much does Savvo cost?", acceptedAnswer: { "@type": "Answer", text: "Free plan includes 50 contacts, health scores, and weekly digest. Pro is $8/month (or $75/year) with unlimited contacts, daily digests, unlimited search, all AI features, and import capabilities." } },
           { "@type": "Question", name: "Who is Savvo built for?", acceptedAnswer: { "@type": "Answer", text: "Savvo is built for people whose network is their most valuable professional asset — startup founders, VCs, community builders, and sales professionals who meet many people and struggle to keep every connection warm." } },
         ],
       },

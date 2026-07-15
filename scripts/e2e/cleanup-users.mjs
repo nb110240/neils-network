@@ -42,6 +42,18 @@ for (const email of E2E_EMAILS) {
     failures++
     continue
   }
+  // Keep cleanup compatible with older deployed versions of the account
+  // deletion RPC that predate preferences and tags.
+  const residualDeletes = await Promise.all([
+    admin.from("user_preferences").delete().eq("user_id", user.id),
+    admin.from("tags").delete().eq("created_by", user.id),
+  ])
+  const residualError = residualDeletes.find(({ error }) => error)?.error
+  if (residualError) {
+    console.error(`residual cleanup FAILED for ${email}: ${residualError.message}`)
+    failures++
+    continue
+  }
   const { error: delError } = await admin.auth.admin.deleteUser(user.id)
   if (delError) {
     console.error(`auth delete FAILED for ${email}: ${delError.message}`)

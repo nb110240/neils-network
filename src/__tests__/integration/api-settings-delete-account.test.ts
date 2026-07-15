@@ -57,6 +57,9 @@ describe("DELETE /api/settings/delete-account", () => {
     expect(h.supabase!.rpc).toHaveBeenCalledWith("delete_user_account", {
       target_user_id: "u1",
     })
+    expect(h.supabase!.from).toHaveBeenCalledWith("user_preferences")
+    expect(h.supabase!.from).toHaveBeenCalledWith("tags")
+    expect(h.supabase!._queryBuilder.delete).toHaveBeenCalledTimes(2)
     expect(h.supabase!.auth.admin.deleteUser).toHaveBeenCalledWith("u1")
     expect(h.supabase!.auth.signOut).toHaveBeenCalled()
   })
@@ -69,6 +72,17 @@ describe("DELETE /api/settings/delete-account", () => {
     const res = await DELETE()
     expect(res.status).toBe(500)
     // auth user must NOT be deleted if the data purge failed
+    expect(h.supabase!.auth.admin.deleteUser).not.toHaveBeenCalled()
+  })
+
+  it("returns 500 when residual data cleanup fails", async () => {
+    h.supabase = createMockSupabase({
+      authUser: { id: "u1" },
+      rpcResult: { data: null, error: null },
+      queryResult: { data: null, error: { message: "residual row locked" } },
+    })
+    const res = await DELETE()
+    expect(res.status).toBe(500)
     expect(h.supabase!.auth.admin.deleteUser).not.toHaveBeenCalled()
   })
 

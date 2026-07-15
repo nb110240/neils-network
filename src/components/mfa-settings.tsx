@@ -183,15 +183,16 @@ export function MfaSettings() {
                 />
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                Can't scan? Enter this code manually:{" "}
+                Can&apos;t scan? Enter this code manually:{" "}
                 <code className="font-mono text-xs bg-stone-100 dark:bg-stone-800 px-1.5 py-0.5 rounded">
                   {enrollment.secret}
                 </code>
               </p>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">6-digit code</label>
+              <label htmlFor="mfa-code" className="text-sm font-medium">6-digit code</label>
               <Input
+                id="mfa-code"
                 inputMode="numeric"
                 pattern="[0-9]{6}"
                 maxLength={6}
@@ -216,7 +217,7 @@ export function MfaSettings() {
         ) : verified.length > 0 ? (
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">
-              Two-factor authentication is enabled. You'll be prompted for a code at sign-in.
+              Two-factor authentication is enabled. You&apos;ll be prompted for a code at sign-in.
             </p>
             {verified.map((f) => (
               <div
@@ -246,11 +247,12 @@ export function MfaSettings() {
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Add a second factor to protect your account. You'll enter a 6-digit code from your authenticator app after signing in.
+              Add a second factor to protect your account. You&apos;ll enter a 6-digit code from your authenticator app after signing in.
             </p>
             <div className="space-y-2 max-w-sm">
-              <label className="text-xs font-medium text-muted-foreground">Device name (optional)</label>
+              <label htmlFor="mfa-device-name" className="text-xs font-medium text-muted-foreground">Device name (optional)</label>
               <Input
+                id="mfa-device-name"
                 value={friendlyName}
                 onChange={(e) => setFriendlyName(e.target.value)}
                 placeholder="Authenticator"

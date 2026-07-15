@@ -21,12 +21,12 @@ export default function VsAirtablePage() {
       <main className="container mx-auto px-4 max-w-4xl">
         {/* Hero */}
         <section className="py-12 sm:py-20 text-center animate-fade-in">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--copper)]/10 text-[var(--copper)] text-xs font-medium mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--copper)]/10 text-[var(--copper-text)] text-xs font-medium mb-6">
             Savvo vs Airtable
           </div>
           <h1 className="text-3xl sm:text-5xl font-normal tracking-tight mb-4 leading-tight">
             The Airtable fundraising template<br />
-            <span className="text-[var(--copper)]">makes you the database admin</span>
+            <span className="text-[var(--copper-text)]">makes you the database admin</span>
           </h1>
           <p className="text-stone-700 dark:text-stone-300 text-lg max-w-2xl mx-auto leading-relaxed mb-8">
             You downloaded a fundraising template, customized the fields, and it looked great. Then the raise actually started.
@@ -74,7 +74,7 @@ export default function VsAirtablePage() {
             ]}
           />
           <p className="text-xs text-stone-700 dark:text-stone-300 mt-3 text-center">
-            Airtable pricing changes; check <a href="https://airtable.com/pricing" className="underline hover:text-[var(--copper)]" rel="nofollow">airtable.com/pricing</a> for current numbers.
+            Airtable pricing changes; check <a href="https://airtable.com/pricing" className="underline hover:text-[var(--copper-text)]" rel="nofollow">airtable.com/pricing</a> for current numbers.
           </p>
         </section>
 
@@ -126,7 +126,7 @@ export default function VsAirtablePage() {
         <section className="py-12 sm:py-20 text-center">
           <h2 className="text-3xl tracking-tight mb-3">
             Stop maintaining the tracker.<br />
-            <span className="text-[var(--copper)]">Start closing the round.</span>
+            <span className="text-[var(--copper-text)]">Start closing the round.</span>
           </h2>
           <p className="text-stone-700 dark:text-stone-300 mb-6 max-w-md mx-auto">
             Import your Airtable base as a CSV, or start fresh. Type what you remember after your next pitch and watch it structure itself.

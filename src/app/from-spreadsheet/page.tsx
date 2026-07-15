@@ -29,7 +29,7 @@ export default function FromSpreadsheetPage() {
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2 group">
             <img src="/logo.svg" alt="Savvo" className="h-7 w-7" />
-            <span className="text-xl font-medium tracking-tight text-[var(--copper)] group-hover:opacity-80 transition-opacity">Savvo</span>
+            <span className="text-xl font-medium tracking-tight text-[var(--copper-text)] group-hover:opacity-80 transition-opacity">Savvo</span>
           </Link>
           <Link
             href="/login?mode=signup"
@@ -43,12 +43,12 @@ export default function FromSpreadsheetPage() {
       <main className="container mx-auto px-4 max-w-4xl">
         {/* Hero */}
         <section className="py-12 sm:py-20 text-center animate-fade-in">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--copper)]/10 text-[var(--copper)] text-xs font-medium mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--copper)]/10 text-[var(--copper-text)] text-xs font-medium mb-6">
             📋 → ✨ Import your contacts
           </div>
           <h1 className="text-3xl sm:text-5xl font-normal tracking-tight mb-4 leading-tight">
             Your networking spreadsheet<br />
-            <span className="text-[var(--copper)]">stops working at 50 contacts</span>
+            <span className="text-[var(--copper-text)]">stops working at 50 contacts</span>
           </h1>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed mb-8">
             You started with a Google Sheet. It worked great for 20 contacts. Then 50. Then you started forgetting follow-ups,
@@ -107,7 +107,7 @@ export default function FromSpreadsheetPage() {
             {/* Savvo column */}
             <div className="rounded-2xl border-2 border-[var(--copper)]/40 bg-white dark:bg-stone-800 p-6 shadow-refined-lg relative">
               <div className="absolute top-4 right-4">
-                <span className="px-2 py-0.5 rounded-full bg-[var(--copper)]/15 text-[10px] font-bold text-[var(--copper)] uppercase tracking-widest">Better way</span>
+                <span className="px-2 py-0.5 rounded-full bg-[var(--copper)]/15 text-[10px] font-bold text-[var(--copper-text)] uppercase tracking-widest">Better way</span>
               </div>
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-10 h-10 rounded-xl bg-[var(--copper)]/10 flex items-center justify-center shadow-sm">
@@ -126,7 +126,7 @@ export default function FromSpreadsheetPage() {
                   "Mobile-first, works anywhere",
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-3 text-stone-700 dark:text-stone-200">
-                    <span className="w-5 h-5 rounded-full bg-[var(--copper)]/20 flex items-center justify-center shrink-0 mt-0.5 text-xs text-[var(--copper)] font-bold">✓</span>
+                    <span className="w-5 h-5 rounded-full bg-[var(--copper)]/20 flex items-center justify-center shrink-0 mt-0.5 text-xs text-[var(--copper-text)] font-bold">✓</span>
                     {item}
                   </li>
                 ))}
@@ -147,7 +147,7 @@ export default function FromSpreadsheetPage() {
                   <div>
                     <p className="text-sm text-stone-500 dark:text-stone-400 mb-2">{item.pain}</p>
                     <div className="flex items-start gap-2">
-                      <span className="text-[var(--copper)] shrink-0 mt-0.5 text-sm font-bold">→</span>
+                      <span className="text-[var(--copper-text)] shrink-0 mt-0.5 text-sm font-bold">→</span>
                       <p className="text-sm font-medium text-stone-900 dark:text-stone-100">{item.solution}</p>
                     </div>
                   </div>
@@ -168,7 +168,7 @@ export default function FromSpreadsheetPage() {
             ].map((item, i) => (
               <div key={i} className="text-center">
                 <div className="w-12 h-12 rounded-2xl bg-[var(--copper)]/10 flex items-center justify-center mx-auto mb-4">
-                  <span className="text-[var(--copper)] font-semibold text-lg">{item.step}</span>
+                  <span className="text-[var(--copper-text)] font-semibold text-lg">{item.step}</span>
                 </div>
                 <h3 className="text-sm font-semibold mb-2">{item.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
@@ -181,7 +181,7 @@ export default function FromSpreadsheetPage() {
         <section className="py-12 sm:py-20 text-center">
           <h2 className="text-3xl tracking-tight mb-3">
             Your spreadsheet got you here.<br />
-            <span className="text-[var(--copper)]">Savvo takes you further.</span>
+            <span className="text-[var(--copper-text)]">Savvo takes you further.</span>
           </h2>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             Start free with 50 contacts. Import your spreadsheet. See the difference in one day.

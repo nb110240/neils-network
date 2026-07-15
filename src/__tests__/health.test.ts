@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { calculateHealthScore } from "@/lib/health"
+import { calculateHealthScore, HEALTH_COLORS } from "@/lib/health"
 
 describe("calculateHealthScore", () => {
   const now = new Date()
@@ -109,5 +109,13 @@ describe("calculateHealthScore", () => {
     const result = calculateHealthScore(daysAgo(181), daysAgo(365))
     expect(result.level).toBe("red")
     expect(result.score).toBe(10)
+  })
+})
+
+describe("health badge colors", () => {
+  it("uses dark enough status fills for white badge text", () => {
+    expect(HEALTH_COLORS.green).toMatchObject({ bg: "bg-green-700", text: "text-white" })
+    expect(HEALTH_COLORS.orange).toMatchObject({ bg: "bg-orange-700", text: "text-white" })
+    expect(HEALTH_COLORS.red).toMatchObject({ bg: "bg-red-700", text: "text-white" })
   })
 })

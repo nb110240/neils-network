@@ -95,11 +95,11 @@ const RELEASES: Release[] = [
 
 export default function ChangelogPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background">
       <div className="max-w-3xl mx-auto px-6 py-12 md:py-16">
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-8"
+          className="inline-flex items-center gap-1.5 py-1 text-sm text-muted-foreground hover:text-foreground mb-8"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to Savvo
@@ -110,8 +110,8 @@ export default function ChangelogPage() {
             Changelog
           </h1>
           <p className="text-base text-muted-foreground mt-3 max-w-xl">
-            What's shipped in Savvo, newest first. Built in the open by{" "}
-            <Link href="https://x.com/neilbajaj" className="text-[var(--copper)] hover:underline">
+            What&apos;s shipped in Savvo, newest first. Built in the open by{" "}
+            <Link href="https://x.com/neilbajaj" className="text-[var(--copper-text)] underline underline-offset-2">
               @neilbajaj
             </Link>
             .
@@ -136,11 +136,11 @@ export default function ChangelogPage() {
                   })}
                 </span>
               </div>
-              <h3 className="text-lg font-medium text-[var(--copper)] mb-3">{r.title}</h3>
+              <h3 className="text-lg font-medium text-[var(--copper-text)] mb-3">{r.title}</h3>
               <ul className="space-y-2 text-sm text-stone-700 dark:text-stone-300 leading-relaxed">
                 {r.highlights.map((h, i) => (
                   <li key={i} className="flex gap-2">
-                    <span className="text-[var(--copper)] shrink-0 mt-[0.35em]">•</span>
+                    <span className="text-[var(--copper-text)] shrink-0 mt-[0.35em]">•</span>
                     <span>{h}</span>
                   </li>
                 ))}
@@ -152,17 +152,17 @@ export default function ChangelogPage() {
         <footer className="mt-16 pt-8 border-t border-stone-200 dark:border-stone-800 text-sm text-muted-foreground">
           <p>
             Suggestions or bugs? Email{" "}
-            <Link href="mailto:neil@savvo.app" className="text-[var(--copper)] hover:underline">
+            <Link href="mailto:neil@savvo.app" className="text-[var(--copper-text)] underline underline-offset-2">
               neil@savvo.app
             </Link>{" "}
             or reach out on{" "}
-            <Link href="https://x.com/neilbajaj" className="text-[var(--copper)] hover:underline">
+            <Link href="https://x.com/neilbajaj" className="text-[var(--copper-text)] underline underline-offset-2">
               X
             </Link>
             .
           </p>
         </footer>
       </div>
-    </div>
+    </main>
   )
 }

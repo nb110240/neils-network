@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -33,6 +33,8 @@ export function NavHeader() {
   const isLocal = typeof window !== "undefined" && window.location.hostname === "localhost"
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null)
+  const mobileMenuPanelRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -57,28 +59,75 @@ export function NavHeader() {
     setMobileMenuOpen(false)
   }, [])
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+
+    const panel = mobileMenuPanelRef.current
+    const trigger = mobileMenuButtonRef.current
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+
+    const focusable = () =>
+      Array.from(
+        panel?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        ) || []
+      )
+
+    const focusTimer = window.setTimeout(() => focusable()[0]?.focus(), 0)
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault()
+        closeMobileMenu()
+        return
+      }
+      if (event.key !== "Tab") return
+      const items = focusable()
+      if (!items.length) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown)
+    return () => {
+      window.clearTimeout(focusTimer)
+      document.removeEventListener("keydown", handleKeyDown)
+      document.body.style.overflow = previousOverflow
+      trigger?.focus()
+    }
+  }, [mobileMenuOpen, closeMobileMenu])
+
   return (
     <>
       <header className="sticky top-0 z-40 w-full border-b bg-background safe-area-inset-top">
         <div className="container mx-auto flex h-16 items-center px-4">
           {/* Mobile menu button */}
           <Button
+            ref={mobileMenuButtonRef}
             variant="ghost"
             size="sm"
             className="mr-2 sm:hidden touch-target text-muted-foreground hover:text-foreground"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-navigation"
           >
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
 
           <div className="mr-4 flex">
             <Link href="/dashboard" className="mr-8 flex items-center gap-2 group">
-              <img src="/logo.svg" alt="Savvo" className="h-7 w-7" />
-              <span className="text-xl font-medium tracking-tight text-[var(--copper)] group-hover:opacity-80 transition-opacity">Savvo</span>
+              <img src="/logo.svg" alt="" className="h-7 w-7" />
+              <span className="text-xl font-medium tracking-tight text-[var(--copper-text)] group-hover:opacity-80 transition-opacity">Savvo</span>
             </Link>
-            <nav className="hidden sm:flex items-center space-x-1">
+            <nav aria-label="Primary" className="hidden sm:flex items-center space-x-1">
               {navItems.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href
@@ -86,10 +135,11 @@ export function NavHeader() {
                   <Link
                     key={item.href}
                     href={item.href}
+                    aria-current={isActive ? "page" : undefined}
                     className={cn(
                       "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
                       isActive
-                        ? "bg-[var(--copper)]/10 text-[var(--copper)]"
+                        ? "bg-[var(--copper)]/10 text-[var(--copper-text)]"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                     )}
                   >
@@ -101,12 +151,18 @@ export function NavHeader() {
               {/* More dropdown */}
               <div className="relative">
                 <button
+                  type="button"
                   onClick={() => setMoreOpen(!moreOpen)}
                   onBlur={() => setTimeout(() => setMoreOpen(false), 150)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") setMoreOpen(false)
+                  }}
+                  aria-expanded={moreOpen}
+                  aria-controls="more-navigation"
                   className={cn(
                     "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
                     moreNavItems.some((i) => pathname === i.href)
-                      ? "bg-[var(--copper)]/10 text-[var(--copper)]"
+                      ? "bg-[var(--copper)]/10 text-[var(--copper-text)]"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   )}
                 >
@@ -114,7 +170,7 @@ export function NavHeader() {
                   <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", moreOpen && "rotate-180")} />
                 </button>
                 {moreOpen && (
-                  <div className="absolute top-full left-0 mt-1 w-44 rounded-xl border bg-background shadow-lg py-1 z-50">
+                  <div id="more-navigation" className="absolute top-full left-0 mt-1 w-44 rounded-xl border bg-background shadow-lg py-1 z-50">
                     {moreNavItems.map((item) => {
                       const Icon = item.icon
                       const isActive = pathname === item.href
@@ -122,10 +178,11 @@ export function NavHeader() {
                         <Link
                           key={item.href}
                           href={item.href}
+                          aria-current={isActive ? "page" : undefined}
                           className={cn(
                             "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-all",
                             isActive
-                              ? "bg-[var(--copper)]/10 text-[var(--copper)]"
+                              ? "bg-[var(--copper)]/10 text-[var(--copper-text)]"
                               : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                           )}
                         >
@@ -143,10 +200,11 @@ export function NavHeader() {
             {isAdmin && isLocal && (
               <Link
                 href="/dev"
+                aria-current={pathname === "/dev" ? "page" : undefined}
                 className={cn(
                   "hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all",
                   pathname === "/dev"
-                    ? "bg-[var(--copper)]/10 text-[var(--copper)]"
+                    ? "bg-[var(--copper)]/10 text-[var(--copper-text)]"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 )}
               >
@@ -156,10 +214,11 @@ export function NavHeader() {
             )}
             <Link
               href="/settings"
+              aria-current={pathname === "/settings" ? "page" : undefined}
               className={cn(
                 "hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all",
                 pathname === "/settings"
-                  ? "bg-[var(--copper)]/10 text-[var(--copper)]"
+                  ? "bg-[var(--copper)]/10 text-[var(--copper-text)]"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               )}
             >
@@ -189,9 +248,16 @@ export function NavHeader() {
             aria-hidden="true"
           />
           {/* Slide-out panel */}
-          <nav className="absolute inset-y-0 left-0 w-[min(18rem,85vw)] bg-background border-r shadow-refined-lg animate-fade-in p-6 flex flex-col gap-1 overflow-y-auto">
+          <nav
+            id="mobile-navigation"
+            ref={mobileMenuPanelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation menu"
+            className="absolute inset-y-0 left-0 w-[min(18rem,85vw)] bg-background border-r shadow-refined-lg animate-fade-in p-6 flex flex-col gap-1 overflow-y-auto"
+          >
             <div className="flex items-center justify-between mb-6">
-              <span className="text-xl font-medium tracking-tight text-[var(--copper)]">Savvo</span>
+              <span className="text-xl font-medium tracking-tight text-[var(--copper-text)]">Savvo</span>
               <Button
                 variant="ghost"
                 size="sm"
@@ -210,11 +276,12 @@ export function NavHeader() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={isActive ? "page" : undefined}
                   onClick={closeMobileMenu}
                   className={cn(
                     "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all touch-target",
                     isActive
-                      ? "bg-[var(--copper)]/10 text-[var(--copper)]"
+                      ? "bg-[var(--copper)]/10 text-[var(--copper-text)]"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   )}
                 >
@@ -233,11 +300,12 @@ export function NavHeader() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={isActive ? "page" : undefined}
                   onClick={closeMobileMenu}
                   className={cn(
                     "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all touch-target",
                     isActive
-                      ? "bg-[var(--copper)]/10 text-[var(--copper)]"
+                      ? "bg-[var(--copper)]/10 text-[var(--copper-text)]"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   )}
                 >
@@ -252,11 +320,12 @@ export function NavHeader() {
             {isAdmin && isLocal && (
               <Link
                 href="/dev"
+                aria-current={pathname === "/dev" ? "page" : undefined}
                 onClick={closeMobileMenu}
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all touch-target",
                   pathname === "/dev"
-                    ? "bg-[var(--copper)]/10 text-[var(--copper)]"
+                    ? "bg-[var(--copper)]/10 text-[var(--copper-text)]"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 )}
               >
@@ -267,11 +336,12 @@ export function NavHeader() {
 
             <Link
               href="/settings"
+              aria-current={pathname === "/settings" ? "page" : undefined}
               onClick={closeMobileMenu}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all touch-target",
                 pathname === "/settings"
-                  ? "bg-[var(--copper)]/10 text-[var(--copper)]"
+                  ? "bg-[var(--copper)]/10 text-[var(--copper-text)]"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               )}
             >
@@ -280,6 +350,7 @@ export function NavHeader() {
             </Link>
 
             <button
+              type="button"
               onClick={() => {
                 closeMobileMenu()
                 handleSignOut()

@@ -21,12 +21,12 @@ export default function VsStreakPage() {
       <main className="container mx-auto px-4 max-w-4xl">
         {/* Hero */}
         <section className="py-12 sm:py-20 text-center animate-fade-in">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--copper)]/10 text-[var(--copper)] text-xs font-medium mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--copper)]/10 text-[var(--copper-text)] text-xs font-medium mb-6">
             Savvo vs Streak
           </div>
           <h1 className="text-3xl sm:text-5xl font-normal tracking-tight mb-4 leading-tight">
             Your raise doesn&apos;t happen<br />
-            <span className="text-[var(--copper)]">only in your inbox</span>
+            <span className="text-[var(--copper-text)]">only in your inbox</span>
           </h1>
           <p className="text-stone-700 dark:text-stone-300 text-lg max-w-2xl mx-auto leading-relaxed mb-8">
             Streak turns Gmail into a sales pipeline, and it does that well. But fundraising is not a sales pipeline that lives in
@@ -76,7 +76,7 @@ export default function VsStreakPage() {
             ]}
           />
           <p className="text-xs text-stone-700 dark:text-stone-300 mt-3 text-center">
-            Streak pricing changes; check <a href="https://www.streak.com/pricing" className="underline hover:text-[var(--copper)]" rel="nofollow">streak.com/pricing</a> for current numbers.
+            Streak pricing changes; check <a href="https://www.streak.com/pricing" className="underline hover:text-[var(--copper-text)]" rel="nofollow">streak.com/pricing</a> for current numbers.
           </p>
         </section>
 
@@ -128,7 +128,7 @@ export default function VsStreakPage() {
         <section className="py-12 sm:py-20 text-center">
           <h2 className="text-3xl tracking-tight mb-3">
             Track every investor conversation.<br />
-            <span className="text-[var(--copper)]">Not just the ones in your inbox.</span>
+            <span className="text-[var(--copper-text)]">Not just the ones in your inbox.</span>
           </h2>
           <p className="text-stone-700 dark:text-stone-300 mb-6 max-w-md mx-auto">
             Start free with 50 contacts. Type what you remember after your next pitch, wherever it happened.

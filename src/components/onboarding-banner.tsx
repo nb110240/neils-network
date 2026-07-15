@@ -35,7 +35,7 @@ export function OnboardingBanner({ contactCount, plan }: OnboardingBannerProps) 
             Getting started: {contactCount}/5 contacts added
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {plan === "pro"
+            {plan === "pro" || plan === "team"
               ? `Add ${5 - contactCount} more to unlock daily digest emails.`
               : `Add ${5 - contactCount} more to see health scores in action.`}
           </p>
@@ -59,8 +59,9 @@ export function OnboardingBanner({ contactCount, plan }: OnboardingBannerProps) 
         </Button>
       </div>
       <button
+        type="button"
         onClick={handleDismiss}
-        className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-stone-200/50 dark:hover:bg-stone-800/50 transition-colors"
+        className="shrink-0 grid h-10 w-10 place-items-center rounded-md text-muted-foreground hover:text-foreground hover:bg-stone-200/50 dark:hover:bg-stone-800/50 transition-colors"
         aria-label="Dismiss onboarding banner"
       >
         <X className="h-4 w-4" />

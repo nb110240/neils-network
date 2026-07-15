@@ -121,7 +121,7 @@ export function OfflineIndicator() {
         )}
         {isSyncing && (
           <>
-            <Loader2 className="h-4 w-4 text-[var(--copper)] animate-spin" />
+            <Loader2 className="h-4 w-4 text-[var(--copper-text)] animate-spin" />
             <span>Syncing {queueCount} contact{queueCount > 1 ? "s" : ""}...</span>
           </>
         )}

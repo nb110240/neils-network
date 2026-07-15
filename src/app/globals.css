@@ -58,13 +58,16 @@
   --muted-foreground: #6b6361;
   --accent: #c2410c;
   --accent-foreground: #fff7ed;
-  --destructive: #dc2626;
+  --destructive: #b91c1c;
   --destructive-foreground: #fef2f2;
   --border: #e7e5e4;
   --input: #e7e5e4;
   --ring: #c2410c;
   --radius: 0.75rem;
   --copper: #c2410c;
+  /* Text uses a darker copper than CTA backgrounds so labels and links keep
+     AA contrast on white and copper-tinted surfaces. */
+  --copper-text: #9a3412;
   /* Light end of the CTA gradient. #cc4a0d (was #ea580c) is the lightest
      copper where white button text still passes WCAG AA (4.61:1 >= 4.5:1) —
      every copper CTA renders white text on this gradient. */
@@ -91,6 +94,9 @@
   --border: #44403c;
   --input: #44403c;
   --ring: #ea580c;
+  /* CTA backgrounds stay dark enough for white text; foreground copper gets
+     a separate warm, lighter value that remains legible on stone-950. */
+  --copper-text: #fdba74;
 }
 
 * {

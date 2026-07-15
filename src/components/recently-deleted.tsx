@@ -121,27 +121,32 @@ export function RecentlyDeleted() {
   return (
     <>
       <Card className="shadow-refined">
-        <CardHeader
-          className="cursor-pointer select-none"
-          onClick={() => setIsExpanded(!isExpanded)}
-        >
+        <CardHeader className="p-0 select-none">
           <CardTitle className="flex items-center gap-2 text-lg font-normal">
-            <Archive className="h-4 w-4 text-muted-foreground" />
-            <span className="flex-1">Recently Deleted</span>
-            {contacts.length > 0 && (
-              <span className="text-sm font-normal text-muted-foreground">
-                {contacts.length} contact{contacts.length !== 1 ? "s" : ""}
-              </span>
-            )}
-            {isExpanded ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-t-xl px-6 py-6 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              onClick={() => setIsExpanded(!isExpanded)}
+              aria-expanded={isExpanded}
+              aria-controls="recently-deleted-content"
+            >
+              <Archive className="h-4 w-4 text-muted-foreground" />
+              <span className="flex-1">Recently Deleted</span>
+              {contacts.length > 0 && (
+                <span className="text-sm font-normal text-muted-foreground">
+                  {contacts.length} contact{contacts.length !== 1 ? "s" : ""}
+                </span>
+              )}
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
           </CardTitle>
         </CardHeader>
         {isExpanded && (
-          <CardContent className="space-y-3">
+          <CardContent id="recently-deleted-content" className="space-y-3">
             {isLoading ? (
               <div className="flex items-center justify-center py-6">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />

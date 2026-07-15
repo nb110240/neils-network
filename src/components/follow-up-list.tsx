@@ -48,7 +48,7 @@ export function FollowUpList({ contacts, nowMs }: FollowUpListProps) {
             <Clock className="h-4 w-4 text-amber-600" />
           </div>
           Follow-ups Pending
-          <span className="inline-flex items-center rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-semibold text-white">
+          <span className="inline-flex items-center rounded-full bg-amber-700 px-2.5 py-0.5 text-xs font-semibold text-white">
             {contacts.length}
           </span>
         </CardTitle>
@@ -64,7 +64,7 @@ export function FollowUpList({ contacts, nowMs }: FollowUpListProps) {
             >
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <Avatar className="h-9 w-9 shrink-0">
-                  <AvatarFallback className="bg-amber-100 dark:bg-amber-950/30 text-amber-700 text-xs font-medium">
+                  <AvatarFallback className="bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 text-xs font-medium">
                     {getInitials(contact.name)}
                   </AvatarFallback>
                 </Avatar>
@@ -84,8 +84,8 @@ export function FollowUpList({ contacts, nowMs }: FollowUpListProps) {
                       variant="outline"
                       className={`text-[10px] px-1.5 py-0 h-5 font-medium ${
                         age.urgent
-                          ? "bg-red-50 text-red-600 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800"
-                          : "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800"
+                          ? "bg-red-50 text-red-800 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800"
+                          : "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800"
                       }`}
                     >
                       {age.label}

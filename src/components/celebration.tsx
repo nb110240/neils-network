@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
 
 const COLORS = ["#c2410c", "#ea580c", "#f97316", "#22c55e", "#3b82f6", "#a855f7", "#eab308"]
 const PARTICLE_COUNT = 40
@@ -12,12 +12,21 @@ interface CelebrationProps {
 
 export function Celebration({ show, onComplete }: CelebrationProps) {
   const [visible, setVisible] = useState(false)
-  const particlesRef = useRef<{ x: number; y: number; color: string; size: number; angle: number; velocity: number; spin: number; delay: number }[]>([])
+  const [particles, setParticles] = useState<{
+    x: number
+    y: number
+    color: string
+    size: number
+    angle: number
+    velocity: number
+    spin: number
+    delay: number
+  }[]>([])
 
   useEffect(() => {
     if (!show) return
     // Generate particles once, animate entirely with CSS
-    particlesRef.current = Array.from({ length: PARTICLE_COUNT }, () => ({
+    setParticles(Array.from({ length: PARTICLE_COUNT }, () => ({
       x: 50 + (Math.random() - 0.5) * 20,
       y: 40,
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
@@ -26,7 +35,7 @@ export function Celebration({ show, onComplete }: CelebrationProps) {
       velocity: Math.random() * 300 + 150,
       spin: (Math.random() - 0.5) * 720,
       delay: Math.random() * 0.2,
-    }))
+    })))
     setVisible(true)
 
     const timer = setTimeout(() => {
@@ -40,7 +49,7 @@ export function Celebration({ show, onComplete }: CelebrationProps) {
 
   return (
     <div className="fixed inset-0 z-[200] pointer-events-none" aria-hidden="true">
-      {particlesRef.current.map((p, i) => {
+      {particles.map((p, i) => {
         const dx = Math.cos((p.angle * Math.PI) / 180) * p.velocity
         const dy = Math.sin((p.angle * Math.PI) / 180) * p.velocity + 200
         return (

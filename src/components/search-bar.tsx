@@ -113,6 +113,7 @@ export function SearchBar({ onSearch, isLoading, facets, totalMatches, searchMod
           <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             ref={inputRef}
+            aria-label="Search contacts"
             placeholder="Search by name, company, or describe who you're looking for..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -171,7 +172,7 @@ export function SearchBar({ onSearch, isLoading, facets, totalMatches, searchMod
             <button
               key={`c-${name}`}
               onClick={() => toggleCompany(name)}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--copper)]/10 text-[var(--copper)] text-xs font-medium hover:bg-[var(--copper)]/20 transition-colors"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--copper)]/10 text-[var(--copper-text)] text-xs font-medium hover:bg-[var(--copper)]/20 transition-colors"
             >
               {name}
               <X className="h-3 w-3" />
@@ -240,7 +241,7 @@ export function SearchBar({ onSearch, isLoading, facets, totalMatches, searchMod
                       onClick={() => toggleCompany(name)}
                       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
                         isActive
-                          ? "bg-[var(--copper)]/10 text-[var(--copper)] border-[var(--copper)]/30"
+                          ? "bg-[var(--copper)]/10 text-[var(--copper-text)] border-[var(--copper)]/30"
                           : "border-stone-200 dark:border-stone-700 text-muted-foreground hover:border-stone-300"
                       }`}
                     >

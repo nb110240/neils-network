@@ -12,7 +12,6 @@ import {
   CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/toast"
@@ -285,7 +284,7 @@ function LoginPageInner() {
       <div className="animate-fade-in-scale">
         <Card className="shadow-refined-lg border-0 overflow-hidden">
           <CardHeader className="text-center pb-2">
-            <CardTitle className="text-3xl font-normal text-[var(--copper)]">Savvo</CardTitle>
+            <h1 className="text-3xl font-normal tracking-tight text-stone-900 dark:text-stone-100">Two-step verification</h1>
             <CardDescription className="text-base mt-2">
               Enter the 6-digit code from your authenticator app.
             </CardDescription>
@@ -327,7 +326,7 @@ function LoginPageInner() {
                 setMfaFactorId(null)
                 setMfaCode("")
               }}
-              className="text-sm text-muted-foreground hover:text-[var(--copper)] transition-colors font-medium"
+              className="text-sm text-muted-foreground hover:text-[var(--copper-text)] transition-colors font-medium"
             >
               Cancel and sign in as someone else
             </button>
@@ -343,14 +342,14 @@ function LoginPageInner() {
       <div className="animate-fade-in-scale">
         <Card className="shadow-refined-lg border-0 overflow-hidden">
           <CardHeader className="text-center pb-2">
-            <CardTitle className="text-3xl font-normal text-[var(--copper)]">Savvo</CardTitle>
+            <h1 className="text-3xl font-normal tracking-tight text-stone-900 dark:text-stone-100">Check your email</h1>
           </CardHeader>
           <CardContent className="space-y-4 pt-2">
             <div className="text-center space-y-4 py-4">
               <div className="mx-auto w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center">
                 <Mail className="h-6 w-6 text-emerald-600" />
               </div>
-              <h2 className="text-lg font-medium">One last step: check your email</h2>
+              <p className="text-lg font-medium">One last step to finish creating your Savvo account.</p>
               <p className="text-sm text-stone-700 dark:text-stone-300">
                 We sent a confirmation link to <strong>{email}</strong>. Click it and you&apos;ll land straight in your dashboard, ready to add your first contact.
               </p>
@@ -433,14 +432,14 @@ function LoginPageInner() {
             <button
               type="button"
               onClick={() => { setSignUpSent(false); setIsSignUp(true) }}
-              className="text-sm text-muted-foreground hover:text-[var(--copper)] transition-colors font-medium"
+              className="text-sm text-muted-foreground hover:text-[var(--copper-text)] transition-colors font-medium"
             >
               Wrong email? Go back and edit it
             </button>
             <button
               type="button"
               onClick={() => { setSignUpSent(false); setIsSignUp(false) }}
-              className="text-sm text-muted-foreground hover:text-[var(--copper)] transition-colors font-medium"
+              className="text-sm text-muted-foreground hover:text-[var(--copper-text)] transition-colors font-medium"
             >
               Back to sign in
             </button>
@@ -456,7 +455,9 @@ function LoginPageInner() {
       <div className="animate-fade-in-scale">
         <Card className="shadow-refined-lg border-0 overflow-hidden">
           <CardHeader className="text-center pb-2">
-            <CardTitle className="text-3xl font-normal text-[var(--copper)]">Savvo</CardTitle>
+            <h1 className="text-3xl font-normal tracking-tight text-stone-900 dark:text-stone-100">
+              {resetSent ? "Check your email" : "Reset your password"}
+            </h1>
             <CardDescription className="text-base mt-2">
               {resetSent
                 ? "Check your email for a password reset link"
@@ -535,7 +536,7 @@ function LoginPageInner() {
                 setIsForgotPassword(false)
                 setResetSent(false)
               }}
-              className="text-sm text-muted-foreground hover:text-[var(--copper)] transition-colors font-medium"
+              className="text-sm text-muted-foreground hover:text-[var(--copper-text)] transition-colors font-medium"
             >
               Back to sign in
             </button>
@@ -549,7 +550,9 @@ function LoginPageInner() {
     <div className="animate-fade-in-scale">
       <Card className="shadow-refined-lg border-0 overflow-hidden">
         <CardHeader className="text-center pb-2">
-          <CardTitle className="text-3xl font-normal text-[var(--copper)]">Savvo</CardTitle>
+          <h1 className="text-3xl font-normal tracking-tight text-stone-900 dark:text-stone-100">
+            {isSignUp ? "Create your Savvo account" : "Welcome back"}
+          </h1>
           <CardDescription className="text-base mt-2">
             {isSignUp
               ? "Keep every connection alive. Create your account."
@@ -564,7 +567,7 @@ function LoginPageInner() {
           >
             {isLoading ? (
               <span className="mr-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
-                <Loader2 className="h-4 w-4 animate-spin text-[var(--copper)]" />
+                <Loader2 className="h-4 w-4 animate-spin text-[var(--copper-text)]" />
               </span>
             ) : (
               <span className="mr-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
@@ -632,7 +635,7 @@ function LoginPageInner() {
                   <button
                     type="button"
                     onClick={() => setIsForgotPassword(true)}
-                    className="text-xs text-muted-foreground hover:text-[var(--copper)] transition-colors"
+                    className="text-xs text-muted-foreground hover:text-[var(--copper-text)] transition-colors"
                   >
                     Forgot password?
                   </button>
@@ -648,14 +651,14 @@ function LoginPageInner() {
                   autoComplete={isSignUp ? "new-password" : "current-password"}
                   required
                   minLength={6}
-                  className="h-11 pr-10 transition-all focus:shadow-md"
+                  className="h-11 pr-12 transition-all focus:shadow-md"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   aria-pressed={showPassword}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-500 hover:text-[var(--copper)] dark:text-stone-400 dark:hover:text-[var(--copper)] transition-colors"
+                  className="absolute right-0.5 top-1/2 -translate-y-1/2 h-10 w-10 inline-flex items-center justify-center rounded-md text-stone-500 hover:text-[var(--copper-text)] dark:text-stone-400 dark:hover:text-[var(--copper-text)] transition-colors"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -702,7 +705,7 @@ function LoginPageInner() {
           <button
             type="button"
             onClick={() => setIsSignUp(!isSignUp)}
-            className="text-sm text-muted-foreground hover:text-[var(--copper)] transition-colors font-medium"
+            className="text-sm text-muted-foreground hover:text-[var(--copper-text)] transition-colors font-medium"
           >
             {isSignUp
               ? "Already have an account? Sign in"

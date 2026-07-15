@@ -191,6 +191,7 @@ export default function AddContactPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <Textarea
+              aria-label="Describe who you met"
               placeholder={placeholder}
               value={rawNote}
               onChange={(e) => setRawNote(e.target.value)}
@@ -250,12 +251,14 @@ export default function AddContactPage() {
         <CardContent>
           <form onSubmit={handleLinkedinImport} className="space-y-3">
             <Input
+              aria-label="LinkedIn profile URL"
               placeholder="https://linkedin.com/in/johndoe"
               value={linkedinUrl}
               onChange={(e) => setLinkedinUrl(e.target.value)}
               className="h-11"
             />
             <Input
+              aria-label="Context for LinkedIn contact"
               placeholder="Add context: met at AI Summit, she's in product (optional)"
               value={linkedinNote}
               onChange={(e) => setLinkedinNote(e.target.value)}
@@ -277,11 +280,11 @@ export default function AddContactPage() {
           <div className="flex items-center justify-between mt-2">
             <p className="text-xs text-muted-foreground flex items-center gap-1.5">
               Name extracted from URL. Add context for richer details.
-              <Link href="/pricing" className="inline-flex items-center gap-1 text-[var(--copper)] font-medium hover:underline">
+              <Link href="/pricing" className="inline-flex items-center gap-1 py-1 text-[var(--copper-text)] font-medium hover:underline">
                 <Crown className="h-3 w-3" /> Pro
               </Link>
             </p>
-            <Link href="/scan" className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--copper)] hover:underline">
+            <Link href="/scan" className="inline-flex items-center gap-1.5 py-1 text-xs font-medium text-[var(--copper-text)] hover:underline">
               <ScanLine className="h-3 w-3" />
               Scan QR code
             </Link>
@@ -332,7 +335,7 @@ export default function AddContactPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-[var(--copper)]/10 flex items-center justify-center">
-                <Crown className="h-4 w-4 text-[var(--copper)]" />
+                <Crown className="h-4 w-4 text-[var(--copper-text)]" />
               </div>
               LinkedIn import is a Pro feature
             </DialogTitle>

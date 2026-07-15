@@ -318,7 +318,7 @@ export function DuplicateReview() {
             No duplicates found.
             <button
               onClick={scan}
-              className="text-[var(--copper)] hover:underline text-xs font-medium ml-1"
+              className="text-[var(--copper-text)] hover:underline text-xs font-medium ml-1"
             >
               Scan again
             </button>
@@ -398,7 +398,7 @@ export function DuplicateReview() {
                               {isWinner ? "Keeping" : "Merge into above"}
                             </span>
                             {isWinner && (
-                              <Check className="h-3.5 w-3.5 text-[var(--copper)]" />
+                              <Check className="h-3.5 w-3.5 text-[var(--copper-text)]" />
                             )}
                           </div>
                           <dl className="space-y-1.5">
@@ -501,7 +501,7 @@ export function DuplicateReview() {
             })}
             <button
               onClick={scan}
-              className="text-xs text-muted-foreground hover:text-[var(--copper)]"
+              className="text-xs text-muted-foreground hover:text-[var(--copper-text)]"
             >
               Rescan
             </button>

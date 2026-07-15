@@ -17,6 +17,7 @@ export const metadata: Metadata = {
 export default function InstallPage() {
   return (
     <div className="max-w-xl mx-auto py-8">
+      <h1 className="sr-only">Install Savvo on your device</h1>
       <InstallGuide />
     </div>
   )

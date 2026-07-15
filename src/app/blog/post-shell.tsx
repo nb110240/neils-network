@@ -61,7 +61,7 @@ export function formatPostDate(iso: string): string {
 
 export function PostShell({ post, children }: { post: BlogPost; children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd(post)) }}
@@ -69,7 +69,7 @@ export function PostShell({ post, children }: { post: BlogPost; children: ReactN
       <div className="max-w-2xl mx-auto px-6 py-12 md:py-16">
         <Link
           href="/blog"
-          className="inline-flex items-center gap-1.5 text-sm text-stone-700 dark:text-stone-300 hover:text-foreground mb-8"
+          className="inline-flex items-center gap-1.5 py-1 text-sm text-stone-700 dark:text-stone-300 hover:text-foreground mb-8"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to the blog
@@ -84,7 +84,7 @@ export function PostShell({ post, children }: { post: BlogPost; children: ReactN
             <span aria-hidden="true"> &middot; </span>
             <span>{post.readingMinutes} min read</span>
             <span aria-hidden="true"> &middot; </span>
-            <Link href="https://x.com/neilbajaj" className="text-[var(--copper)] hover:underline">
+            <Link href="https://x.com/neilbajaj" className="text-[var(--copper-text)] underline underline-offset-2">
               {post.author}
             </Link>
           </p>
@@ -95,7 +95,7 @@ export function PostShell({ post, children }: { post: BlogPost; children: ReactN
             "space-y-5 text-base leading-relaxed text-stone-700 dark:text-stone-300",
             "[&_h2]:mt-12 [&_h2]:text-2xl [&_h2]:font-normal [&_h2]:leading-snug [&_h2]:font-[family-name:var(--font-dm-serif)] [&_h2]:text-stone-900 dark:[&_h2]:text-stone-100",
             "[&_h3]:mt-8 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:text-stone-900 dark:[&_h3]:text-stone-100",
-            "[&_a]:text-[var(--copper)] [&_a:hover]:underline",
+            "[&_a]:text-[var(--copper-text)] [&_a]:underline [&_a]:underline-offset-2",
             "[&_strong]:font-semibold [&_strong]:text-stone-900 dark:[&_strong]:text-stone-100",
             "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-2",
             "[&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-2",
@@ -110,24 +110,24 @@ export function PostShell({ post, children }: { post: BlogPost; children: ReactN
             Savvo is the investor CRM for founders raising a round. Type what you remember after
             every pitch and it tracks who you met, who is going cold, and who needs a
             follow-up.{" "}
-            <Link href="/login?mode=signup" className="text-[var(--copper)] hover:underline">
+            <Link href="/login?mode=signup" className="text-[var(--copper-text)] underline underline-offset-2">
               Start free with 50 contacts
             </Link>
             .
           </p>
           <p>
             Questions or corrections? Email{" "}
-            <Link href="mailto:neil@savvo.app" className="text-[var(--copper)] hover:underline">
+            <Link href="mailto:neil@savvo.app" className="text-[var(--copper-text)] underline underline-offset-2">
               neil@savvo.app
             </Link>{" "}
             or reach out on{" "}
-            <Link href="https://x.com/neilbajaj" className="text-[var(--copper)] hover:underline">
+            <Link href="https://x.com/neilbajaj" className="text-[var(--copper-text)] underline underline-offset-2">
               X
             </Link>
             .
           </p>
         </footer>
       </div>
-    </div>
+    </main>
   )
 }

@@ -19,8 +19,8 @@ export default function PrivacyPage() {
     <div className="min-h-screen bg-background">
       <nav className="border-b bg-background/85 backdrop-blur-md">
         <div className="max-w-3xl mx-auto flex items-center justify-between px-4 sm:px-6 h-14">
-          <Link href="/" className="text-xl font-medium tracking-tight text-[var(--copper)]">Savvo</Link>
-          <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground">Sign In</Link>
+          <Link href="/" className="text-xl font-medium tracking-tight text-[var(--copper-text)]">Savvo</Link>
+          <Link href="/login" className="inline-flex py-2 text-sm text-muted-foreground hover:text-foreground">Sign In</Link>
         </div>
       </nav>
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-12">
@@ -66,7 +66,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-foreground mt-8 mb-3">Google API Disclosure</h2>
-            <p>Savvo&apos;s use of Google APIs (Calendar, Contacts) adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy" className="text-[var(--copper)] hover:underline" target="_blank" rel="noopener noreferrer">Google API Services User Data Policy</a>, including the Limited Use requirements. We only access the data you authorize and use it solely to provide Savvo&apos;s features.</p>
+            <p>Savvo&apos;s use of Google APIs (Calendar, Contacts) adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy" className="text-[var(--copper-text)] underline underline-offset-2" target="_blank" rel="noopener noreferrer">Google API Services User Data Policy</a>, including the Limited Use requirements. We only access the data you authorize and use it solely to provide Savvo&apos;s features.</p>
           </section>
 
           <section>
@@ -76,7 +76,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-foreground mt-8 mb-3">Contact</h2>
-            <p>Questions about privacy? Email <a href="mailto:neil@savvo.app" className="text-[var(--copper)] hover:underline">neil@savvo.app</a>.</p>
+            <p>Questions about privacy? Email <a href="mailto:neil@savvo.app" className="text-[var(--copper-text)] underline underline-offset-2">neil@savvo.app</a>.</p>
           </section>
         </div>
       </main>

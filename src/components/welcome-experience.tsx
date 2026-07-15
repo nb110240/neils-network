@@ -71,7 +71,7 @@ export function WelcomeExperience({
               variant="ghost"
               size="sm"
               asChild
-              className="text-muted-foreground hover:text-[var(--copper)]"
+              className="text-muted-foreground hover:text-[var(--copper-text)]"
             >
               <Link href="/import">
                 <Upload className="mr-2 h-4 w-4" />
@@ -83,7 +83,7 @@ export function WelcomeExperience({
 
         {/* Privacy reassurance — one line, not a card competing for attention */}
         <p className="mt-10 inline-flex items-center gap-2 text-xs text-muted-foreground">
-          <Network className="h-3.5 w-3.5 text-[var(--copper)]" />
+          <Network className="h-3.5 w-3.5 text-[var(--copper-text)]" />
           Your data stays private. No social scraping, no contact sharing.
         </p>
       </div>

@@ -92,7 +92,7 @@ export function ReachOutList({ contacts, plan, total }: ReachOutListProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-3 text-lg font-normal">
           <div className="h-8 w-8 rounded-lg bg-[var(--copper)]/10 flex items-center justify-center">
-            <HandHeart className="h-4 w-4 text-[var(--copper)]" />
+            <HandHeart className="h-4 w-4 text-[var(--copper-text)]" />
           </div>
           Reach Out Today
           <span className="inline-flex items-center rounded-full bg-[var(--copper)] px-2.5 py-0.5 text-xs font-semibold text-white">
@@ -114,13 +114,13 @@ export function ReachOutList({ contacts, plan, total }: ReachOutListProps) {
               className="flex items-center gap-3 min-w-0 flex-1"
             >
               <Avatar className="h-9 w-9 shrink-0">
-                <AvatarFallback className="bg-[var(--copper)]/8 text-[var(--copper)] text-xs font-medium">
+                <AvatarFallback className="bg-[var(--copper)]/8 text-[var(--copper-text)] text-xs font-medium">
                   {getInitials(contact.name)}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium group-hover:text-[var(--copper)] transition-colors truncate">
+                  <span className="font-medium group-hover:text-[var(--copper-text)] transition-colors truncate">
                     {contact.name || "Unknown Contact"}
                   </span>
                   {contact.company && (

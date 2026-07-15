@@ -53,7 +53,7 @@ const ACTIVITY_TYPES = [
 ] as const
 
 const ACTIVITY_TYPE_STYLES: Record<string, string> = {
-  meeting: "bg-[var(--copper)]/10 text-[var(--copper)] border-[var(--copper)]/30",
+  meeting: "bg-[var(--copper)]/10 text-[var(--copper-text)] border-[var(--copper)]/30",
   note: "bg-stone-100 text-stone-600 border-stone-300 dark:bg-stone-800 dark:text-stone-400 dark:border-stone-600",
   call: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-800",
   email: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800",
@@ -351,6 +351,7 @@ export default function ContactDetailPage({
   if (isLoading) {
     return (
       <div className="max-w-3xl mx-auto space-y-6">
+        <h1 className="sr-only">Contact details</h1>
         <Skeleton className="h-8 w-32" />
         <Card className="shadow-refined">
           <CardContent className="p-6">
@@ -385,7 +386,7 @@ export default function ContactDetailPage({
         </Button>
         <Card className="shadow-refined">
           <CardHeader>
-            <CardTitle>Edit Contact</CardTitle>
+            <h1 className="text-2xl font-semibold tracking-tight">Edit Contact</h1>
           </CardHeader>
           <CardContent>
             <ContactForm
@@ -653,7 +654,7 @@ export default function ContactDetailPage({
               <button
                 type="button"
                 onClick={() => setIsNoteExpanded((prev) => !prev)}
-                className="mt-2 text-xs font-medium text-[var(--copper)] hover:underline"
+                className="mt-2 text-xs font-medium text-[var(--copper-text)] hover:underline"
               >
                 {isNoteExpanded ? "Show less" : "Show more"}
               </button>
@@ -701,7 +702,7 @@ export default function ContactDetailPage({
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 font-medium bg-[var(--copper)]/10 text-[var(--copper)] border-[var(--copper)]/30">
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 font-medium bg-[var(--copper)]/10 text-[var(--copper-text)] border-[var(--copper)]/30">
                         Added
                       </Badge>
                       <span className="text-xs text-muted-foreground">
@@ -731,7 +732,7 @@ export default function ContactDetailPage({
               <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border" />
 
               <div className="space-y-0">
-                {activities.map((activity, index) => {
+                {activities.map((activity) => {
                   return (
                     <div
                       key={activity.id}
@@ -796,7 +797,7 @@ export default function ContactDetailPage({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 font-medium bg-[var(--copper)]/10 text-[var(--copper)] border-[var(--copper)]/30">
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 font-medium bg-[var(--copper)]/10 text-[var(--copper-text)] border-[var(--copper)]/30">
                           Added
                         </Badge>
                         <span className="text-xs text-muted-foreground">
@@ -835,13 +836,14 @@ export default function ContactDetailPage({
           <div className="space-y-4 py-2">
             {/* Activity type selector */}
             <div className="space-y-1">
-              <label className="text-sm font-medium">Type</label>
-              <div className="flex flex-wrap gap-2">
+              <p className="text-sm font-medium" id="activity-type-label">Type</p>
+              <div className="flex flex-wrap gap-2" role="group" aria-labelledby="activity-type-label">
                 {ACTIVITY_TYPES.map(({ value, label }) => (
                   <button
                     key={value}
                     type="button"
                     onClick={() => setMeetingType(value)}
+                    aria-pressed={meetingType === value}
                     className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
                       meetingType === value
                         ? ACTIVITY_TYPE_STYLES[value] + " ring-1 ring-offset-1 ring-current"

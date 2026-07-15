@@ -193,7 +193,7 @@ function ImportPageInner() {
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       <div className="flex items-center gap-4">
-        <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link href="/dashboard" className="inline-flex items-center gap-1 py-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-3.5 w-3.5" />
           Dashboard
         </Link>
@@ -209,7 +209,7 @@ function ImportPageInner() {
       {isPro === null && (
         <Card className="glass shadow-refined">
           <CardContent className="flex items-center justify-center py-16">
-            <Loader2 className="h-8 w-8 text-[var(--copper)] animate-spin" />
+            <Loader2 className="h-8 w-8 text-[var(--copper-text)] animate-spin" />
           </CardContent>
         </Card>
       )}
@@ -219,9 +219,9 @@ function ImportPageInner() {
         <Card className="glass shadow-refined animate-fade-in">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <div className="w-14 h-14 rounded-2xl bg-[var(--copper)]/10 flex items-center justify-center mb-4">
-              <Crown className="h-6 w-6 text-[var(--copper)]" />
+              <Crown className="h-6 w-6 text-[var(--copper-text)]" />
             </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--copper)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--copper)] mb-3">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--copper)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--copper-text)] mb-3">
               <Crown className="h-3 w-3" />
               Pro
             </span>
@@ -237,7 +237,7 @@ function ImportPageInner() {
             </Button>
             <Link
               href="/add"
-              className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--copper)] hover:underline"
+              className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--copper-text)] hover:underline"
             >
               Add contacts one at a time instead
               <ArrowRight className="h-3.5 w-3.5" />
@@ -262,7 +262,7 @@ function ImportPageInner() {
             onClick={() => setMode("csv")}
           >
             <div className="flex flex-col items-center justify-center py-10 px-6">
-              <FileSpreadsheet className="h-10 w-10 text-[var(--copper)] mb-4" />
+              <FileSpreadsheet className="h-10 w-10 text-[var(--copper-text)] mb-4" />
               <h3 className="text-lg font-medium">CSV File</h3>
               <p className="text-sm text-muted-foreground text-center mt-1">
                 Upload from LinkedIn, Google Contacts, or any spreadsheet
@@ -277,9 +277,9 @@ function ImportPageInner() {
           >
             <div className="flex flex-col items-center justify-center py-10 px-6">
               {isLoading ? (
-                <Loader2 className="h-10 w-10 text-[var(--copper)] animate-spin mb-4" />
+                <Loader2 className="h-10 w-10 text-[var(--copper-text)] animate-spin mb-4" />
               ) : (
-                <Mail className="h-10 w-10 text-[var(--copper)] mb-4" />
+                <Mail className="h-10 w-10 text-[var(--copper-text)] mb-4" />
               )}
               <h3 className="text-lg font-medium">Google Contacts</h3>
               <p className="text-sm text-muted-foreground text-center mt-1">
@@ -331,7 +331,7 @@ function ImportPageInner() {
               onClick={() => fileRef.current?.click()}
             >
               {isLoading ? (
-                <Loader2 className="h-10 w-10 mx-auto text-[var(--copper)] animate-spin" />
+                <Loader2 className="h-10 w-10 mx-auto text-[var(--copper-text)] animate-spin" />
               ) : (
                 <>
                   <FileSpreadsheet className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
@@ -439,7 +439,7 @@ function ImportPageInner() {
       {isPro === true && step === "importing" && (
         <Card className="glass shadow-refined animate-fade-in">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <Loader2 className="h-10 w-10 text-[var(--copper)] animate-spin mb-4" />
+            <Loader2 className="h-10 w-10 text-[var(--copper-text)] animate-spin mb-4" />
             <p className="text-lg font-medium">Importing contacts...</p>
             <p className="text-sm text-muted-foreground mt-1">
               This may take a moment for large files

@@ -7,7 +7,7 @@ import { createServiceClient } from "@/lib/supabase/server"
 
 import { calculateHealthScore } from "@/lib/health"
 import { CONTACT_COLUMNS } from "@/lib/contact-columns"
-import { getUserPlan } from "@/lib/subscription"
+import { getPlanLimits, getUserPlan } from "@/lib/subscription"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ContactCard } from "@/components/contact-card"
@@ -59,10 +59,11 @@ export default async function DashboardPage() {
   ])
 
   const totalContacts = allContacts?.length ?? 0
+  const planLimits = getPlanLimits(plan)
 
-  // Check if calendar is connected (Pro only)
+  // Check if calendar is connected for plans that include calendar sync.
   let calendarConnected = false
-  if (plan === "pro") {
+  if (planLimits.canCalendarSync) {
     const serviceSupabase = await createServiceClient()
     const { data: integration } = await serviceSupabase
       .from("integrations")
@@ -169,7 +170,7 @@ export default async function DashboardPage() {
   const followUpContactIds = allFollowUpContacts.map((c) => c.id)
 
   // Get the most recent activity with follow_up_needed for each contact
-  let followUpTriggerDates = new Map<string, { date: string; context: string | null }>()
+  const followUpTriggerDates = new Map<string, { date: string; context: string | null }>()
   if (followUpContactIds.length > 0) {
     const { data: followUpActivities } = await supabase
       .from("contact_activities")
@@ -259,11 +260,11 @@ export default async function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 animate-fade-in">
         <DashboardHeader userName={user.user_metadata?.full_name || null} />
         <div className="flex items-center gap-3 flex-wrap">
-          {plan === "pro" && (
+          {planLimits.canCalendarSync && (
             <CalendarConnectButton isConnected={calendarConnected} />
           )}
           {plan === "free" ? (
-            <Button variant="outline" size="sm" asChild className="border-[var(--copper)]/30 text-[var(--copper)] hover:bg-[var(--copper)]/5">
+            <Button variant="outline" size="sm" asChild className="border-[var(--copper)]/30 text-[var(--copper-text)] hover:bg-[var(--copper)]/5">
               <Link href="/pricing">
                 <Crown className="mr-2 h-4 w-4" />
                 Upgrade to Pro
@@ -299,7 +300,7 @@ export default async function DashboardPage() {
         <Card className="shadow-refined" data-tour="stats-reach-out">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Reach Out</CardTitle>
-            <HandHeart className="h-4 w-4 text-[var(--copper)]" />
+            <HandHeart className="h-4 w-4 text-[var(--copper-text)]" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-normal whitespace-nowrap">{reachOutTotal}</div>
@@ -335,7 +336,7 @@ export default async function DashboardPage() {
                 <ArrowRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
               </Link>
             </Button>
-            {plan === "pro" && (
+            {planLimits.canImport && (
               <>
                 <Button variant="outline" size="sm" className="w-full justify-between group" asChild>
                   <Link href="/import">
@@ -365,7 +366,7 @@ export default async function DashboardPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-normal">Recent Contacts</h2>
-          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-[var(--copper)]" asChild>
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-[var(--copper-text)]" asChild>
             <Link href="/contacts" className="flex items-center gap-2">
               View All
               <ArrowRight className="h-4 w-4" />
@@ -384,7 +385,7 @@ export default async function DashboardPage() {
           <Card className="shadow-refined">
             <CardContent className="flex flex-col items-center justify-center py-16">
               <div className="w-14 h-14 rounded-2xl bg-[var(--copper)]/10 flex items-center justify-center mb-4">
-                <Users className="h-6 w-6 text-[var(--copper)]" />
+                <Users className="h-6 w-6 text-[var(--copper-text)]" />
               </div>
               <h3 className="text-xl font-normal">No contacts yet</h3>
               <p className="text-muted-foreground text-center max-w-sm mt-2">

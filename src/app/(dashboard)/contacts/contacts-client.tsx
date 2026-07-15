@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { ExportContactsButton } from "@/components/export-contacts-button"
 import { DuplicatesBanner } from "@/components/duplicates-banner"
 import { refreshLoadedContactWindow } from "@/lib/contact-pagination"
+import { getAccessibleTextColor } from "@/lib/color-contrast"
 import { ArrowLeft, Plus, Users, Loader2, ArrowUpDown } from "lucide-react"
 
 type SortOption = "recent" | "last-contacted" | "needs-attention" | "name" | "health"
@@ -250,6 +251,7 @@ export function ContactsClient({ contacts: initialContacts, tags, contactTagMap:
         <div className="flex items-center gap-2 shrink-0">
           <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
           <select
+            aria-label="Sort contacts"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortOption)}
             className="h-8 rounded-lg border border-input bg-background px-2.5 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -264,10 +266,12 @@ export function ContactsClient({ contacts: initialContacts, tags, contactTagMap:
         {tags.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
             <button
+              type="button"
               onClick={() => setActiveTagId(null)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              aria-pressed={activeTagId === null}
+              className={`min-h-10 px-3 py-2 rounded-full text-xs font-medium transition-all ${
                 activeTagId === null
-                  ? "bg-[var(--copper)]/10 text-[var(--copper)] border border-[var(--copper)]/30"
+                  ? "bg-[var(--copper)]/10 text-[var(--copper-text)] border border-[var(--copper)]/30"
                   : "border text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
             >
@@ -276,13 +280,18 @@ export function ContactsClient({ contacts: initialContacts, tags, contactTagMap:
             {tags.map((tag) => (
               <button
                 key={tag.id}
+                type="button"
                 onClick={() => setActiveTagId(activeTagId === tag.id ? null : tag.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                aria-pressed={activeTagId === tag.id}
+                className={`min-h-10 px-3 py-2 rounded-full text-xs font-medium transition-all ${
                   activeTagId === tag.id
                     ? "text-white"
                     : "border text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 }`}
-                style={activeTagId === tag.id ? { backgroundColor: tag.color } : undefined}
+                style={activeTagId === tag.id ? {
+                  backgroundColor: tag.color,
+                  color: getAccessibleTextColor(tag.color),
+                } : undefined}
               >
                 {tag.name}
               </button>
@@ -309,7 +318,7 @@ export function ContactsClient({ contacts: initialContacts, tags, contactTagMap:
                 variant="outline"
                 onClick={loadMore}
                 disabled={isLoadingMore}
-                className="min-w-[200px] h-10 border-[var(--copper)]/30 text-[var(--copper)] hover:bg-[var(--copper)]/5"
+                className="min-w-[200px] h-10 border-[var(--copper)]/30 text-[var(--copper-text)] hover:bg-[var(--copper)]/5"
               >
                 {isLoadingMore ? (
                   <>
@@ -327,9 +336,9 @@ export function ContactsClient({ contacts: initialContacts, tags, contactTagMap:
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-10">
             <Users className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold">
+            <h2 className="text-lg font-semibold">
               {activeTagId ? "No contacts with this tag" : "No contacts yet"}
-            </h3>
+            </h2>
             <p className="text-muted-foreground text-center max-w-sm mt-2">
               {activeTagId
                 ? "Try selecting a different tag or add tags to your contacts."

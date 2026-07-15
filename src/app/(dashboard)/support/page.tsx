@@ -59,7 +59,7 @@ export default function SupportPage() {
             <div className="w-14 h-14 rounded-2xl bg-green-500 flex items-center justify-center mb-4">
               <CheckCircle className="h-7 w-7 text-white" />
             </div>
-            <h2 className="text-2xl font-normal mb-2">Thank you for contacting support</h2>
+            <h1 className="text-2xl font-normal mb-2">Thank you for contacting support</h1>
             <p className="text-muted-foreground max-w-sm">
               We&apos;ve received your message and will get back to you shortly via email.
             </p>
@@ -80,7 +80,7 @@ export default function SupportPage() {
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link href="/dashboard" className="inline-flex items-center gap-1 py-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-3.5 w-3.5" />
           Dashboard
         </Link>
@@ -100,13 +100,14 @@ export default function SupportPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Topic</label>
-              <div className="flex flex-wrap gap-2">
+              <p className="text-sm font-medium" id="support-topic-label">Topic</p>
+              <div className="flex flex-wrap gap-2" role="group" aria-labelledby="support-topic-label">
                 {TOPICS.map((topic) => (
                   <button
                     key={topic}
                     type="button"
                     onClick={() => setSubject(topic)}
+                    aria-pressed={subject === topic}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${
                       subject === topic
                         ? "bg-[var(--copper)] text-white border-[var(--copper)]"

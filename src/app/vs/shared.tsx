@@ -10,7 +10,7 @@ export function VsHeader() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2 group">
           <img src="/logo.svg" alt="Savvo" className="h-7 w-7" />
-          <span className="text-xl font-medium tracking-tight text-[var(--copper)] group-hover:opacity-80 transition-opacity">Savvo</span>
+          <span className="text-xl font-medium tracking-tight text-[var(--copper-text)] group-hover:opacity-80 transition-opacity">Savvo</span>
         </Link>
         <Link
           href="/login?mode=signup"
@@ -48,13 +48,18 @@ export interface ComparisonRow {
 
 export function ComparisonTable({ competitor, rows }: { competitor: string; rows: ComparisonRow[] }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border bg-white dark:bg-stone-800 shadow-refined">
+    <div
+      role="region"
+      aria-label={`${competitor} and Savvo feature comparison`}
+      tabIndex={0}
+      className="overflow-x-auto rounded-2xl border bg-white dark:bg-stone-800 shadow-refined focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+    >
       <table className="w-full text-sm border-collapse min-w-[560px]">
         <thead>
           <tr className="border-b bg-stone-50 dark:bg-stone-900/50">
             <th scope="col" className="text-left px-4 py-3.5 font-semibold text-stone-900 dark:text-stone-100 w-[28%]">What matters in a raise</th>
             <th scope="col" className="text-left px-4 py-3.5 font-semibold text-stone-900 dark:text-stone-100">{competitor}</th>
-            <th scope="col" className="text-left px-4 py-3.5 font-semibold text-[var(--copper)]">Savvo</th>
+            <th scope="col" className="text-left px-4 py-3.5 font-semibold text-[var(--copper-text)]">Savvo</th>
           </tr>
         </thead>
         <tbody>
@@ -110,7 +115,7 @@ export function MoreComparisons({ current }: { current: string }) {
           <Link
             key={link.href}
             href={link.href}
-            className="inline-flex items-center px-4 py-2 rounded-full border text-sm text-stone-700 dark:text-stone-300 hover:border-[var(--copper)]/40 hover:text-[var(--copper)] transition-colors"
+            className="inline-flex items-center px-4 py-2 rounded-full border text-sm text-stone-700 dark:text-stone-300 hover:border-[var(--copper)]/40 hover:text-[var(--copper-text)] transition-colors"
           >
             {link.label}
           </Link>

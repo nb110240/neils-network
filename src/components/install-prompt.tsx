@@ -79,7 +79,7 @@ export function InstallPrompt() {
 
   return (
     <div className="rounded-xl border border-[var(--copper)]/30 bg-[var(--copper)]/5 px-4 py-3 flex items-center gap-3">
-      <Download className="h-4 w-4 shrink-0 text-[var(--copper)]" />
+      <Download className="h-4 w-4 shrink-0 text-[var(--copper-text)]" />
       <div className="flex-1 min-w-0 text-sm">
         <span className="font-medium">Install Savvo on your device</span>{" "}
         <span className="text-muted-foreground">

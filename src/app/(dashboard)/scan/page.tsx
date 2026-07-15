@@ -160,7 +160,7 @@ export default function ScanPage() {
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link href="/dashboard" className="inline-flex items-center gap-1 py-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-3.5 w-3.5" />
           Dashboard
         </Link>
@@ -224,6 +224,7 @@ export default function ScanPage() {
             {/* Manual URL input */}
             <form onSubmit={handleManualSubmit} className="flex gap-3">
               <Input
+                aria-label="LinkedIn profile URL"
                 placeholder="https://linkedin.com/in/johndoe"
                 value={manualUrl}
                 onChange={(e) => { setManualUrl(e.target.value); setError("") }}
@@ -274,7 +275,7 @@ export default function ScanPage() {
       {isImporting && (
         <Card className="shadow-refined">
           <CardContent className="py-12 flex flex-col items-center">
-            <Loader2 className="h-8 w-8 text-[var(--copper)] animate-spin mb-3" />
+            <Loader2 className="h-8 w-8 text-[var(--copper-text)] animate-spin mb-3" />
             <p className="font-medium">Pulling profile details...</p>
           </CardContent>
         </Card>

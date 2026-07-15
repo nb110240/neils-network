@@ -113,7 +113,7 @@ export function NotificationPreferences() {
                   {locked && (
                     <Link
                       href="/pricing"
-                      className="inline-flex items-center gap-1 text-xs text-[var(--copper)] font-medium hover:underline"
+                      className="inline-flex items-center gap-1 text-xs text-[var(--copper-text)] font-medium hover:underline"
                     >
                       <Crown className="h-3 w-3" /> Pro
                     </Link>

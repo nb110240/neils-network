@@ -21,12 +21,12 @@ export default function VsAttioPage() {
       <main className="container mx-auto px-4 max-w-4xl">
         {/* Hero */}
         <section className="py-12 sm:py-20 text-center animate-fade-in">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--copper)]/10 text-[var(--copper)] text-xs font-medium mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--copper)]/10 text-[var(--copper-text)] text-xs font-medium mb-6">
             Savvo vs Attio
           </div>
           <h1 className="text-3xl sm:text-5xl font-normal tracking-tight mb-4 leading-tight">
             A CRM for your future sales team,<br />
-            <span className="text-[var(--copper)]">or a CRM for your raise right now</span>
+            <span className="text-[var(--copper-text)]">or a CRM for your raise right now</span>
           </h1>
           <p className="text-stone-700 dark:text-stone-300 text-lg max-w-2xl mx-auto leading-relaxed mb-8">
             Attio is one of the best modern CRMs on the market, built for go-to-market teams from, in their words, zero to IPO.
@@ -75,7 +75,7 @@ export default function VsAttioPage() {
             ]}
           />
           <p className="text-xs text-stone-700 dark:text-stone-300 mt-3 text-center">
-            Attio pricing changes; check <a href="https://attio.com/pricing" className="underline hover:text-[var(--copper)]" rel="nofollow">attio.com/pricing</a> for current numbers.
+            Attio pricing changes; check <a href="https://attio.com/pricing" className="underline hover:text-[var(--copper-text)]" rel="nofollow">attio.com/pricing</a> for current numbers.
           </p>
         </section>
 
@@ -127,7 +127,7 @@ export default function VsAttioPage() {
         <section className="py-12 sm:py-20 text-center">
           <h2 className="text-3xl tracking-tight mb-3">
             Configure a CRM later.<br />
-            <span className="text-[var(--copper)]">Close the round now.</span>
+            <span className="text-[var(--copper-text)]">Close the round now.</span>
           </h2>
           <p className="text-stone-700 dark:text-stone-300 mb-6 max-w-md mx-auto">
             Start free with 50 contacts. Your first investor note takes ten seconds to add.

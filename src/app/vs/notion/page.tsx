@@ -21,12 +21,12 @@ export default function VsNotionPage() {
       <main className="container mx-auto px-4 max-w-4xl">
         {/* Hero */}
         <section className="py-12 sm:py-20 text-center animate-fade-in">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--copper)]/10 text-[var(--copper)] text-xs font-medium mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--copper)]/10 text-[var(--copper-text)] text-xs font-medium mb-6">
             Savvo vs Notion
           </div>
           <h1 className="text-3xl sm:text-5xl font-normal tracking-tight mb-4 leading-tight">
             Your Notion investor tracker<br />
-            <span className="text-[var(--copper)]">only works when you open it</span>
+            <span className="text-[var(--copper-text)]">only works when you open it</span>
           </h1>
           <p className="text-stone-700 dark:text-stone-300 text-lg max-w-2xl mx-auto leading-relaxed mb-8">
             The template was beautiful. Status tags, a kanban view, a column for next steps. But a Notion database is passive:
@@ -74,7 +74,7 @@ export default function VsNotionPage() {
             ]}
           />
           <p className="text-xs text-stone-700 dark:text-stone-300 mt-3 text-center">
-            Notion pricing changes; check <a href="https://www.notion.com/pricing" className="underline hover:text-[var(--copper)]" rel="nofollow">notion.com/pricing</a> for current numbers.
+            Notion pricing changes; check <a href="https://www.notion.com/pricing" className="underline hover:text-[var(--copper-text)]" rel="nofollow">notion.com/pricing</a> for current numbers.
           </p>
         </section>
 
@@ -126,7 +126,7 @@ export default function VsNotionPage() {
         <section className="py-12 sm:py-20 text-center">
           <h2 className="text-3xl tracking-tight mb-3">
             Keep your docs in Notion.<br />
-            <span className="text-[var(--copper)]">Move your raise to Savvo.</span>
+            <span className="text-[var(--copper-text)]">Move your raise to Savvo.</span>
           </h2>
           <p className="text-stone-700 dark:text-stone-300 mb-6 max-w-md mx-auto">
             Export your tracker as a CSV and import it in minutes, or start fresh with your next pitch note.

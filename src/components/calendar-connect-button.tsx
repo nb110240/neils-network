@@ -66,6 +66,7 @@ export function CalendarConnectButton({ isConnected }: CalendarConnectButtonProp
           size="sm"
           onClick={handleSync}
           disabled={syncing}
+          aria-describedby="calendar-sync-description"
         >
           {syncing ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -74,7 +75,7 @@ export function CalendarConnectButton({ isConnected }: CalendarConnectButtonProp
           )}
           {syncing ? "Syncing..." : "Calendar Connected"}
         </Button>
-        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 px-3 py-2 rounded-lg bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-xs text-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+        <div id="calendar-sync-description" role="tooltip" className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 px-3 py-2 rounded-lg bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-xs text-center opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity pointer-events-none z-50">
           Syncs automatically once a day. Click to sync now.
         </div>
       </div>

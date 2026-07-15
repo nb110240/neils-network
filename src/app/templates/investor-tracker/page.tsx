@@ -66,7 +66,7 @@ export default function InvestorTrackerTemplatePage() {
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2 group">
             <img src="/logo.svg" alt="Savvo" className="h-7 w-7" />
-            <span className="text-xl font-medium tracking-tight text-[var(--copper)] group-hover:opacity-80 transition-opacity">Savvo</span>
+            <span className="text-xl font-medium tracking-tight text-[var(--copper-text)] group-hover:opacity-80 transition-opacity">Savvo</span>
           </Link>
           <Link
             href="/login?mode=signup"
@@ -80,12 +80,12 @@ export default function InvestorTrackerTemplatePage() {
       <main className="container mx-auto px-4 max-w-4xl">
         {/* Hero */}
         <section className="py-12 sm:py-20 text-center animate-fade-in">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--copper)]/10 text-[var(--copper)] text-xs font-medium mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--copper)]/10 text-[var(--copper-text)] text-xs font-medium mb-6">
             📥 Free template, no email required
           </div>
           <h1 className="text-3xl sm:text-5xl font-normal tracking-tight mb-4 leading-tight">
             Free investor pipeline<br />
-            <span className="text-[var(--copper)]">tracker template</span>
+            <span className="text-[var(--copper-text)]">tracker template</span>
           </h1>
           <p className="text-stone-700 dark:text-stone-300 text-lg max-w-2xl mx-auto leading-relaxed mb-8">
             A fundraise is a pipeline, and it is easy to run too much of it from memory. This free CSV template gives you
@@ -137,7 +137,7 @@ export default function InvestorTrackerTemplatePage() {
             <ol className="divide-y divide-stone-200 dark:divide-stone-700">
               {stages.map((s, i) => (
                 <li key={i} className="flex items-start gap-4 p-4 sm:px-6">
-                  <span className="w-7 h-7 rounded-full bg-[var(--copper)]/10 flex items-center justify-center shrink-0 mt-0.5 text-xs text-[var(--copper)] font-semibold">{i + 1}</span>
+                  <span className="w-7 h-7 rounded-full bg-[var(--copper)]/10 flex items-center justify-center shrink-0 mt-0.5 text-xs text-[var(--copper-text)] font-semibold">{i + 1}</span>
                   <div>
                     <span className="text-sm font-semibold text-stone-900 dark:text-stone-100">{s.stage}</span>
                     <p className="text-sm text-stone-700 dark:text-stone-300 leading-relaxed">{s.meaning}</p>
@@ -165,7 +165,7 @@ export default function InvestorTrackerTemplatePage() {
         <section className="py-12 sm:py-16">
           <div className="rounded-2xl border-2 border-[var(--copper)]/40 bg-white dark:bg-stone-800 p-8 sm:p-10 shadow-refined-lg text-center">
             <h2 className="text-2xl sm:text-3xl tracking-tight mb-4">
-              Honest note: <span className="text-[var(--copper)]">spreadsheets get harder to maintain at scale</span>
+              Honest note: <span className="text-[var(--copper-text)]">spreadsheets get harder to maintain at scale</span>
             </h2>
             <p className="text-stone-700 dark:text-stone-300 max-w-2xl mx-auto leading-relaxed mb-4">
               This template is a practical starting point. As the number of conversations grows, the tradeoffs become
@@ -199,10 +199,10 @@ export default function InvestorTrackerTemplatePage() {
         <section className="py-8 sm:py-12 text-center">
           <p className="text-sm text-stone-700 dark:text-stone-300">
             Comparing tools for your raise? See{" "}
-            <Link href="/vs/airtable" className="text-[var(--copper)] hover:opacity-80 font-medium">Savvo vs Airtable</Link>,{" "}
-            <Link href="/vs/notion" className="text-[var(--copper)] hover:opacity-80 font-medium">Savvo vs Notion</Link>, or
+            <Link href="/vs/airtable" className="text-[var(--copper-text)] hover:opacity-80 font-medium">Savvo vs Airtable</Link>,{" "}
+            <Link href="/vs/notion" className="text-[var(--copper-text)] hover:opacity-80 font-medium">Savvo vs Notion</Link>, or
             read more fundraising tactics on the{" "}
-            <Link href="/blog" className="text-[var(--copper)] hover:opacity-80 font-medium">Savvo blog</Link>.
+            <Link href="/blog" className="text-[var(--copper-text)] hover:opacity-80 font-medium">Savvo blog</Link>.
           </p>
         </section>
       </main>

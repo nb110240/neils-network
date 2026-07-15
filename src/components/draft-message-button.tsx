@@ -80,7 +80,7 @@ export function DraftMessageButton({ contactId, contactName, plan, variant = "fu
           <Link href="/pricing" className="flex items-center gap-1.5">
             <MessageSquare className="h-4 w-4" />
             Draft Follow-Up
-            <Crown className="h-3 w-3 text-[var(--copper)]" />
+            <Crown className="h-3 w-3 text-[var(--copper-text)]" />
           </Link>
         </Button>
       </div>
@@ -93,7 +93,7 @@ export function DraftMessageButton({ contactId, contactName, plan, variant = "fu
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 text-[var(--copper)] hover:bg-[var(--copper)]/10"
+          className="h-8 w-8 text-[var(--copper-text)] hover:bg-[var(--copper)]/10"
           onClick={() => generateDraft("followup")}
         >
           <MessageSquare className="h-4 w-4" />
@@ -111,7 +111,7 @@ export function DraftMessageButton({ contactId, contactName, plan, variant = "fu
 
             {isLoading ? (
               <div className="flex flex-col items-center py-8">
-                <Loader2 className="h-6 w-6 text-[var(--copper)] animate-spin mb-3" />
+                <Loader2 className="h-6 w-6 text-[var(--copper-text)] animate-spin mb-3" />
                 <p className="text-sm text-muted-foreground">Drafting your message...</p>
               </div>
             ) : (
@@ -175,7 +175,7 @@ export function DraftMessageButton({ contactId, contactName, plan, variant = "fu
 
           {isLoading ? (
             <div className="flex flex-col items-center py-8">
-              <Loader2 className="h-6 w-6 text-[var(--copper)] animate-spin mb-3" />
+              <Loader2 className="h-6 w-6 text-[var(--copper-text)] animate-spin mb-3" />
               <p className="text-sm text-muted-foreground">Drafting your message...</p>
             </div>
           ) : (

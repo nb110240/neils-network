@@ -19,11 +19,11 @@ export const metadata: Metadata = {
 
 export default function BlogIndexPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background">
       <div className="max-w-3xl mx-auto px-6 py-12 md:py-16">
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-stone-700 dark:text-stone-300 hover:text-foreground mb-8"
+          className="inline-flex items-center gap-1.5 py-1 text-sm text-stone-700 dark:text-stone-300 hover:text-foreground mb-8"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to Savvo
@@ -35,7 +35,7 @@ export default function BlogIndexPage() {
           </h1>
           <p className="text-base text-stone-700 dark:text-stone-300 mt-3 max-w-xl">
             Practical guides on fundraising and investor relationships, written by{" "}
-            <Link href="https://x.com/neilbajaj" className="text-[var(--copper)] hover:underline">
+            <Link href="https://x.com/neilbajaj" className="text-[var(--copper-text)] underline underline-offset-2">
               @neilbajaj
             </Link>
             . No fluff, just what works.
@@ -54,7 +54,7 @@ export default function BlogIndexPage() {
                 {post.readingMinutes} min read
               </p>
               <h2 className="text-xl font-semibold leading-snug text-stone-900 dark:text-stone-100">
-                <Link href={`/blog/${post.slug}`} className="hover:text-[var(--copper)] transition-colors">
+                <Link href={`/blog/${post.slug}`} className="hover:text-[var(--copper-text)] transition-colors">
                   {post.title}
                 </Link>
               </h2>
@@ -63,7 +63,7 @@ export default function BlogIndexPage() {
               </p>
               <Link
                 href={`/blog/${post.slug}`}
-                className="inline-block text-sm font-medium text-[var(--copper)] hover:underline mt-3"
+                className="inline-block py-1 text-sm font-medium text-[var(--copper-text)] hover:underline mt-2"
               >
                 Read the guide →
               </Link>
@@ -74,17 +74,17 @@ export default function BlogIndexPage() {
         <footer className="mt-16 pt-8 border-t border-stone-200 dark:border-stone-800 text-sm text-stone-700 dark:text-stone-300">
           <p>
             Subscribe via{" "}
-            <Link href="/rss.xml" className="text-[var(--copper)] hover:underline">
+            <Link href="/rss.xml" className="text-[var(--copper-text)] underline underline-offset-2">
               RSS
             </Link>
             , or email{" "}
-            <Link href="mailto:neil@savvo.app" className="text-[var(--copper)] hover:underline">
+            <Link href="mailto:neil@savvo.app" className="text-[var(--copper-text)] underline underline-offset-2">
               neil@savvo.app
             </Link>{" "}
             with topics you want covered.
           </p>
         </footer>
       </div>
-    </div>
+    </main>
   )
 }

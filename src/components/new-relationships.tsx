@@ -16,7 +16,7 @@ export function NewRelationships({ contacts }: NewRelationshipsProps) {
     <div className="space-y-3">
       <h2 className="flex items-center gap-2 text-lg font-normal">
         <div className="h-7 w-7 rounded-lg bg-[var(--copper)]/10 flex items-center justify-center">
-          <Sparkles className="h-3.5 w-3.5 text-[var(--copper)]" />
+          <Sparkles className="h-3.5 w-3.5 text-[var(--copper-text)]" />
         </div>
         New in Your Network
       </h2>
@@ -26,7 +26,7 @@ export function NewRelationships({ contacts }: NewRelationshipsProps) {
             <Card className="shadow-refined hover:shadow-refined-lg hover:-translate-y-0.5 transition-all cursor-pointer w-[180px]">
               <CardContent className="p-4 flex flex-col items-center text-center">
                 <Avatar className="h-11 w-11 mb-2">
-                  <AvatarFallback className="bg-[var(--copper)]/8 text-[var(--copper)] text-sm font-medium">
+                  <AvatarFallback className="bg-[var(--copper)]/8 text-[var(--copper-text)] text-sm font-medium">
                     {getInitials(contact.name)}
                   </AvatarFallback>
                 </Avatar>

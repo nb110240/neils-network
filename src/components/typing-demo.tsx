@@ -132,14 +132,14 @@ export function TypingDemo() {
             >
               <span className="text-muted-foreground">{field.label}</span>
               <span className={field.highlight ? "text-amber-600 font-medium" : "font-medium"}>
-                {i < visibleFields ? field.value : "—"}
+                {i < visibleFields ? field.value : "Not extracted yet"}
               </span>
             </div>
           ))}
         </div>
 
         <p className="text-xs text-muted-foreground pt-1">
-          No forms. No fields. Just write what you&apos;d text a friend — AI handles the rest in seconds.
+          No forms. No fields. Just write what you&apos;d text a friend, and AI handles the rest in seconds.
         </p>
       </div>
     </div>

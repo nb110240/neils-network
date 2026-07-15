@@ -176,7 +176,7 @@ export default function AddContactPage() {
       <div>
         <h1 className="text-4xl font-normal tracking-tight">Add Contact</h1>
         <p className="text-muted-foreground mt-1 text-lg">
-          Describe who you met — AI extracts the details. You can always edit after.
+          Describe who you met, and AI extracts the details. You can always edit after.
         </p>
       </div>
 
@@ -276,7 +276,7 @@ export default function AddContactPage() {
           </form>
           <div className="flex items-center justify-between mt-2">
             <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              Name extracted from URL — add context for richer details
+              Name extracted from URL. Add context for richer details.
               <Link href="/pricing" className="inline-flex items-center gap-1 text-[var(--copper)] font-medium hover:underline">
                 <Crown className="h-3 w-3" /> Pro
               </Link>

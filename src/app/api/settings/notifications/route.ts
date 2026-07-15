@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
-import { authenticateRequest, authFailed, badRequestResponse, errorResponse } from "@/lib/api-utils"
+import { authenticateRequest, authFailed, badRequestResponse, errorResponse, forbiddenResponse } from "@/lib/api-utils"
 import { createServiceClient } from "@/lib/supabase/server"
+import { getUserPlan } from "@/lib/subscription"
 
 const VALID_FREQUENCIES = ["daily", "weekly", "never"] as const
 
@@ -17,8 +18,12 @@ export async function GET() {
       .eq("user_id", user.id)
       .single()
 
+    const plan = await getUserPlan(user.id)
+    const savedFrequency = data?.digest_frequency || "weekly"
+
     return NextResponse.json({
-      digest_frequency: data?.digest_frequency || "weekly",
+      digest_frequency: plan === "free" && savedFrequency === "daily" ? "weekly" : savedFrequency,
+      can_use_daily: plan !== "free",
     })
   } catch (error) {
     console.error("Notification preferences GET error:", error)
@@ -37,6 +42,11 @@ export async function PUT(request: Request) {
 
     if (!digest_frequency || !VALID_FREQUENCIES.includes(digest_frequency)) {
       return badRequestResponse("Invalid digest_frequency. Must be: daily, weekly, or never")
+    }
+
+    const plan = await getUserPlan(user.id)
+    if (plan === "free" && digest_frequency === "daily") {
+      return forbiddenResponse("Daily digests are a Pro feature")
     }
 
     const serviceSupabase = await createServiceClient()

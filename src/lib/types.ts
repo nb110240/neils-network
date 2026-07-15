@@ -82,6 +82,8 @@ export interface HealthScore {
 // Subscription types
 export type PlanType = "free" | "pro" | "team"
 
+export const DAILY_DIGEST_PLANS: readonly PlanType[] = ["pro", "team"]
+
 export interface Subscription {
   id: string
   user_id: string

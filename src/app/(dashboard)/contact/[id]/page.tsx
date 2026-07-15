@@ -95,6 +95,8 @@ export default function ContactDetailPage({
   const [isAddingMeeting, setIsAddingMeeting] = useState(false)
   const [isRetryingEmbed, setIsRetryingEmbed] = useState(false)
   const [deletingActivityId, setDeletingActivityId] = useState<string | null>(null)
+  const [isNoteExpanded, setIsNoteExpanded] = useState(false)
+  const [plan, setPlan] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchContact = async () => {
@@ -131,8 +133,21 @@ export default function ContactDetailPage({
       }
     }
 
+    const fetchPlan = async () => {
+      try {
+        const response = await fetch("/api/settings/plan")
+        if (response.ok) {
+          const data = await response.json()
+          setPlan(data.plan)
+        }
+      } catch {
+        // Plan fetch failing just hides the draft button; not fatal
+      }
+    }
+
     fetchContact()
     fetchActivities()
+    fetchPlan()
   }, [id, router, addToast])
 
   const handleMarkFollowedUp = async () => {
@@ -324,7 +339,9 @@ export default function ContactDetailPage({
     }
   }
 
-  // Extract the original note (before any --- separator)
+  // Extract the first note segment (before any --- separator). Used only to
+  // detect auto-generated filler; the Notes card renders the full raw_note so
+  // appended segments (e.g. "Merged from duplicate: ...") stay visible.
   const getOriginalNote = (rawNote: string): string => {
     const firstSeparator = rawNote.indexOf("\n\n---\n\n")
     if (firstSeparator === -1) return rawNote.trim()
@@ -384,7 +401,15 @@ export default function ContactDetailPage({
   const health = (contact as Contact & { health?: import("@/lib/types").HealthScore }).health
     ?? calculateHealthScore(contact.last_contact_date, contact.created_at, contact.cadence_days)
 
-  const originalNote = getOriginalNote(contact.raw_note)
+  const fullNote = (contact.raw_note || "").trim()
+  const originalNote = getOriginalNote(contact.raw_note || "")
+  // Hide the Notes card only when the note is nothing but auto-generated
+  // filler (no appended segments like merge notes).
+  const isFillerNote =
+    fullNote === originalNote &&
+    (originalNote.startsWith("Imported from CSV") ||
+      originalNote === `${contact.name}${contact.company ? ` at ${contact.company}` : ""}`)
+  const isNoteLong = fullNote.length > 500 || fullNote.split("\n").length > 6
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -400,6 +425,13 @@ export default function ContactDetailPage({
             Edit
           </Button>
           <MeetingPrepButton contactId={id} />
+          {plan && (
+            <DraftMessageButton
+              contactId={id}
+              contactName={contact.name || "Contact"}
+              plan={plan}
+            />
+          )}
           <Button variant="outline" size="sm" onClick={() => setShowMeetingDialog(true)}>
             <MessageSquarePlus className="mr-2 h-4 w-4" />
             Add Activity
@@ -603,16 +635,29 @@ export default function ContactDetailPage({
         </Card>
       )}
 
-      {/* Original Note — hide if it's just auto-generated CSV filler */}
-      {originalNote && !originalNote.startsWith("Imported from CSV") && originalNote !== `${contact.name}${contact.company ? ` at ${contact.company}` : ""}` && (
+      {/* Notes — full raw_note including appended segments (merges etc.); hide if it's just auto-generated CSV filler */}
+      {fullNote && !isFillerNote && (
         <Card className="shadow-refined">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-medium">Notes</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-              {originalNote}
+            <p
+              className={`text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed ${
+                isNoteLong && !isNoteExpanded ? "line-clamp-6" : ""
+              }`}
+            >
+              {fullNote}
             </p>
+            {isNoteLong && (
+              <button
+                type="button"
+                onClick={() => setIsNoteExpanded((prev) => !prev)}
+                className="mt-2 text-xs font-medium text-[var(--copper)] hover:underline"
+              >
+                {isNoteExpanded ? "Show less" : "Show more"}
+              </button>
+            )}
           </CardContent>
         </Card>
       )}
@@ -664,7 +709,7 @@ export default function ContactDetailPage({
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {contact.how_we_met ? `First added — ${contact.how_we_met}` : "Added to your network"}
+                      {contact.how_we_met ? `First added: ${contact.how_we_met}` : "Added to your network"}
                     </p>
                   </div>
                 </div>
@@ -760,7 +805,7 @@ export default function ContactDetailPage({
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {contact.how_we_met
-                          ? `First added — ${contact.how_we_met}`
+                          ? `First added: ${contact.how_we_met}`
                           : contact.source === "linkedin"
                             ? "Imported from LinkedIn"
                             : contact.source === "csv"

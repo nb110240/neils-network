@@ -97,7 +97,7 @@ CONTACT PROFILE:
 - Company: ${sanitizeForPrompt(contact.company, 100) || "Unknown"}
 - Role: ${sanitizeForPrompt(contact.job_title, 100) || "Unknown"}
 - How we met: ${sanitizeForPrompt(contact.how_we_met, 200)}
-- Relationship health: ${health.label} (${health.level} — last contact: ${contact.last_contact_date || "never"})
+- Relationship health: ${health.label} (${health.level}; last contact: ${contact.last_contact_date || "never"})
 - Tags: ${tagNames.length > 0 ? tagNames.join(", ") : "None"}
 - Original notes: ${sanitizeForPrompt(contact.raw_note, 500)}
 - Next steps noted: ${sanitizeForPrompt(contact.next_steps, 200)}
@@ -107,14 +107,15 @@ RECENT ACTIVITY:
 ${activityHistory || "No recent activities logged."}
 
 OUTPUT FORMAT (respond in this exact structure):
-1. **Key Context** (2-3 bullet points — what ${userName} needs to remember about this person)
-2. **Conversation Starters** (3 specific, natural openers based on their context — NOT generic)
+1. **Key Context** (2-3 bullet points covering what ${userName} needs to remember about this person)
+2. **Conversation Starters** (3 specific, natural openers based on their context; NOT generic)
 3. **Follow-up Items** (any outstanding next steps or commitments)
-4. **Strategic Angle** (1 sentence — how this relationship could be mutually valuable)
+4. **Strategic Angle** (1 sentence about how this relationship could be mutually valuable)
 
 RULES:
 - Be specific. Reference actual details from the notes and activities.
-- Never say "checking in" — give real reasons to reconnect.
+- Never say "checking in"; give real reasons to reconnect.
+- Never use em dashes.
 - If the relationship is cold, acknowledge it naturally in the starters.
 - Keep the entire brief under 250 words.`
 

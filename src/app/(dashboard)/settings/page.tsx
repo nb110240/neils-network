@@ -478,7 +478,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="flex items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            Download everything Savvo stores about you as JSON — contacts, activities, tags, events, preferences.
+            Download everything Savvo stores about you as JSON: contacts, activities, tags, events, and preferences.
           </p>
           <DataExportButton />
         </CardContent>

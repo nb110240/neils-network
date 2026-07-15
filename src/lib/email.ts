@@ -241,7 +241,7 @@ export async function sendNewUserNudgeEmail(
 
   const subject =
     count === 1
-      ? "You've started your network on Savvo — add a few more"
+      ? "You've started your network on Savvo. Add a few more"
       : "Who else have you met recently?"
 
   await getResend().emails.send({

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/toast"
+import { toQrImageSrc } from "@/lib/qr-code"
 import { ShieldCheck, ShieldOff, Loader2, Check, X } from "lucide-react"
 
 interface Factor {
@@ -18,7 +19,7 @@ interface Factor {
 
 interface EnrollmentState {
   factorId: string
-  qrCodeSvg: string
+  qrCode: string
   secret: string
 }
 
@@ -65,7 +66,7 @@ export function MfaSettings() {
       if (!data) throw new Error("Enrollment failed")
       setEnrollment({
         factorId: data.id,
-        qrCodeSvg: data.totp.qr_code,
+        qrCode: data.totp.qr_code,
         secret: data.totp.secret,
       })
     } catch (err) {
@@ -173,10 +174,14 @@ export function MfaSettings() {
               <p className="text-sm mb-2">
                 Scan this QR code with your authenticator app (1Password, Authy, Google Authenticator, etc.), then enter the 6-digit code it shows.
               </p>
-              <div
-                className="inline-block rounded-lg bg-white p-3 border border-stone-200"
-                dangerouslySetInnerHTML={{ __html: enrollment.qrCodeSvg }}
-              />
+              <div className="inline-block rounded-lg bg-white p-3 border border-stone-200">
+                {/* eslint-disable-next-line @next/next/no-img-element -- data URI QR code, not an optimizable asset */}
+                <img
+                  src={toQrImageSrc(enrollment.qrCode)}
+                  alt="Scan this QR code with your authenticator app"
+                  className="block"
+                />
+              </div>
               <p className="text-xs text-muted-foreground mt-2">
                 Can't scan? Enter this code manually:{" "}
                 <code className="font-mono text-xs bg-stone-100 dark:bg-stone-800 px-1.5 py-0.5 rounded">

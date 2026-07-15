@@ -40,7 +40,7 @@ export const GOAL_CONFIGS: Record<NetworkingGoal, GoalConfig> = {
     emoji: "💰",
     tagline: "Never lose track of an investor relationship",
     welcomeSubtitle: "Savvo helps you manage investor relationships, track warm intros, and stay top-of-mind with the VCs who matter.",
-    addContactPlaceholder: "Example: Met Sarah Chen at Demo Day. She's a partner at Sequoia, focused on B2B SaaS. Interested in our Series A — wants to see Q2 metrics. Intro'd by Mike at YC. Follow up next week with deck.",
+    addContactPlaceholder: "Example: Met Sarah Chen at Demo Day. She's a partner at Sequoia, focused on B2B SaaS. Interested in our Series A and wants to see Q2 metrics. Intro'd by Mike at YC. Follow up next week with deck.",
     featureHighlights: ["Track investor touchpoints", "Never let a warm intro go cold"],
     dashboardContext: "Your investor pipeline",
     reachOutExplanation: "These investors and contacts haven't heard from you recently. In fundraising, staying warm between rounds is what gets you the next meeting.",
@@ -63,7 +63,7 @@ export const GOAL_CONFIGS: Record<NetworkingGoal, GoalConfig> = {
     addContactPlaceholder: "Example: Met Jordan Lee at SaaStr. Head of BD at Notion. They're looking for integration partners in the CRM space. Wants to do a co-marketing webinar. Follow up with proposal by Friday.",
     featureHighlights: ["Track partnership conversations", "Never miss a follow-through"],
     dashboardContext: "Your partnership pipeline",
-    reachOutExplanation: "These partners and potential collaborators need attention. Partnerships die from neglect — a quick check-in keeps momentum alive.",
+    reachOutExplanation: "These partners and potential collaborators need attention. Partnerships die from neglect, so a quick check-in keeps momentum alive.",
   },
   sales: {
     label: "Sales",
@@ -73,7 +73,7 @@ export const GOAL_CONFIGS: Record<NetworkingGoal, GoalConfig> = {
     addContactPlaceholder: "Example: Met Dana Park at the Fintech Summit. VP of Ops at Plaid, managing a team of 40. Pain point: their current CRM doesn't track relationship context. Budget decision in Q2. Need to send case study.",
     featureHighlights: ["Track prospect conversations", "AI-powered follow-up reminders"],
     dashboardContext: "Your relationship pipeline",
-    reachOutExplanation: "These prospects and champions are going cold. Deals are won in the follow-up — staying top-of-mind is everything.",
+    reachOutExplanation: "These prospects and champions are going cold. Deals are won in the follow-up, and staying top-of-mind is everything.",
   },
   community: {
     label: "Community",
@@ -83,7 +83,7 @@ export const GOAL_CONFIGS: Record<NetworkingGoal, GoalConfig> = {
     addContactPlaceholder: "Example: Met Priya Shah at the SF Founders Dinner. She's building an edtech startup, pre-seed. Super passionate about accessibility. Knows the team at Replit. Should connect her with James who's hiring for similar roles.",
     featureHighlights: ["Spot introduction opportunities", "Track who knows who"],
     dashboardContext: "Your community",
-    reachOutExplanation: "These community members haven't heard from you recently. Great community builders are proactive connectors — check in and see how they're doing.",
+    reachOutExplanation: "These community members haven't heard from you recently. Great community builders are proactive connectors, so check in and see how they're doing.",
   },
   general: {
     label: "General networking",
@@ -93,7 +93,7 @@ export const GOAL_CONFIGS: Record<NetworkingGoal, GoalConfig> = {
     addContactPlaceholder: "Example: Met John Doe at the AI Summit. He's VP of Engineering at Acme Corp. We talked about their platform and he mentioned they're hiring. Should follow up next week.",
     featureHighlights: ["Health scores track every relationship", "Never forget a follow-up"],
     dashboardContext: "Your network overview",
-    reachOutExplanation: "These contacts need attention — they have pending follow-ups or your relationship is going cold. A quick message keeps things warm.",
+    reachOutExplanation: "These contacts need attention because they have pending follow-ups or your relationship is going cold. A quick message keeps things warm.",
   },
 }
 

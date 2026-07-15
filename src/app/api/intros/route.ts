@@ -99,7 +99,7 @@ For each suggestion, respond in this JSON format:
 
 RULES:
 - Only suggest intros with a SPECIFIC shared interest, industry overlap, complementary skills, or mutual benefit
-- Do NOT suggest intros just because two people work in tech or are both founders — be specific
+- Do NOT suggest intros just because two people work in tech or are both founders; be specific
 - Shared tags, same company alumni, complementary roles, or mentioned mutual interests are strong signals
 - If no good intros exist, return fewer suggestions. Quality over quantity.
 - The intro_template should sound warm and natural, not corporate`

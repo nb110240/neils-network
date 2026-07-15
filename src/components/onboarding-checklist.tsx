@@ -24,7 +24,7 @@ const CHECKLIST_ITEMS: ChecklistItem[] = [
   {
     id: "add-contact",
     label: "Add your first contact",
-    description: "Type what you remember — AI does the rest",
+    description: "Type what you remember, and AI does the rest",
     href: "/add",
     icon: Plus,
   },

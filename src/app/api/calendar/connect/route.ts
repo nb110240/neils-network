@@ -2,27 +2,7 @@ import { NextResponse } from "next/server"
 import { createClient, createServiceClient } from "@/lib/supabase/server"
 import { authenticateRequest, authFailed, errorResponse, badRequestResponse, forbiddenResponse } from "@/lib/api-utils"
 import { getUserPlan, getPlanLimits } from "@/lib/subscription"
-import { createHmac } from "crypto"
-
-// Sign state to prevent IDOR — attacker can't forge a valid state for another user
-function getOAuthStateSecret(): string {
-  const secret = process.env.OAUTH_STATE_SECRET || process.env.CRON_SECRET
-  if (!secret) throw new Error("Missing OAUTH_STATE_SECRET — cannot sign OAuth state")
-  return secret
-}
-
-function signState(userId: string): string {
-  const sig = createHmac("sha256", getOAuthStateSecret()).update(userId).digest("hex").slice(0, 16)
-  return `${userId}.${sig}`
-}
-
-export function verifyState(state: string): string | null {
-  const [userId, sig] = state.split(".")
-  if (!userId || !sig) return null
-  const expected = createHmac("sha256", getOAuthStateSecret()).update(userId).digest("hex").slice(0, 16)
-  if (sig !== expected) return null
-  return userId
-}
+import { signCalendarOAuthState } from "@/lib/calendar-oauth-state"
 
 // GET: Start OAuth flow — redirect to Google
 export async function GET() {
@@ -55,7 +35,7 @@ export async function GET() {
     authUrl.searchParams.set("scope", scopes)
     authUrl.searchParams.set("access_type", "offline")
     authUrl.searchParams.set("prompt", "consent")
-    authUrl.searchParams.set("state", signState(user.id))
+    authUrl.searchParams.set("state", signCalendarOAuthState(user.id))
 
     return NextResponse.json({ url: authUrl.toString() })
   } catch (error) {

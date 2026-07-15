@@ -78,7 +78,7 @@ export default function ScanPage() {
       )
     } catch {
       setIsScanning(false)
-      setError("Camera access was blocked. Please allow camera access in your browser settings, then try again — or paste the URL below.")
+      setError("Camera access was blocked. Please allow camera access in your browser settings, then try again or paste the URL below.")
     }
   }
 

@@ -279,7 +279,7 @@ describe("sendNewUserNudgeEmail", () => {
     const call = mockSend.mock.calls[0][0]
     expect(call.to).toBe("new@example.com")
     expect(call.subject).toBe(
-      "You've started your network on Savvo — add a few more"
+      "You've started your network on Savvo. Add a few more"
     )
   })
 

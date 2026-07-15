@@ -13,15 +13,17 @@ interface DialogProps {
 const DialogContext = React.createContext<{
   open: boolean
   setOpen: (open: boolean) => void
+  titleId: string
 } | null>(null)
 
 function Dialog({ open: controlledOpen, onOpenChange, children }: DialogProps) {
   const [internalOpen, setInternalOpen] = React.useState(false)
   const open = controlledOpen ?? internalOpen
   const setOpen = onOpenChange ?? setInternalOpen
+  const titleId = React.useId()
 
   return (
-    <DialogContext.Provider value={{ open, setOpen }}>
+    <DialogContext.Provider value={{ open, setOpen, titleId }}>
       {children}
     </DialogContext.Provider>
   )
@@ -67,8 +69,12 @@ function DialogContent({
       <div
         className="fixed inset-0 bg-black/50"
         onClick={() => context.setOpen(false)}
+        aria-hidden="true"
       />
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={context.titleId}
         className={cn(
           "relative z-50 w-full max-w-lg rounded-lg border bg-background p-6 shadow-lg",
           className
@@ -77,6 +83,7 @@ function DialogContent({
         <button
           onClick={() => context.setOpen(false)}
           className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100"
+          aria-label="Close dialog"
         >
           <X className="h-4 w-4" />
         </button>
@@ -107,8 +114,11 @@ function DialogTitle({
   children: React.ReactNode
   className?: string
 }) {
+  const context = React.useContext(DialogContext)
+  if (!context) throw new Error("DialogTitle must be used within Dialog")
+
   return (
-    <h2 className={cn("text-lg font-semibold leading-none tracking-tight", className)}>
+    <h2 id={context.titleId} className={cn("text-lg font-semibold leading-none tracking-tight", className)}>
       {children}
     </h2>
   )

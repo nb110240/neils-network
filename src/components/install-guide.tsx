@@ -143,7 +143,7 @@ export function InstallGuide() {
           <div className="space-y-2 text-sm">
             <p>
               Your browser doesn't expose an automatic install prompt. You can usually still install
-              via your browser's menu — look for "Install app", "Add to Home Screen", or a{" "}
+              via your browser's menu. Look for "Install app", "Add to Home Screen", or a{" "}
               <Download className="inline h-3.5 w-3.5 align-text-bottom mx-1" /> icon in the address bar.
             </p>
             <p className="text-muted-foreground">

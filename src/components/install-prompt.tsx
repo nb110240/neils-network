@@ -83,7 +83,7 @@ export function InstallPrompt() {
       <div className="flex-1 min-w-0 text-sm">
         <span className="font-medium">Install Savvo on your device</span>{" "}
         <span className="text-muted-foreground">
-          — faster access, home-screen icon, works offline for recent contacts.
+          for faster access, a home-screen icon, and offline access to recent contacts.
         </span>
       </div>
       <Button

@@ -73,7 +73,7 @@ export default async function ReachOutPage() {
     .map((c) => ({
       ...c,
       reason: c.cadence_days
-        ? `${cadenceLabel(c.cadence_days)} — due`
+        ? `${cadenceLabel(c.cadence_days)}, due`
         : "Scheduled follow-up",
     }))
 

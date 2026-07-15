@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import Link from "next/link"
 import { Contact, HealthScore } from "@/lib/types"
 import { ContactCard } from "@/components/contact-card"
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ExportContactsButton } from "@/components/export-contacts-button"
 import { DuplicatesBanner } from "@/components/duplicates-banner"
+import { refreshLoadedContactWindow } from "@/lib/contact-pagination"
 import { ArrowLeft, Plus, Users, Loader2, ArrowUpDown } from "lucide-react"
 
 type SortOption = "recent" | "last-contacted" | "needs-attention" | "name" | "health"
@@ -75,6 +76,84 @@ export function ContactsClient({ contacts: initialContacts, tags, contactTagMap:
   const [contacts, setContacts] = useState<ContactWithHealth[]>(initialContacts)
   const [contactTagMap, setContactTagMap] = useState<Record<string, string[]>>(initialTagMap)
   const [pagination, setPagination] = useState<PaginationInfo>(initialPagination)
+
+  const previousInitialContacts = useRef(initialContacts)
+
+  // A server refresh only includes the first 25 contacts. If the user already
+  // loaded more, refetch that same-sized active window so archived/deleted rows
+  // disappear without collapsing the list back to the first page.
+  useEffect(() => {
+    if (previousInitialContacts.current === initialContacts) return
+
+    const previousFirstPageCount = previousInitialContacts.current.length
+    const desiredCount = contacts.length
+    previousInitialContacts.current = initialContacts
+    let cancelled = false
+
+    async function syncRefreshedContacts() {
+      if (desiredCount <= previousFirstPageCount) {
+        setContacts(initialContacts)
+        setContactTagMap(initialTagMap)
+        setPagination(initialPagination)
+        return
+      }
+
+      try {
+        const refreshed = await refreshLoadedContactWindow(
+          initialContacts,
+          initialPagination,
+          desiredCount,
+          async (cursor, limit) => {
+            const params = new URLSearchParams({
+              limit: String(limit),
+              cursor,
+              direction: "next",
+            })
+            const response = await fetch(`/api/contacts?${params}`)
+            if (!response.ok) throw new Error("Failed to refresh contacts")
+            return response.json()
+          }
+        )
+        if (cancelled) return
+
+        const refreshedTagMap: Record<string, string[]> = {}
+        for (const contact of refreshed.contacts) {
+          refreshedTagMap[contact.id] = initialTagMap[contact.id] || contactTagMap[contact.id] || []
+        }
+
+        const tailIds = refreshed.contacts
+          .slice(initialContacts.length)
+          .map((contact) => contact.id)
+        if (tailIds.length > 0) {
+          const tagResponse = await fetch(`/api/contact-tags?contactIds=${tailIds.join(",")}`)
+          if (tagResponse.ok) {
+            const tagData = await tagResponse.json()
+            for (const contactId of tailIds) refreshedTagMap[contactId] = []
+            for (const contactTag of tagData.contactTags || []) {
+              if (!refreshedTagMap[contactTag.contact_id]) refreshedTagMap[contactTag.contact_id] = []
+              refreshedTagMap[contactTag.contact_id].push(contactTag.tag_id)
+            }
+          }
+        }
+        if (cancelled) return
+
+        setContacts(refreshed.contacts)
+        setContactTagMap(refreshedTagMap)
+        setPagination(refreshed.pagination)
+      } catch {
+        if (cancelled) return
+        // Prefer the authoritative first page over retaining a stale deleted row.
+        setContacts(initialContacts)
+        setContactTagMap(initialTagMap)
+        setPagination(initialPagination)
+      }
+    }
+
+    void syncRefreshedContacts()
+    return () => {
+      cancelled = true
+    }
+  }, [initialContacts, initialPagination, initialTagMap, contacts.length, contactTagMap])
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [activeTagId, setActiveTagId] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<SortOption>("recent")

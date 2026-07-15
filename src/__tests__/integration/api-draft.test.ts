@@ -39,7 +39,7 @@ const VALID_ID = "11111111-1111-4111-8111-111111111111"
 const params = (id = VALID_ID) => ({ params: Promise.resolve({ id }) })
 
 // A plausible OpenAI chat-completions shaped response.
-function openAiResponse(content = "Hey Sam — great chatting at the conference. Coffee next week?") {
+function openAiResponse(content = "Hey Sam, great chatting at the conference. Coffee next week?") {
   return new Response(
     JSON.stringify({ choices: [{ message: { content } }] }),
     { status: 200, headers: { "content-type": "application/json" } }

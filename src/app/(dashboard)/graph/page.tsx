@@ -349,7 +349,7 @@ export default function GraphPage() {
             </div>
             <h3 className="text-xl font-normal mb-2">Your network graph</h3>
             <p className="text-muted-foreground text-center max-w-sm">
-              Add contacts and tag them to visualize your network. Tags create connections between people — the more you tag, the richer the graph.
+              Add contacts and tag them to visualize your network. Tags create connections between people, so the graph gets richer as you add more tags.
             </p>
             <Button
               className="mt-6 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 shadow-md border-0"

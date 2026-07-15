@@ -64,9 +64,9 @@ export function WelcomeExperience({
             </Link>
           </Button>
           <p className="text-xs text-muted-foreground">
-            Takes 10 seconds — just describe who you met
+            Takes 10 seconds. Just describe who you met.
           </p>
-          {plan === "pro" && (
+          {plan !== "free" && (
             <Button
               variant="ghost"
               size="sm"

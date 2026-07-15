@@ -6,6 +6,7 @@ import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/toast"
+import { IMPORT_FIELDS, guessImportField } from "@/lib/import-mapping"
 import {
   ArrowLeft,
   Upload,
@@ -14,33 +15,8 @@ import {
   Check,
   ArrowRight,
   Mail,
+  Crown,
 } from "lucide-react"
-
-const CONTACT_FIELDS = [
-  { value: "skip", label: "Skip this column" },
-  { value: "name", label: "Name" },
-  { value: "email", label: "Email" },
-  { value: "phone", label: "Phone" },
-  { value: "company", label: "Company" },
-  { value: "job_title", label: "Job Title" },
-  { value: "website", label: "Website" },
-  { value: "how_we_met", label: "How We Met" },
-  { value: "next_steps", label: "Next Steps" },
-  { value: "notes", label: "Notes" },
-]
-
-function guessField(header: string): string {
-  const h = header.toLowerCase().trim()
-  if (h.includes("name") && !h.includes("company")) return "name"
-  if (h.includes("email") || h.includes("e-mail")) return "email"
-  if (h.includes("phone") || h.includes("mobile") || h.includes("tel")) return "phone"
-  if (h.includes("company") || h.includes("organization") || h.includes("org")) return "company"
-  if (h.includes("title") || h.includes("role") || h.includes("position") || h.includes("job")) return "job_title"
-  if (h.includes("website") || h.includes("url") || h.includes("web")) return "website"
-  if (h.includes("next step") || h.includes("action") || h.includes("todo") || h.includes("follow")) return "next_steps"
-  if (h.includes("note") || h.includes("comment") || h.includes("description") || h.includes("memo")) return "notes"
-  return "skip"
-}
 
 export default function ImportPage() {
   return (
@@ -68,6 +44,27 @@ function ImportPageInner() {
   const [file, setFile] = useState<File | null>(null)
   const [importedCount, setImportedCount] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
+  const [isPro, setIsPro] = useState<boolean | null>(null)
+
+  // Gate up front: check the plan the same way the graph page does, so free
+  // users see the Pro gate before doing any upload or mapping work. The API
+  // 403 on POST /api/import/csv remains the server-side enforcement.
+  useEffect(() => {
+    async function checkPlan() {
+      try {
+        const res = await fetch("/api/subscription")
+        if (res.ok) {
+          const data = await res.json()
+          setIsPro(data.plan !== "free")
+          return
+        }
+      } catch {
+        // fall through — treat as pro and let the API 403 enforce
+      }
+      setIsPro(true)
+    }
+    checkPlan()
+  }, [])
 
   // Handle Google OAuth callback — token is in httpOnly cookie, not URL
   useEffect(() => {
@@ -126,7 +123,7 @@ function ImportPageInner() {
 
       const guessed: Record<string, string> = {}
       for (const header of data.headers) {
-        guessed[header] = guessField(header)
+        guessed[header] = guessImportField(header)
       }
       setMapping(guessed)
       setStep("map")
@@ -208,15 +205,56 @@ function ImportPageInner() {
         </div>
       </div>
 
+      {/* Plan check in flight — don't flash the import UI to free users */}
+      {isPro === null && (
+        <Card className="glass shadow-refined">
+          <CardContent className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 text-[var(--copper)] animate-spin" />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Free plan: gate up front (same pattern as the graph page Pro gate) */}
+      {isPro === false && (
+        <Card className="glass shadow-refined animate-fade-in">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="w-14 h-14 rounded-2xl bg-[var(--copper)]/10 flex items-center justify-center mb-4">
+              <Crown className="h-6 w-6 text-[var(--copper)]" />
+            </div>
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--copper)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--copper)] mb-3">
+              <Crown className="h-3 w-3" />
+              Pro
+            </span>
+            <h3 className="text-xl font-normal mb-2">Import is a Pro feature</h3>
+            <p className="text-muted-foreground text-center max-w-sm mb-6">
+              CSV and Google import are Pro features. Free plan includes 50 contacts added by note or one at a time.
+            </p>
+            <Button asChild className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0">
+              <Link href="/pricing">
+                <Crown className="mr-2 h-4 w-4" />
+                Upgrade to Pro
+              </Link>
+            </Button>
+            <Link
+              href="/add"
+              className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--copper)] hover:underline"
+            >
+              Add contacts one at a time instead
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
       {/* One-time import disclaimer */}
-      {mode === "choose" && (
+      {isPro === true && mode === "choose" && (
         <p className="text-xs text-muted-foreground">
           Imports are one-time. Future changes in Google Contacts won&apos;t sync automatically.
         </p>
       )}
 
       {/* Step: Choose import method */}
-      {mode === "choose" && (
+      {isPro === true && mode === "choose" && (
         <div className="grid md:grid-cols-2 gap-4 animate-fade-in">
           <button
             type="button"
@@ -253,7 +291,7 @@ function ImportPageInner() {
       )}
 
       {/* Google Contacts import confirmation */}
-      {mode === "gmail" && googleReady && step !== "done" && (
+      {isPro === true && mode === "gmail" && googleReady && step !== "done" && (
         <Card className="glass shadow-refined animate-fade-in">
           <CardHeader>
             <CardTitle className="text-lg font-normal">
@@ -282,7 +320,7 @@ function ImportPageInner() {
       )}
 
       {/* CSV: Upload */}
-      {mode === "csv" && step === "upload" && (
+      {isPro === true && mode === "csv" && step === "upload" && (
         <Card className="glass shadow-refined animate-fade-in">
           <CardHeader>
             <CardTitle className="text-lg font-normal">Upload CSV File</CardTitle>
@@ -325,12 +363,12 @@ function ImportPageInner() {
       )}
 
       {/* CSV: Map Columns */}
-      {mode === "csv" && step === "map" && (
+      {isPro === true && mode === "csv" && step === "map" && (
         <div className="space-y-6 animate-fade-in">
           <Card className="glass shadow-refined">
             <CardHeader>
               <CardTitle className="text-lg font-normal">
-                Map Columns ({totalRows} contacts found)
+                Map Columns ({totalRows} {totalRows === 1 ? "contact" : "contacts"} found)
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -352,7 +390,7 @@ function ImportPageInner() {
                     }
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   >
-                    {CONTACT_FIELDS.map((f) => (
+                    {IMPORT_FIELDS.map((f) => (
                       <option key={f.value} value={f.value}>
                         {f.label}
                       </option>
@@ -360,6 +398,12 @@ function ImportPageInner() {
                   </select>
                 </div>
               ))}
+
+              {totalRows === 0 && (
+                <p className="text-sm text-red-500">
+                  No contacts found in this file. Add at least one row below the header.
+                </p>
+              )}
 
               {!hasNameMapping && (
                 <p className="text-sm text-red-500">
@@ -380,10 +424,10 @@ function ImportPageInner() {
                 <Button
                   className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
                   onClick={handleImport}
-                  disabled={!hasNameMapping}
+                  disabled={!hasNameMapping || totalRows === 0}
                 >
                   <Upload className="mr-2 h-4 w-4" />
-                  Import {totalRows} Contacts
+                  Import {totalRows} {totalRows === 1 ? "Contact" : "Contacts"}
                 </Button>
               </div>
             </CardContent>
@@ -392,7 +436,7 @@ function ImportPageInner() {
       )}
 
       {/* Importing */}
-      {step === "importing" && (
+      {isPro === true && step === "importing" && (
         <Card className="glass shadow-refined animate-fade-in">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Loader2 className="h-10 w-10 text-[var(--copper)] animate-spin mb-4" />
@@ -405,7 +449,7 @@ function ImportPageInner() {
       )}
 
       {/* Done */}
-      {step === "done" && (
+      {isPro === true && step === "done" && (
         <Card className="glass shadow-refined animate-fade-in">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <div className="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-4">

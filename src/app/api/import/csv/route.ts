@@ -1,4 +1,5 @@
 import { NextResponse, after } from "next/server"
+import { revalidatePath } from "next/cache"
 import * as Sentry from "@sentry/nextjs"
 import { authenticateRequest, authFailed, badRequestResponse, forbiddenResponse, errorResponse } from "@/lib/api-utils"
 import { getUserPlan, getPlanLimits } from "@/lib/subscription"
@@ -6,6 +7,37 @@ import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 import Papa from "papaparse"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { findDuplicates, findStrongMatchInMemory } from "@/lib/dedup"
+import { IMPORT_FIELD_VALUES } from "@/lib/import-mapping"
+
+function normalizeIsoDate(value: string | undefined): string | null {
+  if (!value) return null
+  const trimmed = value.trim()
+
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/)
+  const usMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+.*)?$/)
+  const parts = isoMatch
+    ? { year: Number(isoMatch[1]), month: Number(isoMatch[2]), day: Number(isoMatch[3]) }
+    : usMatch
+      ? { year: Number(usMatch[3]), month: Number(usMatch[1]), day: Number(usMatch[2]) }
+      : null
+
+  if (!parts) return null
+
+  const date = new Date(Date.UTC(parts.year, parts.month - 1, parts.day))
+  if (
+    date.getUTCFullYear() !== parts.year ||
+    date.getUTCMonth() + 1 !== parts.month ||
+    date.getUTCDate() !== parts.day
+  ) {
+    return null
+  }
+
+  return [
+    String(parts.year).padStart(4, "0"),
+    String(parts.month).padStart(2, "0"),
+    String(parts.day).padStart(2, "0"),
+  ].join("-")
+}
 
 export async function POST(request: Request) {
   try {
@@ -44,7 +76,7 @@ export async function POST(request: Request) {
     }
 
     // Validate mapping values are only allowed fields
-    const allowedFields = new Set(["skip", "name", "email", "phone", "company", "job_title", "website", "how_we_met", "next_steps", "notes"])
+    const allowedFields = new Set<string>(IMPORT_FIELD_VALUES)
     for (const val of Object.values(mapping)) {
       if (!allowedFields.has(val)) {
         return badRequestResponse("Invalid mapping field")
@@ -71,6 +103,8 @@ export async function POST(request: Request) {
         const userNotes = (contact.notes as string) || ""
         const autoNote = `${contact.name}${contact.company ? ` at ${contact.company}` : ""}`
         const rawNote = userNotes || autoNote
+        const lastContactDate = normalizeIsoDate(contact.last_contact_date as string | undefined)
+        const scheduledFollowUp = normalizeIsoDate(contact.scheduled_follow_up as string | undefined)
 
         return {
           name: (contact.name as string) || null,
@@ -81,10 +115,12 @@ export async function POST(request: Request) {
           website: (contact.website as string) || null,
           how_we_met: (contact.how_we_met as string) || null,
           next_steps: (contact.next_steps as string) || null,
+          last_contact_date: lastContactDate,
+          scheduled_follow_up: scheduledFollowUp,
           raw_note: rawNote,
           source: "csv_import",
           created_by: user.id,
-          follow_up_needed: !!(contact.next_steps),
+          follow_up_needed: !!(contact.next_steps || scheduledFollowUp),
         }
       })
       .filter(Boolean)
@@ -199,6 +235,10 @@ export async function POST(request: Request) {
       }
     }
 
+    revalidatePath("/dashboard")
+    revalidatePath("/reach-out")
+    revalidatePath("/contacts")
+
     return NextResponse.json({
       success: true,
       imported: data.length,
@@ -256,12 +296,18 @@ export async function PUT(request: Request) {
     }
 
     const csvText = await file.text()
-    const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true, preview: 5 })
+    // header: true means parsed.data only contains data rows (the header row
+    // is consumed into meta.fields), and skipEmptyLines drops the trailing
+    // newline most CSV exports end with — so data.length IS the contact count.
+    // The old count (csvText.split("\n").length - 1) counted that trailing
+    // newline as an extra contact.
+    const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true })
+    const rows = parsed.data as Record<string, string>[]
 
     return NextResponse.json({
       headers: parsed.meta.fields || [],
-      rows: parsed.data,
-      totalRows: csvText.split("\n").length - 1,
+      rows: rows.slice(0, 5),
+      totalRows: rows.length,
     })
   } catch (error) {
     console.error("CSV preview error:", error)

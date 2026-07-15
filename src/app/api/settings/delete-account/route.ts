@@ -22,6 +22,19 @@ export async function DELETE() {
       return errorResponse("Failed to delete account data")
     }
 
+    // Older deployed versions of delete_user_account() predate these tables.
+    // Delete them defensively before removing auth.users so an account can be
+    // deleted even while the database function is catching up to the schema.
+    const residualDeletes = await Promise.all([
+      serviceSupabase.from("user_preferences").delete().eq("user_id", user.id),
+      serviceSupabase.from("tags").delete().eq("created_by", user.id),
+    ])
+    const residualError = residualDeletes.find(({ error }) => error)?.error
+    if (residualError) {
+      log("error", "Failed to delete residual user data", { userId: user.id, action: "account.delete", route: "/api/settings/delete-account", error: residualError.message })
+      return errorResponse("Failed to delete account data")
+    }
+
     // Delete the auth user (must be done separately — auth schema)
     const { error: deleteError } = await serviceSupabase.auth.admin.deleteUser(user.id)
     if (deleteError) {

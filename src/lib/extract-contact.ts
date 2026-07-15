@@ -1,4 +1,4 @@
-const SYSTEM_PROMPT = `You are an expert at extracting contact information from casual, messy networking notes. People write these quickly after meeting someone — often informal, incomplete, and without labeling fields.
+const SYSTEM_PROMPT = `You are an expert at extracting contact information from casual, messy networking notes. People write these quickly after meeting someone, often informally, incompletely, and without labeling fields.
 
 Your job: extract as much structured data as possible, even when fields aren't explicitly named.
 
@@ -15,7 +15,7 @@ Return a JSON object with these exact fields (use null for missing values):
 - last_contact_date (string|null): ISO date (YYYY-MM-DD) if a specific date is mentioned. Convert relative dates like "yesterday", "last Tuesday", "Jan 15" to ISO format using today's date. null if no date mentioned.
 
 IMPORTANT RULES:
-1. Be aggressive about extraction — it's better to extract something imperfect than miss it
+1. Be aggressive about extraction; it's better to extract something imperfect than miss it
 2. If someone says "she runs a fintech startup called Plaid" → company: "Plaid", job_title: "Founder" (infer founder from "runs")
 3. If someone says "met at TechCrunch" → how_we_met: "TechCrunch" (conference/event implied)
 4. If someone says "should grab coffee" → follow_up_needed: true, next_steps: "Grab coffee"

@@ -65,7 +65,7 @@ export function EventModeBanner() {
     <div className="rounded-xl border border-[var(--copper)]/30 bg-[var(--copper)]/5 px-4 py-3 flex items-center justify-between gap-4 animate-fade-in">
       <div className="flex items-center gap-3 min-w-0">
         <div className="shrink-0 h-8 w-8 rounded-lg bg-[var(--copper)]/10 flex items-center justify-center">
-          <Radio className="h-4 w-4 text-[var(--copper)]" />
+          <Radio className="h-4 w-4 text-[var(--copper-text)]" />
         </div>
         <div className="min-w-0">
           <p className="text-sm font-medium truncate">

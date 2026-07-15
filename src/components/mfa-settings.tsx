@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/toast"
+import { toQrImageSrc } from "@/lib/qr-code"
 import { ShieldCheck, ShieldOff, Loader2, Check, X } from "lucide-react"
 
 interface Factor {
@@ -18,7 +19,7 @@ interface Factor {
 
 interface EnrollmentState {
   factorId: string
-  qrCodeSvg: string
+  qrCode: string
   secret: string
 }
 
@@ -65,7 +66,7 @@ export function MfaSettings() {
       if (!data) throw new Error("Enrollment failed")
       setEnrollment({
         factorId: data.id,
-        qrCodeSvg: data.totp.qr_code,
+        qrCode: data.totp.qr_code,
         secret: data.totp.secret,
       })
     } catch (err) {
@@ -173,20 +174,25 @@ export function MfaSettings() {
               <p className="text-sm mb-2">
                 Scan this QR code with your authenticator app (1Password, Authy, Google Authenticator, etc.), then enter the 6-digit code it shows.
               </p>
-              <div
-                className="inline-block rounded-lg bg-white p-3 border border-stone-200"
-                dangerouslySetInnerHTML={{ __html: enrollment.qrCodeSvg }}
-              />
+              <div className="inline-block rounded-lg bg-white p-3 border border-stone-200">
+                {/* eslint-disable-next-line @next/next/no-img-element -- data URI QR code, not an optimizable asset */}
+                <img
+                  src={toQrImageSrc(enrollment.qrCode)}
+                  alt="Scan this QR code with your authenticator app"
+                  className="block"
+                />
+              </div>
               <p className="text-xs text-muted-foreground mt-2">
-                Can't scan? Enter this code manually:{" "}
+                Can&apos;t scan? Enter this code manually:{" "}
                 <code className="font-mono text-xs bg-stone-100 dark:bg-stone-800 px-1.5 py-0.5 rounded">
                   {enrollment.secret}
                 </code>
               </p>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">6-digit code</label>
+              <label htmlFor="mfa-code" className="text-sm font-medium">6-digit code</label>
               <Input
+                id="mfa-code"
                 inputMode="numeric"
                 pattern="[0-9]{6}"
                 maxLength={6}
@@ -211,7 +217,7 @@ export function MfaSettings() {
         ) : verified.length > 0 ? (
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">
-              Two-factor authentication is enabled. You'll be prompted for a code at sign-in.
+              Two-factor authentication is enabled. You&apos;ll be prompted for a code at sign-in.
             </p>
             {verified.map((f) => (
               <div
@@ -241,11 +247,12 @@ export function MfaSettings() {
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Add a second factor to protect your account. You'll enter a 6-digit code from your authenticator app after signing in.
+              Add a second factor to protect your account. You&apos;ll enter a 6-digit code from your authenticator app after signing in.
             </p>
             <div className="space-y-2 max-w-sm">
-              <label className="text-xs font-medium text-muted-foreground">Device name (optional)</label>
+              <label htmlFor="mfa-device-name" className="text-xs font-medium text-muted-foreground">Device name (optional)</label>
               <Input
+                id="mfa-device-name"
                 value={friendlyName}
                 onChange={(e) => setFriendlyName(e.target.value)}
                 placeholder="Authenticator"

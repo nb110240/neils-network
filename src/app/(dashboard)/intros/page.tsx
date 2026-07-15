@@ -66,7 +66,7 @@ export default function IntrosPage() {
     return (
       <div className="space-y-8">
         <div className="animate-fade-in">
-          <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
+          <Link href="/dashboard" className="inline-flex items-center gap-1 py-1 text-sm text-muted-foreground hover:text-foreground mb-4">
             <ArrowLeft className="h-3.5 w-3.5" />
             Dashboard
           </Link>
@@ -79,7 +79,7 @@ export default function IntrosPage() {
         <Card className="shadow-refined">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <div className="w-16 h-16 rounded-2xl bg-[var(--copper)]/10 flex items-center justify-center mb-6">
-              <Sparkles className="h-8 w-8 text-[var(--copper)]" />
+              <Sparkles className="h-8 w-8 text-[var(--copper-text)]" />
             </div>
             <h3 className="text-xl font-normal mb-2">Find valuable introductions</h3>
             <p className="text-muted-foreground text-center max-w-md mb-8">
@@ -102,7 +102,7 @@ export default function IntrosPage() {
   return (
     <div className="space-y-8">
       <div className="animate-fade-in">
-        <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
+        <Link href="/dashboard" className="inline-flex items-center gap-1 py-1 text-sm text-muted-foreground hover:text-foreground mb-4">
           <ArrowLeft className="h-3.5 w-3.5" />
           Dashboard
         </Link>
@@ -165,14 +165,14 @@ export default function IntrosPage() {
                 <CardTitle className="text-base font-medium flex items-center gap-3">
                   <Link
                     href={`/contact/${s.contact1_id}`}
-                    className="text-[var(--copper)] hover:underline"
+                    className="text-[var(--copper-text)] hover:underline"
                   >
                     {s.contact1_name}
                   </Link>
                   <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   <Link
                     href={`/contact/${s.contact2_id}`}
-                    className="text-[var(--copper)] hover:underline"
+                    className="text-[var(--copper-text)] hover:underline"
                   >
                     {s.contact2_name}
                   </Link>

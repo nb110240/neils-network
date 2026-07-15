@@ -19,8 +19,8 @@ export default function TermsPage() {
     <div className="min-h-screen bg-background">
       <nav className="border-b bg-background/85 backdrop-blur-md">
         <div className="max-w-3xl mx-auto flex items-center justify-between px-4 sm:px-6 h-14">
-          <Link href="/" className="text-xl font-medium tracking-tight text-[var(--copper)]">Savvo</Link>
-          <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground">Sign In</Link>
+          <Link href="/" className="text-xl font-medium tracking-tight text-[var(--copper-text)]">Savvo</Link>
+          <Link href="/login" className="inline-flex py-2 text-sm text-muted-foreground hover:text-foreground">Sign In</Link>
         </div>
       </nav>
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-12">
@@ -53,7 +53,7 @@ export default function TermsPage() {
               <li>You own your data. We don&apos;t claim ownership of any contacts or notes you create.</li>
               <li>You can export your data as CSV at any time.</li>
               <li>You can delete all your data at any time.</li>
-              <li>See our <Link href="/privacy" className="text-[var(--copper)] hover:underline">Privacy Policy</Link> for how we handle your data.</li>
+              <li>See our <Link href="/privacy" className="text-[var(--copper-text)] underline underline-offset-2">Privacy Policy</Link> for how we handle your data.</li>
             </ul>
           </section>
 
@@ -90,7 +90,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-foreground mt-8 mb-3">Contact</h2>
-            <p>Questions? Email <a href="mailto:neil@savvo.app" className="text-[var(--copper)] hover:underline">neil@savvo.app</a>.</p>
+            <p>Questions? Email <a href="mailto:neil@savvo.app" className="text-[var(--copper-text)] underline underline-offset-2">neil@savvo.app</a>.</p>
           </section>
         </div>
       </main>

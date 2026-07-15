@@ -80,15 +80,17 @@ export function StartEventButton() {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-sm font-medium">Duration</label>
-            <div className="flex gap-2">
+            <p className="text-sm font-medium" id="event-duration-label">Duration</p>
+            <div className="flex gap-2" role="group" aria-labelledby="event-duration-label">
               {DURATIONS.map((d) => (
                 <button
                   key={d.value}
+                  type="button"
                   onClick={() => setDuration(d.value)}
+                  aria-pressed={duration === d.value}
                   className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                     duration === d.value
-                      ? "bg-[var(--copper)]/10 text-[var(--copper)] border border-[var(--copper)]/30"
+                      ? "bg-[var(--copper)]/10 text-[var(--copper-text)] border border-[var(--copper)]/30"
                       : "border text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
                 >

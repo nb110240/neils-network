@@ -38,7 +38,7 @@ export default async function ReachOutPage() {
     health: calculateHealthScore(c.last_contact_date, c.created_at, c.cadence_days),
   }))
 
-  const now = Date.now()
+  const now = new Date().getTime()
   const todayStr = new Date().toISOString().split("T")[0]
   const daysSince = (dateStr: string | null, fallback: string) => {
     const ref = dateStr || fallback
@@ -73,7 +73,7 @@ export default async function ReachOutPage() {
     .map((c) => ({
       ...c,
       reason: c.cadence_days
-        ? `${cadenceLabel(c.cadence_days)} — due`
+        ? `${cadenceLabel(c.cadence_days)}, due`
         : "Scheduled follow-up",
     }))
 
@@ -135,7 +135,7 @@ export default async function ReachOutPage() {
         <Card className="shadow-refined border-l-2 border-l-[var(--copper)]">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-3 text-base font-medium">
-              <HandHeart className="h-4 w-4 text-[var(--copper)]" />
+              <HandHeart className="h-4 w-4 text-[var(--copper-text)]" />
               {allReachOut.length} contacts
             </CardTitle>
           </CardHeader>
@@ -150,13 +150,13 @@ export default async function ReachOutPage() {
                   className="flex items-center gap-3 min-w-0 flex-1"
                 >
                   <Avatar className="h-9 w-9 shrink-0">
-                    <AvatarFallback className="bg-[var(--copper)]/8 text-[var(--copper)] text-xs font-medium">
+                    <AvatarFallback className="bg-[var(--copper)]/8 text-[var(--copper-text)] text-xs font-medium">
                       {getInitials(contact.name)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium group-hover:text-[var(--copper)] transition-colors truncate">
+                      <span className="font-medium group-hover:text-[var(--copper-text)] transition-colors truncate">
                         {contact.name || "Unknown Contact"}
                       </span>
                       {contact.company && (

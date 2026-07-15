@@ -39,6 +39,8 @@ const FIELD_DEFS: Array<{ key: keyof DuplicateContact; label: string }> = [
   { key: "last_contact_date", label: "Last contact" },
 ]
 
+const EMPTY_FIELD_VALUE = "Not provided"
+
 const TIER_STYLES: Record<ConfidenceTier, { label: string; badge: string; dot: string }> = {
   high: {
     label: "High confidence",
@@ -62,7 +64,7 @@ const TIER_STYLES: Record<ConfidenceTier, { label: string; badge: string; dot: s
 
 function formatFieldValue(c: DuplicateContact, key: keyof DuplicateContact): string {
   const v = c[key]
-  if (v == null || v === "") return "—"
+  if (v == null || v === "") return EMPTY_FIELD_VALUE
   if (key === "last_contact_date" || key === "created_at") {
     try {
       return new Date(v as string).toLocaleDateString("en-US", {
@@ -316,7 +318,7 @@ export function DuplicateReview() {
             No duplicates found.
             <button
               onClick={scan}
-              className="text-[var(--copper)] hover:underline text-xs font-medium ml-1"
+              className="text-[var(--copper-text)] hover:underline text-xs font-medium ml-1"
             >
               Scan again
             </button>
@@ -368,7 +370,7 @@ export function DuplicateReview() {
                     <button
                       onClick={() => dismissGroup(gi)}
                       className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-                      title="Not a duplicate — don't show this pair again"
+                      title="Not a duplicate. Don't show this pair again"
                     >
                       <X className="h-3.5 w-3.5" />
                       Not a duplicate
@@ -396,7 +398,7 @@ export function DuplicateReview() {
                               {isWinner ? "Keeping" : "Merge into above"}
                             </span>
                             {isWinner && (
-                              <Check className="h-3.5 w-3.5 text-[var(--copper)]" />
+                              <Check className="h-3.5 w-3.5 text-[var(--copper-text)]" />
                             )}
                           </div>
                           <dl className="space-y-1.5">
@@ -406,8 +408,8 @@ export function DuplicateReview() {
                                 (other) =>
                                   other.id !== c.id &&
                                   formatFieldValue(other, key) !== val &&
-                                  formatFieldValue(other, key) !== "—" &&
-                                  val !== "—"
+                                  formatFieldValue(other, key) !== EMPTY_FIELD_VALUE &&
+                                  val !== EMPTY_FIELD_VALUE
                               )
                               return (
                                 <div
@@ -419,13 +421,13 @@ export function DuplicateReview() {
                                   </dt>
                                   <dd
                                     className={`flex-1 truncate ${
-                                      isDifferent && val !== "—"
+                                      isDifferent && val !== EMPTY_FIELD_VALUE
                                         ? "text-foreground font-medium"
                                         : "text-stone-700 dark:text-stone-300"
                                     }`}
                                   >
                                     {val}
-                                    {isDifferent && val !== "—" && (
+                                    {isDifferent && val !== EMPTY_FIELD_VALUE && (
                                       <span className="ml-1.5 inline-block h-1 w-1 rounded-full bg-[var(--copper)] align-middle" />
                                     )}
                                   </dd>
@@ -460,7 +462,7 @@ export function DuplicateReview() {
                       </div>
                       <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                         {FIELD_DEFS.map(({ key, label }) => {
-                          const val = preview[key] ?? "—"
+                          const val = preview[key] ?? EMPTY_FIELD_VALUE
                           return (
                             <div
                               key={String(key)}
@@ -499,7 +501,7 @@ export function DuplicateReview() {
             })}
             <button
               onClick={scan}
-              className="text-xs text-muted-foreground hover:text-[var(--copper)]"
+              className="text-xs text-muted-foreground hover:text-[var(--copper-text)]"
             >
               Rescan
             </button>

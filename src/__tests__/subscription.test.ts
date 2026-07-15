@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { PLAN_LIMITS, type PlanType } from "@/lib/types"
+import { DAILY_DIGEST_PLANS, PLAN_LIMITS, type PlanType } from "@/lib/types"
 import { getPlanLimits } from "@/lib/subscription"
 
 describe("Plan limits", () => {
@@ -75,6 +75,10 @@ describe("Plan limits", () => {
   it("team plan can digest", () => {
     const limits = getPlanLimits("team")
     expect(limits.canDigest).toBe(true)
+  })
+
+  it("daily digests include both paid plans", () => {
+    expect(DAILY_DIGEST_PLANS).toEqual(["pro", "team"])
   })
 
   it("pro plan can sync calendar", () => {

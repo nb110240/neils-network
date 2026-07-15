@@ -69,7 +69,7 @@ export function InstallGuide() {
     <Card className="shadow-refined">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl font-normal">
-          <Download className="h-5 w-5 text-[var(--copper)]" />
+          <Download className="h-5 w-5 text-[var(--copper-text)]" />
           Install Savvo on your device
         </CardTitle>
       </CardHeader>
@@ -82,7 +82,7 @@ export function InstallGuide() {
           <div className="flex items-center gap-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/40 px-4 py-3 text-sm">
             <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             <span className="text-emerald-900 dark:text-emerald-200 font-medium">
-              You're running the installed app. Nothing to do.
+              You&apos;re running the installed app. Nothing to do.
             </span>
           </div>
         )}
@@ -111,7 +111,7 @@ export function InstallGuide() {
             </div>
             <ol className="space-y-3 text-sm">
               <li className="flex gap-3">
-                <span className="shrink-0 w-6 h-6 rounded-full bg-[var(--copper)]/10 text-[var(--copper)] font-semibold text-xs flex items-center justify-center">
+                <span className="shrink-0 w-6 h-6 rounded-full bg-[var(--copper)]/10 text-[var(--copper-text)] font-semibold text-xs flex items-center justify-center">
                   1
                 </span>
                 <span className="flex-1">
@@ -119,7 +119,7 @@ export function InstallGuide() {
                 </span>
               </li>
               <li className="flex gap-3">
-                <span className="shrink-0 w-6 h-6 rounded-full bg-[var(--copper)]/10 text-[var(--copper)] font-semibold text-xs flex items-center justify-center">
+                <span className="shrink-0 w-6 h-6 rounded-full bg-[var(--copper)]/10 text-[var(--copper-text)] font-semibold text-xs flex items-center justify-center">
                   2
                 </span>
                 <span className="flex-1">
@@ -128,7 +128,7 @@ export function InstallGuide() {
                 </span>
               </li>
               <li className="flex gap-3">
-                <span className="shrink-0 w-6 h-6 rounded-full bg-[var(--copper)]/10 text-[var(--copper)] font-semibold text-xs flex items-center justify-center">
+                <span className="shrink-0 w-6 h-6 rounded-full bg-[var(--copper)]/10 text-[var(--copper-text)] font-semibold text-xs flex items-center justify-center">
                   3
                 </span>
                 <span className="flex-1">
@@ -142,13 +142,13 @@ export function InstallGuide() {
         {platform === "other" && (
           <div className="space-y-2 text-sm">
             <p>
-              Your browser doesn't expose an automatic install prompt. You can usually still install
-              via your browser's menu — look for "Install app", "Add to Home Screen", or a{" "}
+              Your browser doesn&apos;t expose an automatic install prompt. You can usually still install
+              via your browser&apos;s menu. Look for &quot;Install app&quot;, &quot;Add to Home Screen&quot;, or a{" "}
               <Download className="inline h-3.5 w-3.5 align-text-bottom mx-1" /> icon in the address bar.
             </p>
             <p className="text-muted-foreground">
-              On Android Chrome it's <span className="font-mono text-xs">⋮ → Install app</span>. On
-              desktop Chrome / Edge it's the install icon at the right of the address bar.
+              On Android Chrome it&apos;s <span className="font-mono text-xs">⋮ → Install app</span>. On
+              desktop Chrome / Edge it&apos;s the install icon at the right of the address bar.
             </p>
           </div>
         )}

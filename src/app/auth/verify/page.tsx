@@ -2,16 +2,16 @@ import Link from "next/link"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Email Verified — Savvo",
+  title: "Email Verified | Savvo",
 }
 
 export default function VerifyPage() {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+    <main className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="max-w-md w-full text-center animate-fade-in">
         <Link href="/" className="inline-flex items-center gap-2 mb-8">
           <img src="/logo.svg" alt="Savvo" className="h-8 w-8" />
-          <span className="text-2xl font-medium tracking-tight text-[var(--copper)]">Savvo</span>
+          <span className="text-2xl font-medium tracking-tight text-[var(--copper-text)]">Savvo</span>
         </Link>
 
         <div className="rounded-2xl border bg-white dark:bg-stone-900 shadow-refined-lg p-8">
@@ -35,9 +35,9 @@ export default function VerifyPage() {
         </div>
 
         <p className="mt-6 text-xs text-muted-foreground">
-          Having trouble? Contact <a href="mailto:neil@savvo.app" className="text-[var(--copper)] hover:underline">neil@savvo.app</a>
+          Having trouble? Contact <a href="mailto:neil@savvo.app" className="text-[var(--copper-text)] underline underline-offset-2">neil@savvo.app</a>
         </p>
       </div>
-    </div>
+    </main>
   )
 }

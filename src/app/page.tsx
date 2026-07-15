@@ -22,9 +22,9 @@ export default function Home() {
 function MarketingPage() {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b bg-background/85 backdrop-blur-md">
+      <nav aria-label="Primary" className="fixed top-0 left-0 right-0 z-50 border-b bg-background/85 backdrop-blur-md">
         <div className="max-w-5xl mx-auto flex items-center justify-between px-4 sm:px-6 h-14">
-          <span className="flex items-center gap-2"><img src="/logo.svg" alt="" className="h-6 w-6" /><span className="text-xl font-medium tracking-tight text-[var(--copper)]">Savvo</span></span>
+          <span className="flex items-center gap-2"><img src="/logo.svg" alt="" className="h-6 w-6" /><span className="text-xl font-medium tracking-tight text-[var(--copper-text)]">Savvo</span></span>
           <div className="flex items-center gap-4 sm:gap-6">
             <Link href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Features</Link>
             <Link href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Pricing</Link>
@@ -38,15 +38,17 @@ function MarketingPage() {
         </div>
       </nav>
 
+      <main>
+
       <section className="pt-24 sm:pt-32 pb-12 sm:pb-20 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-8 sm:gap-12 items-center">
           <div>
-            <p className="text-sm font-medium text-[var(--copper)] mb-4">The investor CRM for founders</p>
+            <p className="text-sm font-medium text-[var(--copper-text)] mb-4">The investor CRM for founders</p>
             <h1 className="text-4xl sm:text-5xl leading-[1.08] tracking-tight mb-4">
-              Run your raise without a <em className="not-italic text-[var(--copper)]">spreadsheet</em>
+              Run your raise without a <em className="not-italic text-[var(--copper-text)]">spreadsheet</em>
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed mb-6 max-w-md">
-              Met 12 investors this week? Type what you remember after every pitch. Savvo tracks who&apos;s in, who&apos;s out, and who&apos;s waiting on a follow-up, so you close the round.
+              Met 12 investors this week? Type what you remember after every pitch. Savvo tracks who you met, who is going cold, and who is waiting on a follow-up, so nothing slips.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link href="/login?mode=signup" className="inline-flex items-center px-6 py-3 rounded-xl text-base font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity">
@@ -59,7 +61,7 @@ function MarketingPage() {
             <p className="text-sm text-muted-foreground mt-4 max-w-md">
               After the round closes, Savvo keeps every relationship alive: hires, board, customers, and your broader network.
             </p>
-            <Link href="/from-spreadsheet" className="inline-flex items-center gap-2 mt-4 text-sm text-muted-foreground hover:text-[var(--copper)] transition-colors group">
+            <Link href="/from-spreadsheet" className="inline-flex items-center gap-2 mt-3 py-1 text-sm text-muted-foreground hover:text-[var(--copper-text)] transition-colors group">
               <span>📋</span>
               <span className="underline underline-offset-2 decoration-stone-300 group-hover:decoration-[var(--copper)]">Using a spreadsheet? See how to import</span>
               <span className="group-hover:translate-x-0.5 transition-transform">→</span>
@@ -68,14 +70,14 @@ function MarketingPage() {
           <div className="relative mt-4 md:mt-0">
             <div className="rounded-2xl border shadow-refined-lg p-6 rotate-1">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-11 h-11 rounded-xl bg-[var(--copper)]/10 flex items-center justify-center text-[var(--copper)] font-semibold text-sm">SC</div>
+                <div className="w-11 h-11 rounded-xl bg-[var(--copper)]/10 flex items-center justify-center text-orange-800 dark:text-orange-300 font-semibold text-sm">SC</div>
                 <div>
                   <div className="font-semibold">Sarah Chen</div>
                   <div className="text-sm text-muted-foreground">Partner at Sequoia</div>
                 </div>
               </div>
               <div className="space-y-2 pt-3 border-t text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Status</span><span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500 text-white"><span className="w-1.5 h-1.5 rounded-full bg-white" />Interested</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Health</span><span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-700 text-white"><span className="w-1.5 h-1.5 rounded-full bg-white" />Active</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Intro&apos;d by</span><span>Marcus at YC</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Next step</span><span>Send Q2 metrics</span></div>
               </div>
@@ -86,17 +88,17 @@ function MarketingPage() {
 
       <section className="py-12 sm:py-20 px-4 sm:px-6 bg-card/50" id="how">
         <div className="max-w-5xl mx-auto">
-          <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper)] mb-2">How it works</p>
+          <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper-text)] mb-2">How it works</p>
           <h2 className="text-3xl tracking-tight mb-3">Three steps to get started</h2>
           <p className="text-muted-foreground mb-10 max-w-lg">Savvo replaces spreadsheets and forgotten business cards. Just talk about the people you meet.</p>
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { num: "01", title: "Write what you remember", desc: "Type a quick note like you'd text a friend. AI extracts the details you'd normally forget.", example: '"Met John Doe at AI Summit, he\'s VP of Engineering at Nextera Health, wants to grab coffee next week"' },
-              { num: "02", title: "Details are extracted", desc: "Name, company, role, how you met, next steps — all structured automatically." },
+              { num: "02", title: "Details are extracted", desc: "Name, company, role, how you met, and next steps, all structured automatically." },
               { num: "03", title: "Stay connected effortlessly", desc: "Health scores show which relationships are fading. Daily emails nudge you to reach out." },
             ].map((step) => (
               <div key={step.num}>
-                <span className="text-4xl font-normal text-[var(--copper)]/15 block mb-1">{step.num}</span>
+                <span aria-hidden="true" className="text-4xl font-normal text-stone-500 dark:text-stone-400 block mb-1">{step.num}</span>
                 <h3 className="text-lg mb-2">{step.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
                 {step.example && (
@@ -113,7 +115,7 @@ function MarketingPage() {
       {/* See it in action — moved before Trust and Features */}
       <section className="py-12 sm:py-20 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto">
-          <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper)] mb-2">See it in action</p>
+          <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper-text)] mb-2">See it in action</p>
           <h2 className="text-3xl tracking-tight mb-3">What the app actually looks like</h2>
           <p className="text-muted-foreground mb-10 max-w-lg">No guessing. Here&apos;s what you&apos;ll use every day.</p>
 
@@ -128,7 +130,7 @@ function MarketingPage() {
               <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-2">
                   <div className="p-3 rounded-lg bg-muted/50"><p className="text-xs text-muted-foreground">Contacts</p><p className="text-xl font-normal">47</p></div>
-                  <div className="p-3 rounded-lg bg-muted/50"><p className="text-xs text-muted-foreground">Reach Out</p><p className="text-xl font-normal text-[var(--copper)]">5</p></div>
+                  <div className="p-3 rounded-lg bg-muted/50"><p className="text-xs text-muted-foreground">Reach Out</p><p className="text-xl font-normal text-[var(--copper-text)]">5</p></div>
                   <div className="p-3 rounded-lg bg-muted/50"><p className="text-xs text-muted-foreground">Going Cold</p><p className="text-xl font-normal text-red-500">3</p></div>
                 </div>
                 <div className="rounded-lg border-l-2 border-l-[var(--copper)] p-3 space-y-2">
@@ -145,7 +147,7 @@ function MarketingPage() {
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground pt-1">Every morning, Savvo tells you exactly who needs attention — prioritized by urgency so you always know where to start.</p>
+                <p className="text-xs text-muted-foreground pt-1">Every morning, Savvo tells you exactly who needs attention, prioritized by urgency so you always know where to start.</p>
               </div>
             </div>
 
@@ -163,9 +165,9 @@ function MarketingPage() {
               </div>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[var(--copper)]/10 flex items-center justify-center text-[var(--copper)] font-semibold text-sm">SC</div>
+                  <div className="w-10 h-10 rounded-xl bg-[var(--copper)]/10 flex items-center justify-center text-[var(--copper-text)] font-semibold text-sm">SC</div>
                   <div>
-                    <div className="font-semibold flex items-center gap-2">Sarah Chen <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-500 text-white"><span className="w-1 h-1 rounded-full bg-white" />Going cold</span></div>
+                    <div className="font-semibold flex items-center gap-2">Sarah Chen <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-700 text-white"><span className="w-1 h-1 rounded-full bg-white" />Going cold</span></div>
                     <div className="text-xs text-muted-foreground">Partner at Sequoia</div>
                   </div>
                 </div>
@@ -185,7 +187,7 @@ function MarketingPage() {
                   <span className="text-xs px-2 py-1 rounded-md border bg-muted/50">&#x1f4c5; Meeting Prep</span>
                   <span className="text-xs px-2 py-1 rounded-md border bg-muted/50">&#x270f;&#xfe0f; Edit</span>
                 </div>
-                <p className="text-xs text-muted-foreground pt-1">See the full history, log interactions, and draft AI-powered follow-ups — all from one screen.</p>
+                <p className="text-xs text-muted-foreground pt-1">See the full history, log interactions, and draft AI-powered follow-ups, all from one screen.</p>
               </div>
             </div>
 
@@ -211,10 +213,10 @@ function MarketingPage() {
                       <span className="font-medium">{r.name}</span>
                       <p className="text-xs text-muted-foreground">{r.role}</p>
                     </div>
-                    <span className="text-xs text-[var(--copper)] font-medium">{r.match} match</span>
+                    <span className="text-xs text-[var(--copper-text)] font-medium">{r.match} match</span>
                   </div>
                 ))}
-                <p className="text-xs text-muted-foreground pt-1">Ask natural questions about your network. Savvo searches by meaning — not just names and keywords.</p>
+                <p className="text-xs text-muted-foreground pt-1">Ask natural questions about your network. Savvo searches by meaning, not just names and keywords.</p>
               </div>
             </div>
           </div>
@@ -258,7 +260,7 @@ function MarketingPage() {
                 {/* CSV upload area */}
                 <div className="rounded-lg border-2 border-dashed border-stone-300 dark:border-stone-600 p-4 text-center">
                   <div className="w-8 h-8 rounded-lg bg-[var(--copper)]/10 flex items-center justify-center mx-auto mb-2">
-                    <span className="text-[var(--copper)] text-sm">&#x1f4ce;</span>
+                    <span className="text-[var(--copper-text)] text-sm">&#x1f4ce;</span>
                   </div>
                   <p className="text-xs font-medium">contacts.csv</p>
                   <p className="text-[10px] text-muted-foreground">47 rows detected</p>
@@ -286,17 +288,17 @@ function MarketingPage() {
                 {/* Success state */}
                 <div className="rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 p-3 text-center">
                   <p className="text-sm font-medium text-green-700 dark:text-green-400">&#10003; 47 contacts imported</p>
-                  <p className="text-xs text-green-600 dark:text-green-500">3 duplicates skipped · Health scores generating...</p>
+                  <p className="text-xs text-green-800 dark:text-green-300">3 duplicates skipped · Health scores generating...</p>
                 </div>
 
-                <p className="text-xs text-muted-foreground pt-1">Upload any CSV or connect Google Contacts. Savvo maps your columns, deduplicates, and generates health scores automatically. <Link href="/from-spreadsheet" className="text-[var(--copper)] hover:underline font-medium">Learn more →</Link></p>
+                <p className="text-xs text-muted-foreground pt-1">Upload any CSV or connect Google Contacts. Savvo maps your columns, deduplicates, and generates health scores automatically. <Link href="/from-spreadsheet" className="text-[var(--copper-text)] hover:underline font-medium">Learn more →</Link></p>
               </div>
             </div>
           </div>
 
           <div className="mt-10 text-center">
             <Link href="/login?mode=signup" className="inline-flex items-center px-6 py-3 rounded-xl text-base font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity">
-              Try it yourself — free
+              Try it yourself for free
             </Link>
             <p className="text-sm text-muted-foreground mt-3">No credit card required. Free plan, no strings attached.</p>
           </div>
@@ -306,21 +308,21 @@ function MarketingPage() {
       {/* Privacy & Trust */}
       <section className="py-12 sm:py-20 px-4 sm:px-6 bg-card/50">
         <div className="max-w-5xl mx-auto">
-          <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper)] mb-2">Your data, your control</p>
+          <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper-text)] mb-2">Your data, your control</p>
           <h2 className="text-3xl tracking-tight mb-10">Built for trust</h2>
           <div className="grid md:grid-cols-3 gap-6">
             <div className="flex gap-4">
               <div className="shrink-0 w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center text-lg">&#128274;</div>
               <div>
                 <h3 className="font-medium mb-1">We never sell your data</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">Your contacts are yours. We don&apos;t share, sell, or train AI models on your network data. Ever.</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">Your contacts are yours. We never sell them or show them to other users. AI providers only process data for features you choose.</p>
               </div>
             </div>
             <div className="flex gap-4">
               <div className="shrink-0 w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/30 flex items-center justify-center text-lg">&#9889;</div>
               <div>
                 <h3 className="font-medium mb-1">Everything is optional</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">Google sync, imports, and calendar are all opt-in. Use Savvo with just manual notes if you prefer — no account linking required.</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">Google sync, imports, and calendar are all opt-in. Use Savvo with just manual notes if you prefer. No account linking is required.</p>
               </div>
             </div>
             <div className="flex gap-4">
@@ -337,7 +339,7 @@ function MarketingPage() {
       {/* Features */}
       <section className="py-12 sm:py-20 px-4 sm:px-6" id="features">
         <div className="max-w-5xl mx-auto">
-          <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper)] mb-2">Features</p>
+          <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper-text)] mb-2">Features</p>
           <h2 className="text-3xl tracking-tight mb-10">Everything your network needs</h2>
           <div className="grid md:grid-cols-3 gap-4">
             {[
@@ -362,7 +364,7 @@ function MarketingPage() {
       {/* Pricing */}
       <section className="py-12 sm:py-20 px-4 sm:px-6 bg-card/50" id="pricing">
         <div className="max-w-3xl mx-auto text-center">
-          <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper)] mb-2">Pricing</p>
+          <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper-text)] mb-2">Pricing</p>
           <h2 className="text-3xl tracking-tight mb-2">Start free. Upgrade when you need more.</h2>
           <p className="text-muted-foreground mb-10">No credit card required.</p>
           <div className="grid md:grid-cols-2 gap-4 text-left">
@@ -375,7 +377,7 @@ function MarketingPage() {
                   <li key={f} className="flex items-center gap-2"><span className="text-emerald-500 font-bold">&#10003;</span> {f}</li>
                 ))}
                 {["Import (CSV & Gmail)", "Google Calendar sync", "Daily digest emails"].map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-muted-foreground/50"><span className="font-bold">&#10007;</span> {f}</li>
+                  <li key={f} className="flex items-center gap-2 text-stone-700 dark:text-stone-300"><span className="font-bold">&#10007;</span> {f}</li>
                 ))}
               </ul>
               <Link href="/login?mode=signup" className="block text-center py-2.5 rounded-lg border font-medium text-sm hover:bg-muted/50 transition-colors">Get started</Link>
@@ -394,7 +396,7 @@ function MarketingPage() {
             </div>
           </div>
           <p className="text-center text-sm text-muted-foreground mt-6">
-            Team plan available soon — $12/user/mo. Shared graphs, intro requests, and admin tools.
+            Team plan available soon at $12/user/mo, with shared graphs, intro requests, and admin tools.
           </p>
         </div>
       </section>
@@ -406,7 +408,7 @@ function MarketingPage() {
           {[
             {
               q: "What is Savvo?",
-              a: "Savvo is an AI-powered personal CRM built for founders, VCs, and professional networkers. You add contacts by typing what you remember about someone — like messy meeting notes — and Savvo automatically extracts their name, company, role, and follow-up actions. Every contact gets a health score that tracks how fresh the relationship is, and you get daily digest emails reminding you who needs attention.",
+              a: "Savvo is an AI-powered personal CRM built for founders, VCs, and professional networkers. You add contacts by typing what you remember about someone, like messy meeting notes, and Savvo automatically extracts their name, company, role, and follow-up actions. Every contact gets a health score that tracks how fresh the relationship is, and you get daily digest emails reminding you who needs attention.",
             },
             {
               q: "How does the health score work?",
@@ -414,11 +416,11 @@ function MarketingPage() {
             },
             {
               q: "Is my data private and secure?",
-              a: "Yes. Savvo uses Supabase with PostgreSQL and row-level security — every user can only access their own data. All data is encrypted in transit (HTTPS) and at rest. We never sell your data, never share contacts with third parties, and you can export or delete everything at any time. AI processing happens through OpenAI's API with no data retention.",
+              a: "Yes. Savvo uses Supabase with PostgreSQL and row-level security, so every user can only access their own data. All data is encrypted in transit (HTTPS) and at rest. We never sell your data or share contacts with other users, and you can export or delete everything at any time. AI providers process data only for features you choose. OpenAI API inputs and outputs are not used to train OpenAI models by default.",
             },
             {
               q: "How is Savvo different from a spreadsheet or Notion?",
-              a: "Spreadsheets and Notion require you to manually create columns, type structured data, and remember to check them. Savvo lets you type naturally — 'Met Sarah at TechCrunch, she runs a fintech startup' — and AI handles the structure. Plus, you get automatic health scores, follow-up reminders via daily digest emails, and semantic search so you can find people by context, not just names.",
+              a: "Spreadsheets and Notion require you to manually create columns, type structured data, and remember to check them. Savvo lets you type naturally, for example, 'Met Sarah at TechCrunch, she runs a fintech startup,' and AI handles the structure. Plus, you get automatic health scores, follow-up reminders via daily digest emails, and semantic search so you can find people by context, not just names.",
             },
             {
               q: "Can I import my existing contacts?",
@@ -426,7 +428,7 @@ function MarketingPage() {
             },
             {
               q: "What does the AI actually do?",
-              a: "Savvo uses AI in four ways: (1) Contact extraction — parses natural language notes into structured data. (2) Semantic search — find contacts by meaning, not just keywords ('who was the fintech person?'). (3) Follow-up drafts — generates personalized outreach messages based on your history. (4) Intro suggestions — identifies high-value introductions across your network.",
+              a: "Savvo uses AI in four ways: (1) Contact extraction parses natural language notes into structured data. (2) Semantic search finds contacts by meaning, not just keywords ('who was the fintech person?'). (3) Follow-up drafts generate personalized outreach messages based on your history. (4) Intro suggestions identify high-value introductions across your network.",
             },
             {
               q: "How much does Savvo cost?",
@@ -434,7 +436,7 @@ function MarketingPage() {
             },
             {
               q: "Who is Savvo built for?",
-              a: "Savvo is built for people whose network is their most valuable professional asset — startup founders managing investor and partner relationships, VCs tracking portfolio founders and dealflow, community builders maintaining large networks, and sales professionals who value relationship-first selling. If you meet a lot of people and struggle to keep every connection warm, Savvo is for you.",
+              a: "Savvo is built for people whose network is their most valuable professional asset: startup founders managing investor and partner relationships, VCs tracking portfolio founders and dealflow, community builders maintaining large networks, and sales professionals who value relationship-first selling. If you meet a lot of people and struggle to keep every connection warm, Savvo is for you.",
             },
           ].map((faq, i) => (
             <details key={i} className="group border rounded-xl px-5 py-4 bg-white/60 dark:bg-stone-900/40 shadow-refined">
@@ -456,6 +458,8 @@ function MarketingPage() {
         </Link>
       </section>
 
+      </main>
+
       <footer className="py-8 px-6 border-t text-center text-sm text-muted-foreground space-y-2">
         <p>&copy; 2026 Savvo. Built for people who care about people.</p>
         <p>
@@ -467,7 +471,20 @@ function MarketingPage() {
           {" "}&middot;{" "}
           <Link href="/from-spreadsheet" className="hover:text-foreground">Switching from Spreadsheets?</Link>
         </p>
-        <p className="text-xs">Your data is stored securely and never shared with third parties.</p>
+        <p>
+          <Link href="/blog" className="hover:text-foreground">Blog</Link>
+          {" "}&middot;{" "}
+          <Link href="/templates/investor-tracker" className="hover:text-foreground">Free Investor Tracker Template</Link>
+          {" "}&middot;{" "}
+          <Link href="/vs/airtable" className="hover:text-foreground">Savvo vs Airtable</Link>
+          {" "}&middot;{" "}
+          <Link href="/vs/notion" className="hover:text-foreground">vs Notion</Link>
+          {" "}&middot;{" "}
+          <Link href="/vs/attio" className="hover:text-foreground">vs Attio</Link>
+          {" "}&middot;{" "}
+          <Link href="/vs/streak" className="hover:text-foreground">vs Streak</Link>
+        </p>
+        <p className="text-xs">Your data is stored securely, never sold, and never shared with other users.</p>
       </footer>
     </div>
   )

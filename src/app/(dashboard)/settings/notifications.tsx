@@ -1,15 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Loader2 } from "lucide-react"
+import Link from "next/link"
+import { Loader2, Crown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/toast"
 
 type DigestFrequency = "daily" | "weekly" | "never"
 
-const FREQUENCY_OPTIONS: { value: DigestFrequency; label: string; description: string }[] = [
-  { value: "daily", label: "Daily", description: "Get a digest every morning" },
+const FREQUENCY_OPTIONS: { value: DigestFrequency; label: string; description: string; proOnly?: boolean }[] = [
+  { value: "daily", label: "Daily", description: "Get a digest every morning", proOnly: true },
   { value: "weekly", label: "Weekly", description: "Get a digest every Monday" },
   { value: "never", label: "Never", description: "No digest emails" },
 ]
@@ -17,6 +18,7 @@ const FREQUENCY_OPTIONS: { value: DigestFrequency; label: string; description: s
 export function NotificationPreferences() {
   const { addToast } = useToast()
   const [frequency, setFrequency] = useState<DigestFrequency>("weekly")
+  const [canUseDaily, setCanUseDaily] = useState<boolean | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
@@ -30,6 +32,7 @@ export function NotificationPreferences() {
           const data = await res.json()
           setFrequency(data.digest_frequency)
           setSavedFrequency(data.digest_frequency)
+          setCanUseDaily(data.can_use_daily)
         }
       } catch {
         // Use defaults
@@ -41,6 +44,7 @@ export function NotificationPreferences() {
   }, [])
 
   const handleFrequencyChange = (value: DigestFrequency) => {
+    if (value === "daily" && canUseDaily === false) return
     setFrequency(value)
     setHasChanges(value !== savedFrequency)
   }
@@ -83,25 +87,45 @@ export function NotificationPreferences() {
     <div className="space-y-4">
       <div className="space-y-3">
         <Label className="text-sm font-medium">Digest Frequency</Label>
-        {FREQUENCY_OPTIONS.map((option) => (
-          <label
-            key={option.value}
-            className="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all hover:bg-muted/50 touch-target"
-          >
-            <input
-              type="radio"
-              name="digest-frequency"
-              value={option.value}
-              checked={frequency === option.value}
-              onChange={() => handleFrequencyChange(option.value)}
-              className="h-4 w-4 accent-[var(--copper)] shrink-0"
-            />
-            <div className="min-w-0">
-              <span className="text-sm font-medium">{option.label}</span>
-              <p className="text-xs text-muted-foreground">{option.description}</p>
-            </div>
-          </label>
-        ))}
+        {FREQUENCY_OPTIONS.map((option) => {
+          const locked = Boolean(option.proOnly) && canUseDaily === false
+          return (
+            <label
+              key={option.value}
+              className={`flex items-center gap-3 p-3 rounded-xl border transition-all touch-target ${
+                locked
+                  ? "cursor-not-allowed opacity-60"
+                  : "cursor-pointer hover:bg-muted/50"
+              }`}
+            >
+              <input
+                type="radio"
+                name="digest-frequency"
+                value={option.value}
+                checked={frequency === option.value}
+                disabled={locked}
+                onChange={() => handleFrequencyChange(option.value)}
+                className="h-4 w-4 accent-[var(--copper)] shrink-0 disabled:cursor-not-allowed"
+              />
+              <div className="min-w-0">
+                <span className="text-sm font-medium flex items-center gap-1.5">
+                  {option.label}
+                  {locked && (
+                    <Link
+                      href="/pricing"
+                      className="inline-flex items-center gap-1 text-xs text-[var(--copper-text)] font-medium hover:underline"
+                    >
+                      <Crown className="h-3 w-3" /> Pro
+                    </Link>
+                  )}
+                </span>
+                <p className="text-xs text-muted-foreground">
+                  {locked ? "Daily digests are a Pro feature" : option.description}
+                </p>
+              </div>
+            </label>
+          )
+        })}
       </div>
 
       {hasChanges && (

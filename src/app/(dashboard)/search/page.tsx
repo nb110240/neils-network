@@ -68,7 +68,7 @@ export default function SearchPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
+        <Link href="/dashboard" className="inline-flex items-center gap-1 py-1 text-sm text-muted-foreground hover:text-foreground mb-4">
           <ArrowLeft className="h-3.5 w-3.5" />
           Dashboard
         </Link>
@@ -112,7 +112,7 @@ export default function SearchPage() {
             <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-950/30 flex items-center justify-center mb-4">
               <Crown className="h-5 w-5 text-amber-600" />
             </div>
-            <h3 className="text-lg font-normal mb-1">Search limit reached</h3>
+            <h2 className="text-lg font-normal mb-1">Search limit reached</h2>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
               {searchError}
             </p>
@@ -129,7 +129,7 @@ export default function SearchPage() {
             <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
               <Search className="h-6 w-6 text-muted-foreground" />
             </div>
-            <h3 className="text-xl font-normal">No results found</h3>
+            <h2 className="text-xl font-normal">No results found</h2>
             <p className="text-muted-foreground text-center max-w-sm mt-2">
               Try different keywords or clear your filters.
             </p>
@@ -171,9 +171,9 @@ export default function SearchPage() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <div className="w-14 h-14 rounded-2xl bg-[var(--copper)]/10 flex items-center justify-center mb-4">
-              <Zap className="h-6 w-6 text-[var(--copper)]" />
+              <Zap className="h-6 w-6 text-[var(--copper-text)]" />
             </div>
-            <h3 className="text-xl font-normal">Hybrid search</h3>
+            <h2 className="text-xl font-normal">Hybrid search</h2>
             <p className="text-muted-foreground text-center max-w-md mt-2">
               AI-powered search combines keyword matching with semantic understanding.
               Find contacts by name, company, or describe who you&apos;re looking for.

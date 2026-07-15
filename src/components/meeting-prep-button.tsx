@@ -85,7 +85,7 @@ export function MeetingPrepButton({ contactId }: { contactId: string }) {
 
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-[var(--copper)] mb-3" />
+              <Loader2 className="h-6 w-6 animate-spin text-[var(--copper-text)] mb-3" />
               <p className="text-sm text-muted-foreground">Preparing your brief...</p>
             </div>
           ) : brief ? (
@@ -101,7 +101,7 @@ export function MeetingPrepButton({ contactId }: { contactId: string }) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-[var(--copper)]/10 flex items-center justify-center">
-                <Crown className="h-4 w-4 text-[var(--copper)]" />
+                <Crown className="h-4 w-4 text-[var(--copper-text)]" />
               </div>
               Meeting prep is a Pro feature
             </DialogTitle>

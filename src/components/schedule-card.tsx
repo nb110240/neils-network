@@ -150,7 +150,7 @@ export function ScheduleCard({ contact, onUpdate }: ScheduleCardProps) {
     <Card className="shadow-refined">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-medium flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-[var(--copper)]" />
+          <Calendar className="h-4 w-4 text-[var(--copper-text)]" />
           Schedule
         </CardTitle>
       </CardHeader>
@@ -159,7 +159,7 @@ export function ScheduleCard({ contact, onUpdate }: ScheduleCardProps) {
         {hasCadence && (
           <div className="flex items-center justify-between rounded-lg bg-stone-50 dark:bg-stone-900 px-3 py-2">
             <div className="flex items-center gap-2">
-              <RefreshCw className="h-3.5 w-3.5 text-[var(--copper)]" />
+              <RefreshCw className="h-3.5 w-3.5 text-[var(--copper-text)]" />
               <span className="text-sm font-medium">{cadenceLabel(contact.cadence_days!)}</span>
             </div>
             <div className="flex items-center gap-2">

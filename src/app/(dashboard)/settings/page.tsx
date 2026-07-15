@@ -51,6 +51,8 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isPasswordLoading, setIsPasswordLoading] = useState(false)
   const [isPlanLoading, setIsPlanLoading] = useState(false)
+  const [isAccountLoading, setIsAccountLoading] = useState(true)
+  const [isPlanDataLoading, setIsPlanDataLoading] = useState(true)
   const [plan, setPlan] = useState<string>("free")
   const [contactCount, setContactCount] = useState(0)
   const [featureRequest, setFeatureRequest] = useState("")
@@ -59,25 +61,37 @@ export default function SettingsPage() {
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
+  const isPaidPlan = plan === "pro" || plan === "team"
+  const planName = plan === "team" ? "Team" : plan === "pro" ? "Pro" : "Free"
 
   useEffect(() => {
     async function loadUser() {
-      try {
+      const accountRequest = (async () => {
+        try {
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
           setEmail(user.email || "")
           setFullName(user.user_metadata?.full_name || "")
         }
+        } finally {
+          setIsAccountLoading(false)
+        }
+      })()
 
+      const planRequest = (async () => {
+        try {
         const res = await fetch("/api/settings/plan")
         if (res.ok) {
           const data = await res.json()
           setPlan(data.plan)
           setContactCount(data.contactCount)
         }
-      } catch {
-        // Network error during load — page will show defaults
-      }
+        } finally {
+          setIsPlanDataLoading(false)
+        }
+      })()
+
+      await Promise.allSettled([accountRequest, planRequest])
     }
     loadUser()
   }, [supabase])
@@ -216,7 +230,22 @@ export default function SettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleUpdateProfile} className="space-y-4">
+          {isAccountLoading ? (
+            <div className="space-y-4 animate-pulse" role="status" aria-label="Loading profile">
+              <div className="space-y-2">
+                <div className="h-4 w-12 rounded bg-muted" />
+                <div className="h-11 rounded-md bg-muted" />
+                <div className="h-3 w-36 rounded bg-muted" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-4 w-24 rounded bg-muted" />
+                <div className="h-11 rounded-md bg-muted" />
+              </div>
+              <div className="h-9 w-28 rounded-md bg-muted" />
+              <span className="sr-only">Loading profile</span>
+            </div>
+          ) : (
+            <form onSubmit={handleUpdateProfile} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" value={email} disabled className="bg-muted/50" />
@@ -236,7 +265,8 @@ export default function SettingsPage() {
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Changes
             </Button>
-          </form>
+            </form>
+          )}
         </CardContent>
       </Card>
 
@@ -290,30 +320,41 @@ export default function SettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-xl border">
+          {isPlanDataLoading ? (
+            <div className="flex items-center justify-between gap-4 p-4 rounded-xl border animate-pulse" role="status" aria-label="Loading subscription">
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="h-5 w-28 rounded bg-muted" />
+                <div className="h-4 w-48 max-w-full rounded bg-muted" />
+                <div className="h-3 w-80 max-w-full rounded bg-muted" />
+              </div>
+              <div className="h-9 w-28 rounded-md bg-muted" />
+              <span className="sr-only">Loading subscription</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between p-4 rounded-xl border">
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-base">
-                  {plan === "pro" ? "Pro" : "Free"} Plan
+                  {planName} Plan
                 </span>
-                {plan === "pro" && (
+                {isPaidPlan && (
                   <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[var(--copper)] text-white">
                     Active
                   </span>
                 )}
               </div>
               <p className="text-sm text-muted-foreground mt-0.5">
-                {plan === "pro"
+                {isPaidPlan
                   ? `${contactCount} contacts in your network`
                   : `${contactCount}/50 contacts \u00B7 Upgrade for unlimited`}
               </p>
-              {plan === "pro" && (
+              {isPaidPlan && (
                 <p className="text-xs text-muted-foreground mt-1">
                   Unlimited contacts \u00B7 CSV &amp; Gmail import \u00B7 Calendar sync \u00B7 Daily digest \u00B7 AI drafts &amp; prep
                 </p>
               )}
             </div>
-            {plan === "pro" ? (
+            {isPaidPlan ? (
               <Button
                 variant="outline"
                 size="sm"
@@ -332,7 +373,8 @@ export default function SettingsPage() {
                 <Link href="/pricing">Upgrade to Pro</Link>
               </Button>
             )}
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -416,6 +458,8 @@ export default function SettingsPage() {
               className="space-y-3"
             >
               <Textarea
+                id="feature-request"
+                aria-label="Feature request"
                 value={featureRequest}
                 onChange={(e) => setFeatureRequest(e.target.value)}
                 placeholder="What would make Savvo better for you?"
@@ -478,7 +522,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="flex items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            Download everything Savvo stores about you as JSON — contacts, activities, tags, events, preferences.
+            Download everything Savvo stores about you as JSON: contacts, activities, tags, events, and preferences.
           </p>
           <DataExportButton />
         </CardContent>

@@ -32,7 +32,7 @@ const RELEASES: Release[] = [
       "LinkedIn import now blocks duplicates with a clear conflict message instead of silently inserting",
       "Meeting prep upgrade flow matches the rest of the Pro-gate UX",
       "Calendar connect tooltip: auto-syncs daily, click for a manual sync",
-      "Finished the data.error error-message sweep — failures now show the real reason",
+      "Finished the data.error error-message sweep, so failures now show the real reason",
       "Data export: download everything Savvo stores about you as JSON, in one click",
       "Install prompt on dashboard for users on supported browsers",
       "Public changelog (you're reading it) and security contact at /.well-known/security.txt",
@@ -46,7 +46,7 @@ const RELEASES: Release[] = [
       "Duplicate detection rebuilt: side-by-side diff, merge preview, confidence tiers, bulk high-confidence merge, and one-click undo",
       "Proactive duplicates banner on /contacts linking to the review flow",
       "Semantic-similarity fallback via contact embeddings catches 'Bob Smith' vs 'Robert Smith, Inc.'",
-      "Cloudflare Turnstile on signup — blocks bot signups at Supabase Auth layer",
+      "Cloudflare Turnstile on signup blocks bot signups at the Supabase Auth layer",
       "Weekly cleanup cron deletes unverified users after 7 days",
       "Upgraded Next.js to 16.2.4 + patched vite (closed 9 high-severity CVEs)",
       "Fixed a hydration error on /dashboard that was firing for 10 users",
@@ -61,7 +61,7 @@ const RELEASES: Release[] = [
       "Set a cadence on any contact: Weekly, Every 2 weeks, Monthly, Quarterly, or custom",
       "Schedule one-off follow-ups for a specific date",
       "Snooze a contact for 3 days, 1 week, or 2 weeks if they're not ready yet",
-      "Cadence-aware health score — your pace overrides the default thresholds",
+      "Cadence-aware health score lets your pace override the default thresholds",
       "Dashboard Reach Out list surfaces contacts due today first",
       "Ten adversarial-review polish items: clearer pricing copy, softer marketing tone, trust signals in the nav, accessibility labels on health badges",
       "Stripe checkout fix for Vercel serverless environments",
@@ -95,11 +95,11 @@ const RELEASES: Release[] = [
 
 export default function ChangelogPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background">
       <div className="max-w-3xl mx-auto px-6 py-12 md:py-16">
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-8"
+          className="inline-flex items-center gap-1.5 py-1 text-sm text-muted-foreground hover:text-foreground mb-8"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to Savvo
@@ -110,8 +110,8 @@ export default function ChangelogPage() {
             Changelog
           </h1>
           <p className="text-base text-muted-foreground mt-3 max-w-xl">
-            What's shipped in Savvo, newest first. Built in the open by{" "}
-            <Link href="https://x.com/neilbajaj" className="text-[var(--copper)] hover:underline">
+            What&apos;s shipped in Savvo, newest first. Built in the open by{" "}
+            <Link href="https://x.com/neilbajaj" className="text-[var(--copper-text)] underline underline-offset-2">
               @neilbajaj
             </Link>
             .
@@ -136,11 +136,11 @@ export default function ChangelogPage() {
                   })}
                 </span>
               </div>
-              <h3 className="text-lg font-medium text-[var(--copper)] mb-3">{r.title}</h3>
+              <h3 className="text-lg font-medium text-[var(--copper-text)] mb-3">{r.title}</h3>
               <ul className="space-y-2 text-sm text-stone-700 dark:text-stone-300 leading-relaxed">
                 {r.highlights.map((h, i) => (
                   <li key={i} className="flex gap-2">
-                    <span className="text-[var(--copper)] shrink-0 mt-[0.35em]">—</span>
+                    <span className="text-[var(--copper-text)] shrink-0 mt-[0.35em]">•</span>
                     <span>{h}</span>
                   </li>
                 ))}
@@ -152,17 +152,17 @@ export default function ChangelogPage() {
         <footer className="mt-16 pt-8 border-t border-stone-200 dark:border-stone-800 text-sm text-muted-foreground">
           <p>
             Suggestions or bugs? Email{" "}
-            <Link href="mailto:neil@savvo.app" className="text-[var(--copper)] hover:underline">
+            <Link href="mailto:neil@savvo.app" className="text-[var(--copper-text)] underline underline-offset-2">
               neil@savvo.app
             </Link>{" "}
             or reach out on{" "}
-            <Link href="https://x.com/neilbajaj" className="text-[var(--copper)] hover:underline">
+            <Link href="https://x.com/neilbajaj" className="text-[var(--copper-text)] underline underline-offset-2">
               X
             </Link>
             .
           </p>
         </footer>
       </div>
-    </div>
+    </main>
   )
 }

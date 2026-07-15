@@ -279,6 +279,7 @@ export default function GraphPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
+        <h1 className="sr-only">Relationship Graph</h1>
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" asChild>
             <Link href="/dashboard">
@@ -308,7 +309,7 @@ export default function GraphPage() {
         <Card className="shadow-refined">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <div className="w-14 h-14 rounded-2xl bg-[var(--copper)]/10 flex items-center justify-center mb-4">
-              <Crown className="h-6 w-6 text-[var(--copper)]" />
+              <Crown className="h-6 w-6 text-[var(--copper-text)]" />
             </div>
             <h3 className="text-xl font-normal mb-2">Pro Feature</h3>
             <p className="text-muted-foreground text-center max-w-sm mb-6">
@@ -329,7 +330,7 @@ export default function GraphPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link href="/dashboard" className="inline-flex items-center gap-1 py-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-3.5 w-3.5" />
           Dashboard
         </Link>
@@ -345,11 +346,11 @@ export default function GraphPage() {
         <Card className="shadow-refined">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <div className="w-14 h-14 rounded-2xl bg-[var(--copper)]/10 flex items-center justify-center mb-4">
-              <Network className="h-6 w-6 text-[var(--copper)]" />
+              <Network className="h-6 w-6 text-[var(--copper-text)]" />
             </div>
             <h3 className="text-xl font-normal mb-2">Your network graph</h3>
             <p className="text-muted-foreground text-center max-w-sm">
-              Add contacts and tag them to visualize your network. Tags create connections between people — the more you tag, the richer the graph.
+              Add contacts and tag them to visualize your network. Tags create connections between people, so the graph gets richer as you add more tags.
             </p>
             <Button
               className="mt-6 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 shadow-md border-0"

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/toast"
 import { Check, X, Loader2, ArrowLeft } from "lucide-react"
@@ -116,7 +116,7 @@ export default function PricingPage() {
   const savings = billing === "yearly" ? yearlySavings : 0
 
   return (
-    <div className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background">
       <div className="container mx-auto py-12 px-4 max-w-5xl">
         <div className="mb-6">
           <Button variant="ghost" size="sm" asChild>
@@ -141,7 +141,7 @@ export default function PricingPage() {
               onClick={() => setBilling("monthly")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 billing === "monthly"
-                  ? "bg-[var(--copper)]/10 text-[var(--copper)]"
+                  ? "bg-[var(--copper)]/10 text-orange-800 dark:text-orange-300"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -151,7 +151,7 @@ export default function PricingPage() {
               onClick={() => setBilling("yearly")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
                 billing === "yearly"
-                  ? "bg-[var(--copper)]/10 text-[var(--copper)]"
+                  ? "bg-[var(--copper)]/10 text-orange-800 dark:text-orange-300"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -167,7 +167,7 @@ export default function PricingPage() {
           {/* Free Plan */}
           <Card className="shadow-refined">
             <CardHeader className="text-center pb-2">
-              <CardTitle className="text-xl font-normal">Free</CardTitle>
+              <h2 className="text-xl font-normal leading-none tracking-tight">Free</h2>
               <div className="mt-2">
                 <span className="text-4xl font-normal">$0</span>
                 <span className="text-muted-foreground">/month</span>
@@ -182,7 +182,7 @@ export default function PricingPage() {
                     ) : (
                       <X className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                     )}
-                    <span className={!f.free ? "text-muted-foreground/60" : ""}>
+                    <span className={!f.free ? "text-stone-700 dark:text-stone-300" : ""}>
                       {f.name}
                       {typeof f.free === "string" && ` (${f.free})`}
                     </span>
@@ -205,7 +205,7 @@ export default function PricingPage() {
           <Card className="shadow-refined-lg border-[var(--copper)]/30 relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)]" />
             <CardHeader className="text-center pb-2">
-              <CardTitle className="text-xl font-normal">Pro</CardTitle>
+              <h2 className="text-xl font-normal leading-none tracking-tight">Pro</h2>
               <div className="mt-2">
                 {isLaunchPromo && billing === "monthly" && (
                   <span className="text-xl text-muted-foreground line-through mr-2">${originalPrice}</span>
@@ -217,7 +217,7 @@ export default function PricingPage() {
               </div>
               {isLaunchPromo && (
                 <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium mt-1">
-                  Launch price — ends June 2026
+                  Simple monthly pricing
                 </p>
               )}
               {billing === "yearly" && !isLaunchPromo && (
@@ -240,7 +240,7 @@ export default function PricingPage() {
                     ) : (
                       <X className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                     )}
-                    <span className={!f.pro ? "text-muted-foreground/60" : ""}>
+                    <span className={!f.pro ? "text-stone-700 dark:text-stone-300" : ""}>
                       {f.name}
                       {typeof f.pro === "string" && ` (${f.pro})`}
                     </span>
@@ -261,7 +261,7 @@ export default function PricingPage() {
           {/* Team Plan */}
           <Card className="shadow-refined relative overflow-hidden">
             <CardHeader className="text-center pb-2">
-              <CardTitle className="text-xl font-normal">Team</CardTitle>
+              <h2 className="text-xl font-normal leading-none tracking-tight">Team</h2>
               <div className="mt-2">
                 <span className="text-4xl font-normal">$12</span>
                 <span className="text-muted-foreground">/user/mo</span>
@@ -279,7 +279,7 @@ export default function PricingPage() {
                     ) : (
                       <X className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                     )}
-                    <span className={!f.team ? "text-muted-foreground/60" : ""}>
+                    <span className={!f.team ? "text-stone-700 dark:text-stone-300" : ""}>
                       {f.name}
                       {typeof f.team === "string" && ` (${f.team})`}
                     </span>
@@ -297,6 +297,6 @@ export default function PricingPage() {
           </Card>
         </div>
       </div>
-    </div>
+    </main>
   )
 }

@@ -1,6 +1,6 @@
 # Savvo
 
-> Savvo is the investor CRM for founders raising a round. Run your raise without a spreadsheet: type what you remember after every pitch, and Savvo tracks who's in, who's out, and who's waiting on a follow-up. After the round closes, it keeps every relationship alive: hires, board, customers, and your broader network.
+> Savvo is the investor CRM for founders raising a round. Run your raise without a spreadsheet: type what you remember after every pitch, and Savvo tracks who you met, who is going cold, and who is waiting on a follow-up. After the round closes, it keeps every relationship alive: hires, board, customers, and your broader network.
 
 Savvo is built for startup founders managing investor pipelines, and more broadly for anyone whose network is their most valuable professional asset (VCs tracking dealflow, community builders, relationship-first sales professionals).
 
@@ -21,7 +21,7 @@ Key capabilities:
 
 Pricing: Free plan at $0/month (50 contacts, health scores, natural language input, 5 smart searches per month, weekly digest). Pro at $8/month or $75/year (unlimited contacts, unlimited search, AI follow-up drafts, imports, calendar sync, daily digest). Team plan ($12/user/month) is coming soon. No credit card required to start.
 
-Privacy: Savvo never sells or shares your contact data and does not train AI models on your network. All integrations (Google sync, imports, calendar) are opt-in. Per-user data isolation is enforced with row-level security, and you can export everything or delete your account at any time.
+Privacy: Savvo never sells your contact data or shares it with other users. AI providers process data only for features you choose, and OpenAI API inputs and outputs are not used to train OpenAI models by default. All integrations (Google sync, imports, calendar) are opt-in. Per-user data isolation is enforced with row-level security, and you can export everything or delete your account at any time.
 
 ## Pages
 
@@ -29,7 +29,22 @@ Privacy: Savvo never sells or shares your contact data and does not train AI mod
 - [Pricing](https://savvo.app/pricing): Free, Pro, and Team plan comparison with full feature table
 - [Changelog](https://savvo.app/changelog): Recent updates, features, and fixes, versioned by release
 - [Switching from Spreadsheets](https://savvo.app/from-spreadsheet): How to import an existing spreadsheet of contacts into Savvo
+- [Free Investor Pipeline Tracker Template](https://savvo.app/templates/investor-tracker): Downloadable CSV template for tracking a fundraise, with a guide to pipeline stages and follow-up tactics
 - [Install](https://savvo.app/install): Add Savvo to your home screen
+
+## Comparisons
+
+- [Savvo vs Airtable](https://savvo.app/vs/airtable): For founders using Airtable fundraising templates
+- [Savvo vs Streak](https://savvo.app/vs/streak): For founders running their raise from Gmail
+- [Savvo vs Attio](https://savvo.app/vs/attio): For founders considering a full go-to-market CRM
+- [Savvo vs Notion](https://savvo.app/vs/notion): For founders tracking investors in Notion
+- [Fundraising CRM comparison](https://savvo.app/blog/fundraising-crm-comparison): Savvo vs Airtable vs Streak vs Attio vs Notion in one guide
+
+## Blog
+
+- [Blog](https://savvo.app/blog): Guides on fundraising pipeline management for founders
+- [How to Track Investor Outreach During a Seed Round](https://savvo.app/blog/how-to-track-investor-outreach-seed-round): The operational playbook for managing investor conversations
+- [How Many Investors Do You Need to Pitch?](https://savvo.app/blog/how-many-investors-to-pitch-seed-round): Funnel math for a seed round, with sourced data
 
 ## Policies
 

@@ -12,7 +12,6 @@ import {
   CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/toast"
@@ -21,6 +20,38 @@ import { captureEvent } from "@/components/posthog-provider"
 import { Loader2, Mail, Eye, EyeOff } from "lucide-react"
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+
+// Pull the machine-readable error code off a Supabase AuthError (supabase-js
+// v2.43+ sets `code`, e.g. "invalid_credentials", "captcha_failed").
+function authErrorCode(error: unknown): string | undefined {
+  if (error && typeof error === "object" && "code" in error) {
+    const code = (error as { code?: unknown }).code
+    if (typeof code === "string") return code
+  }
+  return undefined
+}
+
+// Map Supabase auth error codes to human copy. Raw backend strings (for
+// example "captcha protection: request disallowed (no captcha_token found)")
+// must never reach the UI, so anything unmapped falls back to a generic
+// message.
+function friendlyAuthError(error: unknown): string {
+  switch (authErrorCode(error)) {
+    case "invalid_credentials":
+      return "Wrong email or password"
+    case "captcha_failed":
+      return "Verification failed. Refresh and try again"
+    case "over_request_rate_limit":
+    case "over_email_send_rate_limit":
+      return "Too many attempts. Wait a minute and try again"
+    case "email_not_confirmed":
+      return "Confirm your email first. Check your inbox for the verification link"
+    case "user_already_exists":
+      return "An account with this email already exists. Try signing in instead"
+    default:
+      return "Something went wrong. Please try again"
+  }
+}
 
 export default function LoginPage() {
   return (
@@ -54,6 +85,7 @@ function LoginPageInner() {
   const [resendCooldown, setResendCooldown] = useState(0)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const [captchaNonce, setCaptchaNonce] = useState(0)
+  const [formError, setFormError] = useState<string | null>(null)
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null)
   const [mfaCode, setMfaCode] = useState("")
   const resendIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -75,6 +107,7 @@ function LoginPageInner() {
     setShowPassword(false)
     setCaptchaToken(null)
     setCaptchaNonce((n) => n + 1)
+    setFormError(null)
     setResendCooldown(0)
     if (resendIntervalRef.current) {
       clearInterval(resendIntervalRef.current)
@@ -84,19 +117,19 @@ function LoginPageInner() {
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError(null)
+
+    // Supabase captcha protection gates sign-in the same way it gates
+    // sign-up, so both modes require a token when Turnstile is configured.
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
+      setFormError("Please complete the verification check before continuing")
+      return
+    }
+
     setIsLoading(true)
 
     try {
       if (isSignUp) {
-        if (TURNSTILE_SITE_KEY && !captchaToken) {
-          addToast({
-            title: "Verification required",
-            description: "Please complete the captcha before signing up.",
-            variant: "destructive",
-          })
-          setIsLoading(false)
-          return
-        }
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -112,6 +145,7 @@ function LoginPageInner() {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
+          ...(captchaToken ? { options: { captchaToken } } : {}),
         })
         if (error) throw error
 
@@ -133,11 +167,10 @@ function LoginPageInner() {
         router.refresh()
       }
     } catch (error) {
-      addToast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Authentication failed",
-        variant: "destructive",
-      })
+      // Persistent inline error with human copy only; never surface raw
+      // backend text. Turnstile tokens are single-use, so clear the consumed
+      // token and bump the nonce to reset the widget for the retry.
+      setFormError(friendlyAuthError(error))
       setCaptchaToken(null)
       setCaptchaNonce((n) => n + 1)
     } finally {
@@ -176,19 +209,26 @@ function LoginPageInner() {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError(null)
+
+    // Password recovery is also gated by Supabase captcha protection.
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
+      setFormError("Please complete the verification check before continuing")
+      return
+    }
+
     setIsLoading(true)
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/callback`,
+        ...(captchaToken ? { captchaToken } : {}),
       })
       if (error) throw error
       setResetSent(true)
     } catch (error) {
-      addToast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to send reset link",
-        variant: "destructive",
-      })
+      setFormError(friendlyAuthError(error))
+      setCaptchaToken(null)
+      setCaptchaNonce((n) => n + 1)
     } finally {
       setIsLoading(false)
     }
@@ -244,7 +284,7 @@ function LoginPageInner() {
       <div className="animate-fade-in-scale">
         <Card className="shadow-refined-lg border-0 overflow-hidden">
           <CardHeader className="text-center pb-2">
-            <CardTitle className="text-3xl font-normal text-[var(--copper)]">Savvo</CardTitle>
+            <h1 className="text-3xl font-normal tracking-tight text-stone-900 dark:text-stone-100">Two-step verification</h1>
             <CardDescription className="text-base mt-2">
               Enter the 6-digit code from your authenticator app.
             </CardDescription>
@@ -286,7 +326,7 @@ function LoginPageInner() {
                 setMfaFactorId(null)
                 setMfaCode("")
               }}
-              className="text-sm text-muted-foreground hover:text-[var(--copper)] transition-colors font-medium"
+              className="text-sm text-muted-foreground hover:text-[var(--copper-text)] transition-colors font-medium"
             >
               Cancel and sign in as someone else
             </button>
@@ -302,14 +342,14 @@ function LoginPageInner() {
       <div className="animate-fade-in-scale">
         <Card className="shadow-refined-lg border-0 overflow-hidden">
           <CardHeader className="text-center pb-2">
-            <CardTitle className="text-3xl font-normal text-[var(--copper)]">Savvo</CardTitle>
+            <h1 className="text-3xl font-normal tracking-tight text-stone-900 dark:text-stone-100">Check your email</h1>
           </CardHeader>
           <CardContent className="space-y-4 pt-2">
             <div className="text-center space-y-4 py-4">
               <div className="mx-auto w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center">
                 <Mail className="h-6 w-6 text-emerald-600" />
               </div>
-              <h2 className="text-lg font-medium">One last step: check your email</h2>
+              <p className="text-lg font-medium">One last step to finish creating your Savvo account.</p>
               <p className="text-sm text-stone-700 dark:text-stone-300">
                 We sent a confirmation link to <strong>{email}</strong>. Click it and you&apos;ll land straight in your dashboard, ready to add your first contact.
               </p>
@@ -325,13 +365,33 @@ function LoginPageInner() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-2 pb-6">
+            {TURNSTILE_SITE_KEY && (
+              <div className="flex justify-center pb-2">
+                <Turnstile
+                  siteKey={TURNSTILE_SITE_KEY}
+                  resetKey={captchaNonce}
+                  onVerify={(token) => setCaptchaToken(token)}
+                  onExpire={() => setCaptchaToken(null)}
+                  onError={() => setCaptchaToken(null)}
+                />
+              </div>
+            )}
             <Button
               variant="outline"
               size="sm"
               onClick={async () => {
                 setIsLoading(true)
                 try {
-                  await supabase.auth.resend({ type: "signup", email })
+                  // Resend is captcha-gated too. The confirmation screen has
+                  // its own widget because the sign-up token was consumed.
+                  const { error } = await supabase.auth.resend({
+                    type: "signup",
+                    email,
+                    ...(captchaToken ? { options: { captchaToken } } : {}),
+                  })
+                  if (error) throw error
+                  setCaptchaToken(null)
+                  setCaptchaNonce((n) => n + 1)
                   addToast({ title: "Email resent", description: "Check your inbox for the confirmation link." })
                   if (resendIntervalRef.current) clearInterval(resendIntervalRef.current)
                   setResendCooldown(60)
@@ -345,13 +405,26 @@ function LoginPageInner() {
                       return prev - 1
                     })
                   }, 1000)
-                } catch {
-                  addToast({ title: "Error", description: "Failed to resend email", variant: "destructive" })
+                } catch (error) {
+                  setCaptchaToken(null)
+                  setCaptchaNonce((n) => n + 1)
+                  addToast({
+                    title: "Couldn't resend the email",
+                    description:
+                      authErrorCode(error) === "captcha_failed"
+                        ? "Verification failed. Complete the check and try again."
+                        : "Something went wrong. Please try again in a moment.",
+                    variant: "destructive",
+                  })
                 } finally {
                   setIsLoading(false)
                 }
               }}
-              disabled={isLoading || resendCooldown > 0}
+              disabled={
+                isLoading ||
+                resendCooldown > 0 ||
+                (!!TURNSTILE_SITE_KEY && !captchaToken)
+              }
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend verification email"}
@@ -359,14 +432,14 @@ function LoginPageInner() {
             <button
               type="button"
               onClick={() => { setSignUpSent(false); setIsSignUp(true) }}
-              className="text-sm text-muted-foreground hover:text-[var(--copper)] transition-colors font-medium"
+              className="text-sm text-muted-foreground hover:text-[var(--copper-text)] transition-colors font-medium"
             >
               Wrong email? Go back and edit it
             </button>
             <button
               type="button"
               onClick={() => { setSignUpSent(false); setIsSignUp(false) }}
-              className="text-sm text-muted-foreground hover:text-[var(--copper)] transition-colors font-medium"
+              className="text-sm text-muted-foreground hover:text-[var(--copper-text)] transition-colors font-medium"
             >
               Back to sign in
             </button>
@@ -382,7 +455,9 @@ function LoginPageInner() {
       <div className="animate-fade-in-scale">
         <Card className="shadow-refined-lg border-0 overflow-hidden">
           <CardHeader className="text-center pb-2">
-            <CardTitle className="text-3xl font-normal text-[var(--copper)]">Savvo</CardTitle>
+            <h1 className="text-3xl font-normal tracking-tight text-stone-900 dark:text-stone-100">
+              {resetSent ? "Check your email" : "Reset your password"}
+            </h1>
             <CardDescription className="text-base mt-2">
               {resetSent
                 ? "Check your email for a password reset link"
@@ -424,10 +499,29 @@ function LoginPageInner() {
                     </p>
                   )}
                 </div>
+                {TURNSTILE_SITE_KEY && (
+                  <div className="flex justify-center">
+                    <Turnstile
+                      siteKey={TURNSTILE_SITE_KEY}
+                      resetKey={captchaNonce}
+                      onVerify={(token) => setCaptchaToken(token)}
+                      onExpire={() => setCaptchaToken(null)}
+                      onError={() => setCaptchaToken(null)}
+                    />
+                  </div>
+                )}
+                {formError && (
+                  <p
+                    role="alert"
+                    className="rounded-lg bg-red-50 dark:bg-red-950/30 px-3 py-2 text-sm text-red-700 dark:text-red-300"
+                  >
+                    {formError}
+                  </p>
+                )}
                 <Button
                   type="submit"
                   className="w-full h-11 text-base font-medium bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 transition-all shadow-md hover:shadow-lg border-0"
-                  disabled={isLoading}
+                  disabled={isLoading || (!!TURNSTILE_SITE_KEY && !captchaToken)}
                 >
                   {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
                   Send Reset Link
@@ -442,7 +536,7 @@ function LoginPageInner() {
                 setIsForgotPassword(false)
                 setResetSent(false)
               }}
-              className="text-sm text-muted-foreground hover:text-[var(--copper)] transition-colors font-medium"
+              className="text-sm text-muted-foreground hover:text-[var(--copper-text)] transition-colors font-medium"
             >
               Back to sign in
             </button>
@@ -456,7 +550,9 @@ function LoginPageInner() {
     <div className="animate-fade-in-scale">
       <Card className="shadow-refined-lg border-0 overflow-hidden">
         <CardHeader className="text-center pb-2">
-          <CardTitle className="text-3xl font-normal text-[var(--copper)]">Savvo</CardTitle>
+          <h1 className="text-3xl font-normal tracking-tight text-stone-900 dark:text-stone-100">
+            {isSignUp ? "Create your Savvo account" : "Welcome back"}
+          </h1>
           <CardDescription className="text-base mt-2">
             {isSignUp
               ? "Keep every connection alive. Create your account."
@@ -471,7 +567,7 @@ function LoginPageInner() {
           >
             {isLoading ? (
               <span className="mr-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
-                <Loader2 className="h-4 w-4 animate-spin text-[var(--copper)]" />
+                <Loader2 className="h-4 w-4 animate-spin text-[var(--copper-text)]" />
               </span>
             ) : (
               <span className="mr-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
@@ -539,7 +635,7 @@ function LoginPageInner() {
                   <button
                     type="button"
                     onClick={() => setIsForgotPassword(true)}
-                    className="text-xs text-muted-foreground hover:text-[var(--copper)] transition-colors"
+                    className="text-xs text-muted-foreground hover:text-[var(--copper-text)] transition-colors"
                   >
                     Forgot password?
                   </button>
@@ -555,14 +651,14 @@ function LoginPageInner() {
                   autoComplete={isSignUp ? "new-password" : "current-password"}
                   required
                   minLength={6}
-                  className="h-11 pr-10 transition-all focus:shadow-md"
+                  className="h-11 pr-12 transition-all focus:shadow-md"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   aria-pressed={showPassword}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-500 hover:text-[var(--copper)] dark:text-stone-400 dark:hover:text-[var(--copper)] transition-colors"
+                  className="absolute right-0.5 top-1/2 -translate-y-1/2 h-10 w-10 inline-flex items-center justify-center rounded-md text-stone-500 hover:text-[var(--copper-text)] dark:text-stone-400 dark:hover:text-[var(--copper-text)] transition-colors"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -571,7 +667,7 @@ function LoginPageInner() {
                 <p className="text-xs text-muted-foreground">At least 6 characters</p>
               )}
             </div>
-            {isSignUp && TURNSTILE_SITE_KEY && (
+            {TURNSTILE_SITE_KEY && (
               <div className="flex justify-center">
                 <Turnstile
                   siteKey={TURNSTILE_SITE_KEY}
@@ -582,10 +678,18 @@ function LoginPageInner() {
                 />
               </div>
             )}
+            {formError && (
+              <p
+                role="alert"
+                className="rounded-lg bg-red-50 dark:bg-red-950/30 px-3 py-2 text-sm text-red-700 dark:text-red-300"
+              >
+                {formError}
+              </p>
+            )}
             <Button
               type="submit"
               className="w-full h-11 text-base font-medium bg-stone-900 text-white hover:bg-stone-800 dark:bg-stone-800 dark:text-stone-100 dark:hover:bg-stone-700 transition-all shadow-md hover:shadow-lg border-0"
-              disabled={isLoading || (isSignUp && !!TURNSTILE_SITE_KEY && !captchaToken)}
+              disabled={isLoading || (!!TURNSTILE_SITE_KEY && !captchaToken)}
             >
               {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
               {isSignUp ? "Create my free account" : "Sign In"}
@@ -601,7 +705,7 @@ function LoginPageInner() {
           <button
             type="button"
             onClick={() => setIsSignUp(!isSignUp)}
-            className="text-sm text-muted-foreground hover:text-[var(--copper)] transition-colors font-medium"
+            className="text-sm text-muted-foreground hover:text-[var(--copper-text)] transition-colors font-medium"
           >
             {isSignUp
               ? "Already have an account? Sign in"

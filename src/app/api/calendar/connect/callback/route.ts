@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { createServiceClient } from "@/lib/supabase/server"
-import { verifyState } from "../route"
+import { verifyCalendarOAuthState } from "@/lib/calendar-oauth-state"
 
 export async function GET(request: Request) {
   const url = new URL(request.url)
@@ -14,11 +14,11 @@ export async function GET(request: Request) {
   }
 
   // Verify the HMAC-signed state to prevent IDOR attacks.
-  // verifyState can throw if the signing secret is unconfigured — treat that
+  // State verification can throw if the signing secret is unconfigured; treat that
   // as a connection failure rather than letting it bubble to a raw 500.
   let userId: string | null
   try {
-    userId = verifyState(state)
+    userId = verifyCalendarOAuthState(state)
   } catch (err) {
     console.error("Calendar callback: state verification failed", err)
     return NextResponse.redirect(`${appUrl}/dashboard?calendar=error`)

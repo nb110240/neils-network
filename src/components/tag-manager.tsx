@@ -3,15 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Plus, X, Loader2 } from "lucide-react"
-
-function getTextColor(bgColor: string): string {
-  const hex = bgColor.replace("#", "")
-  const r = parseInt(hex.substring(0, 2), 16)
-  const g = parseInt(hex.substring(2, 4), 16)
-  const b = parseInt(hex.substring(4, 6), 16)
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-  return luminance > 0.5 ? "#1c1917" : "#ffffff"
-}
+import { getAccessibleTextColor } from "@/lib/color-contrast"
 
 interface Tag {
   id: string
@@ -33,27 +25,14 @@ export function TagManager({ contactId, onUpdate }: TagManagerProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const popoverRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
 
   const TAG_COLORS = [
     "#78716c", "#ef4444", "#f97316", "#eab308",
     "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899",
   ]
 
-  useEffect(() => {
-    fetchData()
-  }, [contactId])
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    if (isOpen) document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isOpen])
-
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
     setIsLoading(true)
     try {
       const [tagsRes, contactTagsRes] = await Promise.all([
@@ -69,7 +48,33 @@ export function TagManager({ contactId, onUpdate }: TagManagerProps) {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [contactId])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setIsOpen(false)
+        triggerRef.current?.focus()
+      }
+    }
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+      document.addEventListener("keydown", handleEscape)
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+      document.removeEventListener("keydown", handleEscape)
+    }
+  }, [isOpen])
 
   async function toggleTag(tagId: string) {
     const isSelected = contactTags.some((t) => t.id === tagId)
@@ -130,12 +135,13 @@ export function TagManager({ contactId, onUpdate }: TagManagerProps) {
           <span
             key={tag.id}
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-            style={{ backgroundColor: tag.color, color: getTextColor(tag.color) }}
+            style={{ backgroundColor: tag.color, color: getAccessibleTextColor(tag.color) }}
           >
             {tag.name}
             <button
+              type="button"
               onClick={() => toggleTag(tag.id)}
-              className="hover:opacity-80 transition-opacity"
+              className="-mr-1 grid h-6 w-6 place-items-center rounded-full hover:bg-black/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current transition-colors"
               aria-label={`Remove ${tag.name} tag`}
             >
               <X className="h-3 w-3" />
@@ -143,12 +149,14 @@ export function TagManager({ contactId, onUpdate }: TagManagerProps) {
           </span>
         ))}
         <Button
+          ref={triggerRef}
           variant="outline"
           size="sm"
-          className="h-7 px-2 text-xs"
+          className="h-9 px-3 text-xs"
           onClick={() => setIsOpen(!isOpen)}
           aria-expanded={isOpen}
           aria-haspopup="dialog"
+          aria-controls="tag-manager-popover"
         >
           <Plus className="h-3 w-3 mr-1" />
           Tag
@@ -157,7 +165,10 @@ export function TagManager({ contactId, onUpdate }: TagManagerProps) {
 
       {isOpen && (
         <div
+          id="tag-manager-popover"
           ref={popoverRef}
+          role="dialog"
+          aria-label="Manage tags"
           className="absolute top-full left-0 mt-2 z-50 w-64 max-w-[calc(100vw-2rem)] rounded-xl border bg-background shadow-refined-lg p-3 space-y-3"
         >
           {/* Existing tags */}
@@ -168,8 +179,10 @@ export function TagManager({ contactId, onUpdate }: TagManagerProps) {
                 return (
                   <button
                     key={tag.id}
+                    type="button"
                     onClick={() => toggleTag(tag.id)}
-                    className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-sm hover:bg-muted/50 transition-colors text-left"
+                    aria-pressed={isSelected}
+                    className="flex min-h-10 items-center gap-2 w-full px-2 py-2 rounded-lg text-sm hover:bg-muted/50 transition-colors text-left"
                   >
                     <div
                       className="w-3 h-3 rounded-full shrink-0"
@@ -177,7 +190,7 @@ export function TagManager({ contactId, onUpdate }: TagManagerProps) {
                     />
                     <span className="flex-1 truncate">{tag.name}</span>
                     {isSelected && (
-                      <span className="text-xs text-[var(--copper)] font-medium">Added</span>
+                      <span className="text-xs text-[var(--copper-text)] font-medium">Added</span>
                     )}
                   </button>
                 )
@@ -191,7 +204,9 @@ export function TagManager({ contactId, onUpdate }: TagManagerProps) {
           {/* Create new tag */}
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground">Create new tag</p>
+            <label htmlFor="new-tag-name" className="sr-only">Tag name</label>
             <input
+              id="new-tag-name"
               type="text"
               placeholder="Tag name"
               value={newTagName}
@@ -200,12 +215,14 @@ export function TagManager({ contactId, onUpdate }: TagManagerProps) {
               maxLength={50}
               className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Tag color">
               {TAG_COLORS.map((c) => (
                 <button
                   key={c}
+                  type="button"
                   onClick={() => setNewTagColor(c)}
-                  className={`w-5 h-5 rounded-full transition-all ${
+                  aria-pressed={newTagColor === c}
+                  className={`w-8 h-8 rounded-full transition-all ${
                     newTagColor === c ? "ring-2 ring-offset-2 ring-[var(--copper)]" : ""
                   }`}
                   style={{ backgroundColor: c }}
@@ -215,7 +232,7 @@ export function TagManager({ contactId, onUpdate }: TagManagerProps) {
             </div>
             <Button
               size="sm"
-              className="w-full h-7 text-xs"
+              className="w-full h-9 text-xs"
               onClick={createTag}
               disabled={!newTagName.trim() || isCreating}
             >

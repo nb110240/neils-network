@@ -62,7 +62,7 @@ export async function POST(request: Request) {
           <strong style="font-size:14px;color:#1c1917">Search by context</strong>
         </div>
         <p style="color:#78716c;font-size:13px;margin:0;padding-left:34px">
-          "Who was that person at the fintech conference?" — search your network by what you remember, not just names.
+          "Who was that person at the fintech conference?" Search your network by what you remember, not just names.
         </p>
       </div>
 

@@ -89,7 +89,7 @@ export function computeNextDueDate(
 
 export const HEALTH_COLORS: Record<HealthLevel, { bg: string; text: string; dot: string }> = {
   green: {
-    bg: "bg-green-500",
+    bg: "bg-green-700",
     text: "text-white",
     dot: "bg-white",
   },
@@ -99,12 +99,12 @@ export const HEALTH_COLORS: Record<HealthLevel, { bg: string; text: string; dot:
     dot: "bg-yellow-900",
   },
   orange: {
-    bg: "bg-orange-500",
+    bg: "bg-orange-700",
     text: "text-white",
     dot: "bg-white",
   },
   red: {
-    bg: "bg-red-500",
+    bg: "bg-red-700",
     text: "text-white",
     dot: "bg-white",
   },

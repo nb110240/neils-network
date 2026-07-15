@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import Link from "next/link"
 import { Contact, HealthScore } from "@/lib/types"
 import { ContactCard } from "@/components/contact-card"
@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ExportContactsButton } from "@/components/export-contacts-button"
 import { DuplicatesBanner } from "@/components/duplicates-banner"
+import { refreshLoadedContactWindow } from "@/lib/contact-pagination"
+import { getAccessibleTextColor } from "@/lib/color-contrast"
 import { ArrowLeft, Plus, Users, Loader2, ArrowUpDown } from "lucide-react"
 
 type SortOption = "recent" | "last-contacted" | "needs-attention" | "name" | "health"
@@ -75,6 +77,84 @@ export function ContactsClient({ contacts: initialContacts, tags, contactTagMap:
   const [contacts, setContacts] = useState<ContactWithHealth[]>(initialContacts)
   const [contactTagMap, setContactTagMap] = useState<Record<string, string[]>>(initialTagMap)
   const [pagination, setPagination] = useState<PaginationInfo>(initialPagination)
+
+  const previousInitialContacts = useRef(initialContacts)
+
+  // A server refresh only includes the first 25 contacts. If the user already
+  // loaded more, refetch that same-sized active window so archived/deleted rows
+  // disappear without collapsing the list back to the first page.
+  useEffect(() => {
+    if (previousInitialContacts.current === initialContacts) return
+
+    const previousFirstPageCount = previousInitialContacts.current.length
+    const desiredCount = contacts.length
+    previousInitialContacts.current = initialContacts
+    let cancelled = false
+
+    async function syncRefreshedContacts() {
+      if (desiredCount <= previousFirstPageCount) {
+        setContacts(initialContacts)
+        setContactTagMap(initialTagMap)
+        setPagination(initialPagination)
+        return
+      }
+
+      try {
+        const refreshed = await refreshLoadedContactWindow(
+          initialContacts,
+          initialPagination,
+          desiredCount,
+          async (cursor, limit) => {
+            const params = new URLSearchParams({
+              limit: String(limit),
+              cursor,
+              direction: "next",
+            })
+            const response = await fetch(`/api/contacts?${params}`)
+            if (!response.ok) throw new Error("Failed to refresh contacts")
+            return response.json()
+          }
+        )
+        if (cancelled) return
+
+        const refreshedTagMap: Record<string, string[]> = {}
+        for (const contact of refreshed.contacts) {
+          refreshedTagMap[contact.id] = initialTagMap[contact.id] || contactTagMap[contact.id] || []
+        }
+
+        const tailIds = refreshed.contacts
+          .slice(initialContacts.length)
+          .map((contact) => contact.id)
+        if (tailIds.length > 0) {
+          const tagResponse = await fetch(`/api/contact-tags?contactIds=${tailIds.join(",")}`)
+          if (tagResponse.ok) {
+            const tagData = await tagResponse.json()
+            for (const contactId of tailIds) refreshedTagMap[contactId] = []
+            for (const contactTag of tagData.contactTags || []) {
+              if (!refreshedTagMap[contactTag.contact_id]) refreshedTagMap[contactTag.contact_id] = []
+              refreshedTagMap[contactTag.contact_id].push(contactTag.tag_id)
+            }
+          }
+        }
+        if (cancelled) return
+
+        setContacts(refreshed.contacts)
+        setContactTagMap(refreshedTagMap)
+        setPagination(refreshed.pagination)
+      } catch {
+        if (cancelled) return
+        // Prefer the authoritative first page over retaining a stale deleted row.
+        setContacts(initialContacts)
+        setContactTagMap(initialTagMap)
+        setPagination(initialPagination)
+      }
+    }
+
+    void syncRefreshedContacts()
+    return () => {
+      cancelled = true
+    }
+  }, [initialContacts, initialPagination, initialTagMap, contacts.length, contactTagMap])
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [activeTagId, setActiveTagId] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<SortOption>("recent")
@@ -171,6 +251,7 @@ export function ContactsClient({ contacts: initialContacts, tags, contactTagMap:
         <div className="flex items-center gap-2 shrink-0">
           <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
           <select
+            aria-label="Sort contacts"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortOption)}
             className="h-8 rounded-lg border border-input bg-background px-2.5 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -185,10 +266,12 @@ export function ContactsClient({ contacts: initialContacts, tags, contactTagMap:
         {tags.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
             <button
+              type="button"
               onClick={() => setActiveTagId(null)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              aria-pressed={activeTagId === null}
+              className={`min-h-10 px-3 py-2 rounded-full text-xs font-medium transition-all ${
                 activeTagId === null
-                  ? "bg-[var(--copper)]/10 text-[var(--copper)] border border-[var(--copper)]/30"
+                  ? "bg-[var(--copper)]/10 text-[var(--copper-text)] border border-[var(--copper)]/30"
                   : "border text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
             >
@@ -197,13 +280,18 @@ export function ContactsClient({ contacts: initialContacts, tags, contactTagMap:
             {tags.map((tag) => (
               <button
                 key={tag.id}
+                type="button"
                 onClick={() => setActiveTagId(activeTagId === tag.id ? null : tag.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                aria-pressed={activeTagId === tag.id}
+                className={`min-h-10 px-3 py-2 rounded-full text-xs font-medium transition-all ${
                   activeTagId === tag.id
                     ? "text-white"
                     : "border text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 }`}
-                style={activeTagId === tag.id ? { backgroundColor: tag.color } : undefined}
+                style={activeTagId === tag.id ? {
+                  backgroundColor: tag.color,
+                  color: getAccessibleTextColor(tag.color),
+                } : undefined}
               >
                 {tag.name}
               </button>
@@ -230,7 +318,7 @@ export function ContactsClient({ contacts: initialContacts, tags, contactTagMap:
                 variant="outline"
                 onClick={loadMore}
                 disabled={isLoadingMore}
-                className="min-w-[200px] h-10 border-[var(--copper)]/30 text-[var(--copper)] hover:bg-[var(--copper)]/5"
+                className="min-w-[200px] h-10 border-[var(--copper)]/30 text-[var(--copper-text)] hover:bg-[var(--copper)]/5"
               >
                 {isLoadingMore ? (
                   <>
@@ -248,9 +336,9 @@ export function ContactsClient({ contacts: initialContacts, tags, contactTagMap:
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-10">
             <Users className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold">
+            <h2 className="text-lg font-semibold">
               {activeTagId ? "No contacts with this tag" : "No contacts yet"}
-            </h3>
+            </h2>
             <p className="text-muted-foreground text-center max-w-sm mt-2">
               {activeTagId
                 ? "Try selecting a different tag or add tags to your contacts."

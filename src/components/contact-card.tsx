@@ -24,16 +24,16 @@ export function ContactCard({
           {/* Top: Avatar + Name + Health */}
           <div className="flex items-center gap-3 mb-3">
             <Avatar className="h-10 w-10 shrink-0">
-              <AvatarFallback className="bg-[var(--copper)]/8 text-[var(--copper)] text-sm font-medium">
+              <AvatarFallback className="bg-[var(--copper)]/8 text-[var(--copper-text)] text-sm font-medium">
                 {getInitials(contact.name)}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <h3 className="font-semibold text-base group-hover:text-[var(--copper)] transition-colors truncate min-h-[1.5rem]">
+              <h2 className="font-semibold text-base group-hover:text-[var(--copper-text)] transition-colors truncate min-h-[1.5rem]">
                 {contact.name || "Unknown Contact"}
-              </h3>
+              </h2>
               {!contact.name && (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-[var(--copper)]">
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-[var(--copper-text)]">
                   Tap to fix
                 </span>
               )}

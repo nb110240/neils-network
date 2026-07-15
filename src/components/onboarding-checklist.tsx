@@ -24,7 +24,7 @@ const CHECKLIST_ITEMS: ChecklistItem[] = [
   {
     id: "add-contact",
     label: "Add your first contact",
-    description: "Type what you remember — AI does the rest",
+    description: "Type what you remember, and AI does the rest",
     href: "/add",
     icon: Plus,
   },
@@ -132,7 +132,7 @@ export function OnboardingChecklist({ contactCount }: OnboardingChecklistProps) 
       <div className="px-4 pt-4 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="h-8 w-8 rounded-lg bg-[var(--copper)]/10 flex items-center justify-center">
-            <Sparkles className="h-4 w-4 text-[var(--copper)]" />
+            <Sparkles className="h-4 w-4 text-[var(--copper-text)]" />
           </div>
           <div>
             <h3 className="text-sm font-semibold">Get started with Savvo</h3>

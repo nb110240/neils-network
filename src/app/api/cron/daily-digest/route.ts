@@ -5,6 +5,7 @@ import { sendDigestEmail, sendNewUserNudgeEmail } from "@/lib/email"
 import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
 import { safeCompare } from "@/lib/api-utils"
 import { log } from "@/lib/logger"
+import { DAILY_DIGEST_PLANS } from "@/lib/types"
 
 export async function GET(request: Request) {
   // Verify cron secret to prevent unauthorized access (timing-safe)
@@ -27,14 +28,14 @@ export async function GET(request: Request) {
   try {
     const supabase = await createServiceClient()
 
-    // Get all users with active subscriptions (Pro users)
-    const { data: proUsers } = await supabase
+    // Get all users whose active plan includes daily digests.
+    const { data: dailyDigestUsers } = await supabase
       .from("subscriptions")
       .select("user_id")
-      .eq("plan", "pro")
+      .in("plan", [...DAILY_DIGEST_PLANS])
       .eq("status", "active")
 
-    const proUserIds = new Set((proUsers || []).map((u) => u.user_id))
+    const dailyDigestUserIds = new Set((dailyDigestUsers || []).map((u) => u.user_id))
 
     // Get ALL users who have contacts (free users get weekly digest)
     const { data: allUserRows } = await supabase
@@ -58,7 +59,7 @@ export async function GET(request: Request) {
     const isNudgeDay = day === 1 || day === 3 || day === 5
 
     for (const user_id of allUserIds) {
-      const isPro = proUserIds.has(user_id)
+      const canUseDaily = dailyDigestUserIds.has(user_id)
 
       // Check notification preferences
       const { data: prefs } = await supabase
@@ -117,7 +118,7 @@ export async function GET(request: Request) {
       }
 
       // Free users can only have weekly frequency — downgrade to weekly silently
-      if (!isPro && frequency === "daily" && !isMonday) {
+      if (!canUseDaily && frequency === "daily" && !isMonday) {
         continue
       }
 
@@ -227,7 +228,7 @@ export async function GET(request: Request) {
         totalContacts: contacts.length,
         healthBreakdown,
         followUpCount,
-        isPro,
+        isPro: canUseDaily,
         isWeekly: frequency === "weekly",
       })
 
@@ -246,8 +247,8 @@ export async function GET(request: Request) {
       action: "cron.daily_digest",
       route: "/api/cron/daily-digest",
       userCount: allUserIds.length,
-      proUsers: proUserIds.size,
-      freeUsers: allUserIds.length - proUserIds.size,
+      paidUsers: dailyDigestUserIds.size,
+      freeUsers: allUserIds.length - dailyDigestUserIds.size,
       emailsSent,
       nudgesSent,
       skipped,

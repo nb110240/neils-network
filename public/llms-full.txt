@@ -1,13 +1,13 @@
 # Savvo (Full Product Details)
 
-> Savvo is the investor CRM for founders raising a round. Run your raise without a spreadsheet: type what you remember after every pitch, and Savvo tracks who's in, who's out, and who's waiting on a follow-up, so you close the round. After the round closes, Savvo keeps every relationship alive: hires, board, customers, and your broader network.
+> Savvo is the investor CRM for founders raising a round. Run your raise without a spreadsheet: type what you remember after every pitch, and Savvo tracks who you met, who is going cold, and who needs a follow-up, so nothing slips. After the round closes, Savvo keeps every relationship alive: hires, board, customers, and your broader network.
 
 Website: https://savvo.app
 Contact: neil@savvo.app
 
 ## What Savvo Is
 
-Savvo is an AI-powered relationship manager. Its primary use case is fundraising: founders who meet many investors each week use it to track pitch status (interested, passed, waiting on a follow-up), who made each intro, and the next step for every conversation, without maintaining a spreadsheet. Beyond the raise, the same system works as a personal CRM for any professional network.
+Savvo is an AI-powered relationship manager. Its primary use case is fundraising: founders who meet many investors each week use it to track relationship context, who made each intro, and the next step for every conversation, without maintaining a spreadsheet. Beyond the raise, the same system works as a personal CRM for any professional network.
 
 Instead of filling in form fields, you type a quick note the way you'd text a friend:
 
@@ -17,7 +17,7 @@ AI extracts the structured details automatically: name, company, role, how you m
 
 ## Who It Is For
 
-- Startup founders running a fundraise: tracking investor status, intro sources, and follow-ups
+- Startup founders running a fundraise: tracking investor context, intro sources, and follow-ups
 - Founders after the round: managing hires, board members, customers, and their broader network
 - Venture capitalists tracking founders and dealflow
 - Community builders maintaining large professional networks
@@ -85,7 +85,7 @@ Q: How does the health score work?
 A: Every contact gets a color-coded health score based on when you last interacted. Green means active (within the last 30 days), yellow means cooling (31 to 90 days), orange means going cold (91 to 180 days), and red means at risk (180+ days). Your dashboard shows you exactly who needs a reach-out, prioritized by urgency.
 
 Q: Is my data private and secure?
-A: Yes. Savvo uses Supabase with PostgreSQL and row-level security, so every user can only access their own data. All data is encrypted in transit (HTTPS) and at rest. Savvo never sells your data, never shares contacts with third parties, and you can export or delete everything at any time. AI processing happens through OpenAI's API with no data retention.
+A: Yes. Savvo uses Supabase with PostgreSQL and row-level security, so every user can only access their own data. All data is encrypted in transit (HTTPS) and at rest. Savvo never sells your data or shares contacts with other users, and you can export or delete everything at any time. AI providers process data only for features you choose. OpenAI API inputs and outputs are not used to train OpenAI models by default.
 
 Q: How is Savvo different from a spreadsheet or Notion?
 A: Spreadsheets and Notion require you to manually create columns, type structured data, and remember to check them. Savvo lets you type naturally, like "Met Sarah at TechCrunch, she runs a fintech startup", and AI handles the structure. Plus, you get automatic health scores, follow-up reminders via daily digest emails, and semantic search so you can find people by context, not just names. See https://savvo.app/from-spreadsheet for how to switch.
@@ -104,7 +104,7 @@ A: Savvo is built for people whose network is their most valuable professional a
 
 ## Data and Privacy
 
-- We never sell your data. Your contacts are yours. Savvo does not share, sell, or train AI models on your network data.
+- We never sell your data. Your contacts are yours and are never shared with other users. AI providers only process data for features you choose, and OpenAI API inputs and outputs are not used to train OpenAI models by default.
 - Everything is optional. Google sync, imports, and calendar are all opt-in. You can use Savvo with just manual notes; no account linking is required.
 - Export anytime. Download all your contacts as a CSV whenever you want, or export everything Savvo stores about you as JSON in one click. Delete your account and all data is permanently removed within 30 days.
 - Per-user isolation. Row-level security is enforced on every table, so each user can only access their own data.

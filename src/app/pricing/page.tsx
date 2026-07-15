@@ -217,7 +217,7 @@ export default function PricingPage() {
               </div>
               {isLaunchPromo && (
                 <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium mt-1">
-                  Launch price — ends June 2026
+                  Simple monthly pricing
                 </p>
               )}
               {billing === "yearly" && !isLaunchPromo && (

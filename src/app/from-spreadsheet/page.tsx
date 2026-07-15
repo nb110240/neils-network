@@ -16,9 +16,9 @@ export default function FromSpreadsheetPage() {
   const painPoints = [
     { emoji: "😰", pain: "Forgetting to follow up until it's awkward", solution: "Daily digest emails remind you exactly who needs attention" },
     { emoji: "🔍", pain: "Scrolling through 200 rows to find someone", solution: "Semantic search: \"who was that fintech person?\" just works" },
-    { emoji: "📊", pain: "No way to know which relationships are going cold", solution: "Color-coded health scores on every contact — green to red" },
+    { emoji: "📊", pain: "No way to know which relationships are going cold", solution: "Color-coded health scores on every contact, from green to red" },
     { emoji: "✍️", pain: "Typing structured data into columns after every meeting", solution: "Type messy notes, AI extracts name, company, role, and next steps" },
-    { emoji: "📱", pain: "Can't check your spreadsheet on your phone at an event", solution: "Mobile-first web app — add contacts from anywhere" },
+    { emoji: "📱", pain: "Can't check your spreadsheet on your phone at an event", solution: "Mobile-first web app for adding contacts from anywhere" },
     { emoji: "🤝", pain: "Missing introduction opportunities across your network", solution: "AI spots valuable connections and drafts the intro for you" },
   ]
 
@@ -138,7 +138,7 @@ export default function FromSpreadsheetPage() {
         {/* Pain → Solution */}
         <section className="py-12 sm:py-16">
           <h2 className="text-2xl sm:text-3xl tracking-tight text-center mb-3">Every spreadsheet user hits the same wall</h2>
-          <p className="text-muted-foreground text-center mb-10 max-w-lg mx-auto">Here&apos;s what breaks — and how Savvo fixes it.</p>
+          <p className="text-muted-foreground text-center mb-10 max-w-lg mx-auto">Here&apos;s what breaks and how Savvo fixes it.</p>
           <div className="grid gap-4 sm:grid-cols-2">
             {painPoints.map((item, i) => (
               <div key={i} className="rounded-xl border bg-white dark:bg-stone-800 p-5 shadow-refined">
@@ -163,7 +163,7 @@ export default function FromSpreadsheetPage() {
           <div className="grid sm:grid-cols-3 gap-6">
             {[
               { step: "1", title: "Export your spreadsheet", description: "Download your Google Sheet, Excel, or Notion database as a CSV file. Any format works." },
-              { step: "2", title: "Upload to Savvo", description: "Drag and drop your CSV. Map columns to contact fields — name, company, email, notes. Quick and painless." },
+              { step: "2", title: "Upload to Savvo", description: "Drag and drop your CSV. Map columns to contact fields such as name, company, email, and notes. Quick and painless." },
               { step: "3", title: "Watch it come alive", description: "Every contact gets a health score. AI generates embeddings for semantic search. Your daily digest starts tomorrow." },
             ].map((item, i) => (
               <div key={i} className="text-center">
@@ -190,7 +190,7 @@ export default function FromSpreadsheetPage() {
             href="/login?mode=signup"
             className="inline-flex items-center px-8 py-4 rounded-xl text-base font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity shadow-lg"
           >
-            Get Started Free — Import Your Contacts
+            Get Started Free and Import Your Contacts
           </Link>
         </section>
       </main>

@@ -46,7 +46,7 @@ function MarketingPage() {
               Run your raise without a <em className="not-italic text-[var(--copper)]">spreadsheet</em>
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed mb-6 max-w-md">
-              Met 12 investors this week? Type what you remember after every pitch. Savvo tracks who&apos;s in, who&apos;s out, and who&apos;s waiting on a follow-up, so you close the round.
+              Met 12 investors this week? Type what you remember after every pitch. Savvo tracks who you met, who is going cold, and who is waiting on a follow-up, so nothing slips.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link href="/login?mode=signup" className="inline-flex items-center px-6 py-3 rounded-xl text-base font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity">
@@ -75,7 +75,7 @@ function MarketingPage() {
                 </div>
               </div>
               <div className="space-y-2 pt-3 border-t text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Status</span><span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500 text-white"><span className="w-1.5 h-1.5 rounded-full bg-white" />Interested</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Health</span><span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500 text-white"><span className="w-1.5 h-1.5 rounded-full bg-white" />Active</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Intro&apos;d by</span><span>Marcus at YC</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Next step</span><span>Send Q2 metrics</span></div>
               </div>
@@ -92,7 +92,7 @@ function MarketingPage() {
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { num: "01", title: "Write what you remember", desc: "Type a quick note like you'd text a friend. AI extracts the details you'd normally forget.", example: '"Met John Doe at AI Summit, he\'s VP of Engineering at Nextera Health, wants to grab coffee next week"' },
-              { num: "02", title: "Details are extracted", desc: "Name, company, role, how you met, next steps — all structured automatically." },
+              { num: "02", title: "Details are extracted", desc: "Name, company, role, how you met, and next steps, all structured automatically." },
               { num: "03", title: "Stay connected effortlessly", desc: "Health scores show which relationships are fading. Daily emails nudge you to reach out." },
             ].map((step) => (
               <div key={step.num}>
@@ -145,7 +145,7 @@ function MarketingPage() {
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground pt-1">Every morning, Savvo tells you exactly who needs attention — prioritized by urgency so you always know where to start.</p>
+                <p className="text-xs text-muted-foreground pt-1">Every morning, Savvo tells you exactly who needs attention, prioritized by urgency so you always know where to start.</p>
               </div>
             </div>
 
@@ -185,7 +185,7 @@ function MarketingPage() {
                   <span className="text-xs px-2 py-1 rounded-md border bg-muted/50">&#x1f4c5; Meeting Prep</span>
                   <span className="text-xs px-2 py-1 rounded-md border bg-muted/50">&#x270f;&#xfe0f; Edit</span>
                 </div>
-                <p className="text-xs text-muted-foreground pt-1">See the full history, log interactions, and draft AI-powered follow-ups — all from one screen.</p>
+                <p className="text-xs text-muted-foreground pt-1">See the full history, log interactions, and draft AI-powered follow-ups, all from one screen.</p>
               </div>
             </div>
 
@@ -214,7 +214,7 @@ function MarketingPage() {
                     <span className="text-xs text-[var(--copper)] font-medium">{r.match} match</span>
                   </div>
                 ))}
-                <p className="text-xs text-muted-foreground pt-1">Ask natural questions about your network. Savvo searches by meaning — not just names and keywords.</p>
+                <p className="text-xs text-muted-foreground pt-1">Ask natural questions about your network. Savvo searches by meaning, not just names and keywords.</p>
               </div>
             </div>
           </div>
@@ -296,7 +296,7 @@ function MarketingPage() {
 
           <div className="mt-10 text-center">
             <Link href="/login?mode=signup" className="inline-flex items-center px-6 py-3 rounded-xl text-base font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity">
-              Try it yourself — free
+              Try it yourself for free
             </Link>
             <p className="text-sm text-muted-foreground mt-3">No credit card required. Free plan, no strings attached.</p>
           </div>
@@ -313,14 +313,14 @@ function MarketingPage() {
               <div className="shrink-0 w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center text-lg">&#128274;</div>
               <div>
                 <h3 className="font-medium mb-1">We never sell your data</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">Your contacts are yours. We don&apos;t share, sell, or train AI models on your network data. Ever.</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">Your contacts are yours. We never sell them or show them to other users. AI providers only process data for features you choose.</p>
               </div>
             </div>
             <div className="flex gap-4">
               <div className="shrink-0 w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/30 flex items-center justify-center text-lg">&#9889;</div>
               <div>
                 <h3 className="font-medium mb-1">Everything is optional</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">Google sync, imports, and calendar are all opt-in. Use Savvo with just manual notes if you prefer — no account linking required.</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">Google sync, imports, and calendar are all opt-in. Use Savvo with just manual notes if you prefer. No account linking is required.</p>
               </div>
             </div>
             <div className="flex gap-4">
@@ -394,7 +394,7 @@ function MarketingPage() {
             </div>
           </div>
           <p className="text-center text-sm text-muted-foreground mt-6">
-            Team plan available soon — $12/user/mo. Shared graphs, intro requests, and admin tools.
+            Team plan available soon at $12/user/mo, with shared graphs, intro requests, and admin tools.
           </p>
         </div>
       </section>
@@ -406,7 +406,7 @@ function MarketingPage() {
           {[
             {
               q: "What is Savvo?",
-              a: "Savvo is an AI-powered personal CRM built for founders, VCs, and professional networkers. You add contacts by typing what you remember about someone — like messy meeting notes — and Savvo automatically extracts their name, company, role, and follow-up actions. Every contact gets a health score that tracks how fresh the relationship is, and you get daily digest emails reminding you who needs attention.",
+              a: "Savvo is an AI-powered personal CRM built for founders, VCs, and professional networkers. You add contacts by typing what you remember about someone, like messy meeting notes, and Savvo automatically extracts their name, company, role, and follow-up actions. Every contact gets a health score that tracks how fresh the relationship is, and you get daily digest emails reminding you who needs attention.",
             },
             {
               q: "How does the health score work?",
@@ -414,11 +414,11 @@ function MarketingPage() {
             },
             {
               q: "Is my data private and secure?",
-              a: "Yes. Savvo uses Supabase with PostgreSQL and row-level security — every user can only access their own data. All data is encrypted in transit (HTTPS) and at rest. We never sell your data, never share contacts with third parties, and you can export or delete everything at any time. AI processing happens through OpenAI's API with no data retention.",
+              a: "Yes. Savvo uses Supabase with PostgreSQL and row-level security, so every user can only access their own data. All data is encrypted in transit (HTTPS) and at rest. We never sell your data or share contacts with other users, and you can export or delete everything at any time. AI providers process data only for features you choose. OpenAI API inputs and outputs are not used to train OpenAI models by default.",
             },
             {
               q: "How is Savvo different from a spreadsheet or Notion?",
-              a: "Spreadsheets and Notion require you to manually create columns, type structured data, and remember to check them. Savvo lets you type naturally — 'Met Sarah at TechCrunch, she runs a fintech startup' — and AI handles the structure. Plus, you get automatic health scores, follow-up reminders via daily digest emails, and semantic search so you can find people by context, not just names.",
+              a: "Spreadsheets and Notion require you to manually create columns, type structured data, and remember to check them. Savvo lets you type naturally, for example, 'Met Sarah at TechCrunch, she runs a fintech startup,' and AI handles the structure. Plus, you get automatic health scores, follow-up reminders via daily digest emails, and semantic search so you can find people by context, not just names.",
             },
             {
               q: "Can I import my existing contacts?",
@@ -426,7 +426,7 @@ function MarketingPage() {
             },
             {
               q: "What does the AI actually do?",
-              a: "Savvo uses AI in four ways: (1) Contact extraction — parses natural language notes into structured data. (2) Semantic search — find contacts by meaning, not just keywords ('who was the fintech person?'). (3) Follow-up drafts — generates personalized outreach messages based on your history. (4) Intro suggestions — identifies high-value introductions across your network.",
+              a: "Savvo uses AI in four ways: (1) Contact extraction parses natural language notes into structured data. (2) Semantic search finds contacts by meaning, not just keywords ('who was the fintech person?'). (3) Follow-up drafts generate personalized outreach messages based on your history. (4) Intro suggestions identify high-value introductions across your network.",
             },
             {
               q: "How much does Savvo cost?",
@@ -434,7 +434,7 @@ function MarketingPage() {
             },
             {
               q: "Who is Savvo built for?",
-              a: "Savvo is built for people whose network is their most valuable professional asset — startup founders managing investor and partner relationships, VCs tracking portfolio founders and dealflow, community builders maintaining large networks, and sales professionals who value relationship-first selling. If you meet a lot of people and struggle to keep every connection warm, Savvo is for you.",
+              a: "Savvo is built for people whose network is their most valuable professional asset: startup founders managing investor and partner relationships, VCs tracking portfolio founders and dealflow, community builders maintaining large networks, and sales professionals who value relationship-first selling. If you meet a lot of people and struggle to keep every connection warm, Savvo is for you.",
             },
           ].map((faq, i) => (
             <details key={i} className="group border rounded-xl px-5 py-4 bg-white/60 dark:bg-stone-900/40 shadow-refined">
@@ -467,7 +467,20 @@ function MarketingPage() {
           {" "}&middot;{" "}
           <Link href="/from-spreadsheet" className="hover:text-foreground">Switching from Spreadsheets?</Link>
         </p>
-        <p className="text-xs">Your data is stored securely and never shared with third parties.</p>
+        <p>
+          <Link href="/blog" className="hover:text-foreground">Blog</Link>
+          {" "}&middot;{" "}
+          <Link href="/templates/investor-tracker" className="hover:text-foreground">Free Investor Tracker Template</Link>
+          {" "}&middot;{" "}
+          <Link href="/vs/airtable" className="hover:text-foreground">Savvo vs Airtable</Link>
+          {" "}&middot;{" "}
+          <Link href="/vs/notion" className="hover:text-foreground">vs Notion</Link>
+          {" "}&middot;{" "}
+          <Link href="/vs/attio" className="hover:text-foreground">vs Attio</Link>
+          {" "}&middot;{" "}
+          <Link href="/vs/streak" className="hover:text-foreground">vs Streak</Link>
+        </p>
+        <p className="text-xs">Your data is stored securely, never sold, and never shared with other users.</p>
       </footer>
     </div>
   )

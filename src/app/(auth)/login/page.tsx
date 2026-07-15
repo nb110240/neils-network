@@ -22,6 +22,38 @@ import { Loader2, Mail, Eye, EyeOff } from "lucide-react"
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
+// Pull the machine-readable error code off a Supabase AuthError (supabase-js
+// v2.43+ sets `code`, e.g. "invalid_credentials", "captcha_failed").
+function authErrorCode(error: unknown): string | undefined {
+  if (error && typeof error === "object" && "code" in error) {
+    const code = (error as { code?: unknown }).code
+    if (typeof code === "string") return code
+  }
+  return undefined
+}
+
+// Map Supabase auth error codes to human copy. Raw backend strings (for
+// example "captcha protection: request disallowed (no captcha_token found)")
+// must never reach the UI, so anything unmapped falls back to a generic
+// message.
+function friendlyAuthError(error: unknown): string {
+  switch (authErrorCode(error)) {
+    case "invalid_credentials":
+      return "Wrong email or password"
+    case "captcha_failed":
+      return "Verification failed. Refresh and try again"
+    case "over_request_rate_limit":
+    case "over_email_send_rate_limit":
+      return "Too many attempts. Wait a minute and try again"
+    case "email_not_confirmed":
+      return "Confirm your email first. Check your inbox for the verification link"
+    case "user_already_exists":
+      return "An account with this email already exists. Try signing in instead"
+    default:
+      return "Something went wrong. Please try again"
+  }
+}
+
 export default function LoginPage() {
   return (
     <Suspense>
@@ -54,6 +86,7 @@ function LoginPageInner() {
   const [resendCooldown, setResendCooldown] = useState(0)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const [captchaNonce, setCaptchaNonce] = useState(0)
+  const [formError, setFormError] = useState<string | null>(null)
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null)
   const [mfaCode, setMfaCode] = useState("")
   const resendIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -75,6 +108,7 @@ function LoginPageInner() {
     setShowPassword(false)
     setCaptchaToken(null)
     setCaptchaNonce((n) => n + 1)
+    setFormError(null)
     setResendCooldown(0)
     if (resendIntervalRef.current) {
       clearInterval(resendIntervalRef.current)
@@ -84,19 +118,19 @@ function LoginPageInner() {
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError(null)
+
+    // Supabase captcha protection gates sign-in the same way it gates
+    // sign-up, so both modes require a token when Turnstile is configured.
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
+      setFormError("Please complete the verification check before continuing")
+      return
+    }
+
     setIsLoading(true)
 
     try {
       if (isSignUp) {
-        if (TURNSTILE_SITE_KEY && !captchaToken) {
-          addToast({
-            title: "Verification required",
-            description: "Please complete the captcha before signing up.",
-            variant: "destructive",
-          })
-          setIsLoading(false)
-          return
-        }
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -112,6 +146,7 @@ function LoginPageInner() {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
+          ...(captchaToken ? { options: { captchaToken } } : {}),
         })
         if (error) throw error
 
@@ -133,11 +168,10 @@ function LoginPageInner() {
         router.refresh()
       }
     } catch (error) {
-      addToast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Authentication failed",
-        variant: "destructive",
-      })
+      // Persistent inline error with human copy only; never surface raw
+      // backend text. Turnstile tokens are single-use, so clear the consumed
+      // token and bump the nonce to reset the widget for the retry.
+      setFormError(friendlyAuthError(error))
       setCaptchaToken(null)
       setCaptchaNonce((n) => n + 1)
     } finally {
@@ -176,19 +210,26 @@ function LoginPageInner() {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError(null)
+
+    // Password recovery is also gated by Supabase captcha protection.
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
+      setFormError("Please complete the verification check before continuing")
+      return
+    }
+
     setIsLoading(true)
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/callback`,
+        ...(captchaToken ? { captchaToken } : {}),
       })
       if (error) throw error
       setResetSent(true)
     } catch (error) {
-      addToast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to send reset link",
-        variant: "destructive",
-      })
+      setFormError(friendlyAuthError(error))
+      setCaptchaToken(null)
+      setCaptchaNonce((n) => n + 1)
     } finally {
       setIsLoading(false)
     }
@@ -325,13 +366,33 @@ function LoginPageInner() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-2 pb-6">
+            {TURNSTILE_SITE_KEY && (
+              <div className="flex justify-center pb-2">
+                <Turnstile
+                  siteKey={TURNSTILE_SITE_KEY}
+                  resetKey={captchaNonce}
+                  onVerify={(token) => setCaptchaToken(token)}
+                  onExpire={() => setCaptchaToken(null)}
+                  onError={() => setCaptchaToken(null)}
+                />
+              </div>
+            )}
             <Button
               variant="outline"
               size="sm"
               onClick={async () => {
                 setIsLoading(true)
                 try {
-                  await supabase.auth.resend({ type: "signup", email })
+                  // Resend is captcha-gated too. The confirmation screen has
+                  // its own widget because the sign-up token was consumed.
+                  const { error } = await supabase.auth.resend({
+                    type: "signup",
+                    email,
+                    ...(captchaToken ? { options: { captchaToken } } : {}),
+                  })
+                  if (error) throw error
+                  setCaptchaToken(null)
+                  setCaptchaNonce((n) => n + 1)
                   addToast({ title: "Email resent", description: "Check your inbox for the confirmation link." })
                   if (resendIntervalRef.current) clearInterval(resendIntervalRef.current)
                   setResendCooldown(60)
@@ -345,13 +406,26 @@ function LoginPageInner() {
                       return prev - 1
                     })
                   }, 1000)
-                } catch {
-                  addToast({ title: "Error", description: "Failed to resend email", variant: "destructive" })
+                } catch (error) {
+                  setCaptchaToken(null)
+                  setCaptchaNonce((n) => n + 1)
+                  addToast({
+                    title: "Couldn't resend the email",
+                    description:
+                      authErrorCode(error) === "captcha_failed"
+                        ? "Verification failed. Complete the check and try again."
+                        : "Something went wrong. Please try again in a moment.",
+                    variant: "destructive",
+                  })
                 } finally {
                   setIsLoading(false)
                 }
               }}
-              disabled={isLoading || resendCooldown > 0}
+              disabled={
+                isLoading ||
+                resendCooldown > 0 ||
+                (!!TURNSTILE_SITE_KEY && !captchaToken)
+              }
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend verification email"}
@@ -424,10 +498,29 @@ function LoginPageInner() {
                     </p>
                   )}
                 </div>
+                {TURNSTILE_SITE_KEY && (
+                  <div className="flex justify-center">
+                    <Turnstile
+                      siteKey={TURNSTILE_SITE_KEY}
+                      resetKey={captchaNonce}
+                      onVerify={(token) => setCaptchaToken(token)}
+                      onExpire={() => setCaptchaToken(null)}
+                      onError={() => setCaptchaToken(null)}
+                    />
+                  </div>
+                )}
+                {formError && (
+                  <p
+                    role="alert"
+                    className="rounded-lg bg-red-50 dark:bg-red-950/30 px-3 py-2 text-sm text-red-700 dark:text-red-300"
+                  >
+                    {formError}
+                  </p>
+                )}
                 <Button
                   type="submit"
                   className="w-full h-11 text-base font-medium bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 transition-all shadow-md hover:shadow-lg border-0"
-                  disabled={isLoading}
+                  disabled={isLoading || (!!TURNSTILE_SITE_KEY && !captchaToken)}
                 >
                   {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
                   Send Reset Link
@@ -571,7 +664,7 @@ function LoginPageInner() {
                 <p className="text-xs text-muted-foreground">At least 6 characters</p>
               )}
             </div>
-            {isSignUp && TURNSTILE_SITE_KEY && (
+            {TURNSTILE_SITE_KEY && (
               <div className="flex justify-center">
                 <Turnstile
                   siteKey={TURNSTILE_SITE_KEY}
@@ -582,10 +675,18 @@ function LoginPageInner() {
                 />
               </div>
             )}
+            {formError && (
+              <p
+                role="alert"
+                className="rounded-lg bg-red-50 dark:bg-red-950/30 px-3 py-2 text-sm text-red-700 dark:text-red-300"
+              >
+                {formError}
+              </p>
+            )}
             <Button
               type="submit"
               className="w-full h-11 text-base font-medium bg-stone-900 text-white hover:bg-stone-800 dark:bg-stone-800 dark:text-stone-100 dark:hover:bg-stone-700 transition-all shadow-md hover:shadow-lg border-0"
-              disabled={isLoading || (isSignUp && !!TURNSTILE_SITE_KEY && !captchaToken)}
+              disabled={isLoading || (!!TURNSTILE_SITE_KEY && !captchaToken)}
             >
               {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
               {isSignUp ? "Create my free account" : "Sign In"}

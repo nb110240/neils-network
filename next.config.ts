@@ -40,7 +40,11 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://va.vercel-scripts.com https://challenges.cloudflare.com https://us-assets.i.posthog.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co https://api.openai.com https://api.stripe.com https://*.sentry.io https://*.googleapis.com https://*.upstash.io https://va.vercel-scripts.com https://challenges.cloudflare.com https://us.i.posthog.com https://us-assets.i.posthog.com; frame-src https://js.stripe.com https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'",
+            // Dev needs 'unsafe-eval' in script-src: Next.js dev mode (React
+            // Refresh) evaluates strings, and without it React never hydrates,
+            // so every page renders but nothing is clickable. Production CSP
+            // stays eval-free.
+            value: `default-src 'self'; script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""} https://js.stripe.com https://va.vercel-scripts.com https://challenges.cloudflare.com https://us-assets.i.posthog.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co https://api.openai.com https://api.stripe.com https://*.sentry.io https://*.googleapis.com https://*.upstash.io https://va.vercel-scripts.com https://challenges.cloudflare.com https://us.i.posthog.com https://us-assets.i.posthog.com; frame-src https://js.stripe.com https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'`,
           },
         ],
       },

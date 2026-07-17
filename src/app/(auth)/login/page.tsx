@@ -17,6 +17,10 @@ import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/toast"
 import { Turnstile } from "@/components/turnstile"
 import { captureEvent } from "@/components/posthog-provider"
+import {
+  attributionUserMetadata,
+  getFirstTouchAttribution,
+} from "@/lib/attribution"
 import { Loader2, Mail, Eye, EyeOff } from "lucide-react"
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
@@ -130,11 +134,17 @@ function LoginPageInner() {
 
     try {
       if (isSignUp) {
+        const firstTouchMetadata = attributionUserMetadata(
+          getFirstTouchAttribution()
+        )
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/auth/callback`,
+            ...(Object.keys(firstTouchMetadata).length > 0
+              ? { data: firstTouchMetadata }
+              : {}),
             ...(captchaToken ? { captchaToken } : {}),
           },
         })

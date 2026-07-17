@@ -13,6 +13,30 @@
 
 ---
 
+## 0. Measure directory traffic before buying promotion
+
+Use a distinct campaign URL for every directory. For PeerPush, set the listing's website destination to:
+
+`https://savvo.app/?utm_source=peerpush&utm_medium=directory&utm_campaign=profile`
+
+Savvo preserves the first tagged source through email and Google signup. In Vercel, open the Savvo project, then Web Analytics, then Events. Build the PeerPush funnel from these custom events:
+
+1. `peerpush_arrival`: a tagged visit reached Savvo. This is Savvo's click-through proxy, not PeerPush impressions.
+2. `signup_completed`: the visitor submitted signup or created a new Google account.
+3. `first_contact_created`: the new user reached Savvo's activation milestone.
+4. `returning_active_user`: an authenticated user returned on a later UTC date.
+
+Filter the later events by `first_touch_source = peerpush`. Use the results to choose the next fix:
+
+- Few arrivals: improve the PeerPush title, screenshots, positioning, and call to action.
+- Many arrivals but few signups: improve the landing page and signup experience.
+- Signups but few first contacts: shorten onboarding and time to value.
+- Activated users who do not return: improve reminders and the relationship-maintenance habit loop.
+
+Do not judge a directory by impressions alone. Do not buy a relaunch, blog post, or promotion until tagged arrival and activation data show where the funnel is actually failing.
+
+---
+
 ## 1. Product Hunt Launch Pack
 
 ### Name

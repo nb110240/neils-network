@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
-import { createClient, createServiceClient } from "@/lib/supabase/server"
-import { authenticateRequest, authFailed, errorResponse, badRequestResponse, forbiddenResponse } from "@/lib/api-utils"
+import { authenticateRequest, authFailed, errorResponse, forbiddenResponse } from "@/lib/api-utils"
 import { getUserPlan, getPlanLimits } from "@/lib/subscription"
 import { signCalendarOAuthState } from "@/lib/calendar-oauth-state"
 
@@ -40,63 +39,6 @@ export async function GET() {
     return NextResponse.json({ url: authUrl.toString() })
   } catch (error) {
     console.error("Calendar connect error:", error)
-    return errorResponse("Internal server error")
-  }
-}
-
-// POST: Exchange code for tokens (internal use only)
-export async function POST(request: Request) {
-  try {
-    // Verify the caller is authenticated
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    const { code, state: userId } = await request.json()
-
-    if (!code || !userId) {
-      return badRequestResponse("Missing code or state")
-    }
-
-    // Validate userId matches authenticated user (prevent IDOR)
-    if (user && userId !== user.id) {
-      return forbiddenResponse()
-    }
-
-    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        code,
-        client_id: process.env.GOOGLE_CLIENT_ID!,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-        redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/calendar/connect/callback`,
-        grant_type: "authorization_code",
-      }),
-    })
-
-    if (!tokenRes.ok) {
-      const err = await tokenRes.text()
-      console.error("Token exchange failed:", err)
-      return errorResponse("Failed to exchange code")
-    }
-
-    const tokens = await tokenRes.json()
-
-    const serviceSupabase = await createServiceClient()
-    await serviceSupabase.from("integrations").upsert(
-      {
-        user_id: userId,
-        provider: "google_calendar",
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token || null,
-        token_expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
-      },
-      { onConflict: "user_id,provider" }
-    )
-
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error("Calendar token exchange error:", error)
     return errorResponse("Internal server error")
   }
 }

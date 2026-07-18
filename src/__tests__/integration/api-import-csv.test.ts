@@ -58,16 +58,23 @@ const URL = "http://localhost/api/import/csv"
 function importSupabase(opts: {
   authUser: { id: string; email?: string } | null
   insertError?: { message: string; code?: string } | null
+  priorImportCount?: number
+  allowance?: { allowed: boolean; remaining: number; used?: number }
 }) {
   function contactsBuilder() {
     let insertedRows: unknown[] | null = null
+    let countQuery = false
     const builder: Record<string, unknown> = {}
     for (const m of [
-      "select", "update", "delete", "upsert", "eq", "neq", "gt", "lt",
+      "update", "delete", "upsert", "eq", "neq", "gt", "lt",
       "gte", "lte", "in", "is", "or", "ilike", "order", "limit",
     ]) {
       builder[m] = vi.fn(() => builder)
     }
+    builder.select = vi.fn((_columns?: string, options?: { count?: string; head?: boolean }) => {
+      countQuery = options?.count === "exact" && options?.head === true
+      return builder
+    })
     builder.insert = vi.fn((rows: unknown) => {
       const arr = Array.isArray(rows) ? rows : [rows]
       insertedRows = arr.map((r, i) => ({ id: `c${i}`, ...(r as object) }))
@@ -80,14 +87,19 @@ function importSupabase(opts: {
       const result =
         insertedRows !== null
           ? { data: opts.insertError ? null : insertedRows, error: opts.insertError ?? null }
-          : { data: [], error: null }
+          : { data: [], error: null, ...(countQuery ? { count: opts.priorImportCount || 0 } : {}) }
       return Promise.resolve(result).then(resolve)
     }
     return builder
   }
   return {
     from: vi.fn(() => contactsBuilder()),
-    rpc: vi.fn(async () => ({ data: null, error: null })),
+    rpc: vi.fn(async (name: string) => ({
+      data: name === "reserve_free_csv_contacts"
+        ? (opts.allowance || { allowed: true, remaining: 0, used: 5 })
+        : null,
+      error: null,
+    })),
     auth: {
       getUser: vi.fn(async () => ({ data: { user: opts.authUser } })),
       signOut: vi.fn(async () => ({ error: null })),
@@ -140,8 +152,24 @@ describe("/api/import/csv", () => {
       expect(res.status).toBe(401)
     })
 
-    it("returns 403 for free-plan users (Pro-gated import)", async () => {
+    it("lets a free user import up to five onboarding contacts", async () => {
       h.supabase = importSupabase({ authUser: { id: "u1" } })
+      h.plan = "free"
+      const res = await POST(csvFormRequest({ csv: "name\nOne\nTwo\nThree\nFour\nFive", mapping: { name: "name" } }))
+      expect(res.status).toBe(200)
+      expect((await res.json()).imported).toBe(5)
+    })
+
+    it("rejects a free CSV that exceeds the remaining five-contact allowance", async () => {
+      h.supabase = importSupabase({ authUser: { id: "u1" }, allowance: { allowed: false, remaining: 3, used: 2 } })
+      h.plan = "free"
+      const res = await POST(csvFormRequest({ csv: "name\nOne\nTwo\nThree\nFour", mapping: { name: "name" } }))
+      expect(res.status).toBe(400)
+      expect((await res.json()).error).toContain("room for 3 more contacts")
+    })
+
+    it("requires Pro after the free five-contact allowance is used", async () => {
+      h.supabase = importSupabase({ authUser: { id: "u1" }, allowance: { allowed: false, remaining: 0, used: 5 } })
       h.plan = "free"
       const res = await POST(csvFormRequest({}))
       expect(res.status).toBe(403)
@@ -279,6 +307,24 @@ describe("/api/import/csv", () => {
         csvFormRequest({ csv: "name,email\nJohn,john@x.com", mapping: { name: "name", email: "email" } })
       )
       expect(res.status).toBe(500)
+    })
+
+    it("refunds a reserved free allowance when the contact insert fails", async () => {
+      h.plan = "free"
+      const client = importSupabase({
+        authUser: { id: "u1" },
+        insertError: { message: "db down" },
+        allowance: { allowed: true, remaining: 4, used: 1 },
+      })
+      h.supabase = client
+      const res = await POST(
+        csvFormRequest({ csv: "name,email\nJohn,john@x.com", mapping: { name: "name", email: "email" } })
+      )
+      expect(res.status).toBe(500)
+      expect(client.rpc).toHaveBeenCalledWith("refund_free_csv_contacts", {
+        target_user_id: "u1",
+        refund_count: 1,
+      })
     })
   })
 

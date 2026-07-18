@@ -18,6 +18,15 @@ interface EmbeddingResult {
   model: string
 }
 
+interface StructuredOutputOptions {
+  name: string
+  schema: Record<string, unknown>
+  system: string
+  user: string
+  model?: string
+  maxTokens?: number
+}
+
 async function fetchWithTimeout(
   url: string,
   options: RequestInit,
@@ -34,6 +43,76 @@ async function fetchWithTimeout(
 
 async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/**
+ * Generate schema-constrained JSON with the same timeout and retry posture as
+ * embeddings. Callers still validate the parsed value with their domain Zod
+ * schema because schema adherence does not guarantee factual correctness.
+ */
+export async function generateStructuredOutput<T>({
+  name,
+  schema,
+  system,
+  user,
+  model = process.env.OPENAI_ACTION_MODEL || "gpt-4o-mini",
+  maxTokens = 1200,
+}: StructuredOutputOptions): Promise<T> {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) throw new Error("AI analysis is not configured")
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetchWithTimeout(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model,
+            store: false,
+            messages: [
+              { role: "system", content: system },
+              { role: "user", content: user },
+            ],
+            response_format: {
+              type: "json_schema",
+              json_schema: { name, strict: true, schema },
+            },
+            temperature: 0.2,
+            max_tokens: maxTokens,
+          }),
+        },
+        TIMEOUT_MS
+      )
+
+      if (response.status === 429 && attempt < MAX_RETRIES) {
+        await sleep(1000 * (attempt + 1))
+        continue
+      }
+
+      if (!response.ok) {
+        throw new Error(`AI analysis failed (${response.status})`)
+      }
+
+      const data = await response.json()
+      const message = data.choices?.[0]?.message
+      if (message?.refusal) throw new Error("AI analysis was unable to process these notes")
+      if (!message?.content) throw new Error("AI analysis returned no result")
+      return JSON.parse(message.content) as T
+    } catch (error) {
+      if (attempt < MAX_RETRIES) {
+        await sleep(1000 * (attempt + 1))
+        continue
+      }
+      throw error
+    }
+  }
+
+  throw new Error("AI analysis failed")
 }
 
 /**

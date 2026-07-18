@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { createMockSupabase } from "../helpers/mock-supabase"
-import { postRequest } from "../helpers/mock-request"
 
 // ─── Route mocks ───
 const h = vi.hoisted(() => ({
@@ -35,9 +34,7 @@ vi.mock("@/lib/subscription", () => ({
   })),
 }))
 
-import { GET, POST } from "@/app/api/calendar/connect/route"
-
-const URL = "http://localhost/api/calendar/connect"
+import { GET } from "@/app/api/calendar/connect/route"
 
 describe("/api/calendar/connect", () => {
   const ORIGINAL_ENV = { ...process.env }
@@ -86,67 +83,6 @@ describe("/api/calendar/connect", () => {
       delete process.env.GOOGLE_CLIENT_ID
       const res = await GET()
       expect(res.status).toBe(500)
-    })
-  })
-
-  describe("POST (exchange code for tokens)", () => {
-    it("returns 400 when code or state is missing", async () => {
-      h.supabase = createMockSupabase({ authUser: { id: "u1" } })
-      const res = await POST(postRequest(URL, { code: "abc" }))
-      expect(res.status).toBe(400)
-    })
-
-    it("returns 403 when state userId does not match the authenticated user (IDOR)", async () => {
-      h.supabase = createMockSupabase({ authUser: { id: "u1" } })
-      const res = await POST(postRequest(URL, { code: "abc", state: "someone-else" }))
-      expect(res.status).toBe(403)
-    })
-
-    it("exchanges the code and upserts the integration on the happy path", async () => {
-      h.supabase = createMockSupabase({ authUser: { id: "u1" } })
-      vi.stubGlobal(
-        "fetch",
-        vi.fn(async () => ({
-          ok: true,
-          json: async () => ({
-            access_token: "ya29.token",
-            refresh_token: "1//refresh",
-            expires_in: 3600,
-          }),
-        }))
-      )
-      const res = await POST(postRequest(URL, { code: "good-code", state: "u1" }))
-      expect(res.status).toBe(200)
-      const json = await res.json()
-      expect(json.success).toBe(true)
-    })
-
-    it("returns 500 when Google token exchange fails", async () => {
-      h.supabase = createMockSupabase({ authUser: { id: "u1" } })
-      vi.stubGlobal(
-        "fetch",
-        vi.fn(async () => ({
-          ok: false,
-          text: async () => "invalid_grant",
-        }))
-      )
-      const res = await POST(postRequest(URL, { code: "bad-code", state: "u1" }))
-      expect(res.status).toBe(500)
-    })
-
-    it("allows the exchange when the caller has no session (callback path)", async () => {
-      // POST is also used by the OAuth callback where the request may not
-      // carry a user session — when user is null the IDOR check is skipped.
-      h.supabase = createMockSupabase({ authUser: null })
-      vi.stubGlobal(
-        "fetch",
-        vi.fn(async () => ({
-          ok: true,
-          json: async () => ({ access_token: "ya29.token", expires_in: 3600 }),
-        }))
-      )
-      const res = await POST(postRequest(URL, { code: "good-code", state: "u1" }))
-      expect(res.status).toBe(200)
     })
   })
 })

@@ -26,6 +26,7 @@ import { useToast } from "@/components/ui/toast"
 import { formatDate, getInitials } from "@/lib/utils"
 import { TagManager } from "@/components/tag-manager"
 import { ScheduleCard } from "@/components/schedule-card"
+import { ContactCommitments } from "@/components/contact-commitments"
 import { DraftMessageButton } from "@/components/draft-message-button"
 import { MeetingPrepButton } from "@/components/meeting-prep-button"
 import {
@@ -601,6 +602,8 @@ export default function ContactDetailPage({
         contact={contact}
         onUpdate={(updated) => setContact(updated)}
       />
+
+      <ContactCommitments contactId={id} />
 
       {/* Tags */}
       <Card className="shadow-refined">

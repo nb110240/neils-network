@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "verify:raise-autopilot-schema": "node scripts/verify-raise-autopilot-schema.mjs",
     "ios:sync": "cap sync ios",
     "ios:open": "cap open ios"
   },

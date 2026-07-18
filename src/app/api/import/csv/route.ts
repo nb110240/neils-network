@@ -2,12 +2,13 @@ import { NextResponse, after } from "next/server"
 import { revalidatePath } from "next/cache"
 import * as Sentry from "@sentry/nextjs"
 import { authenticateRequest, authFailed, badRequestResponse, forbiddenResponse, errorResponse } from "@/lib/api-utils"
-import { getUserPlan, getPlanLimits } from "@/lib/subscription"
+import { getUserPlan } from "@/lib/subscription"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 import Papa from "papaparse"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { findDuplicates, findStrongMatchInMemory } from "@/lib/dedup"
 import { IMPORT_FIELD_VALUES } from "@/lib/import-mapping"
+import { createServiceClient } from "@/lib/supabase/server"
 
 function normalizeIsoDate(value: string | undefined): string | null {
   if (!value) return null
@@ -40,16 +41,16 @@ function normalizeIsoDate(value: string | undefined): string | null {
 }
 
 export async function POST(request: Request) {
+  let allowanceService: Awaited<ReturnType<typeof createServiceClient>> | null = null
+  let allowanceUserId: string | null = null
+  let reservedContactCount = 0
   try {
     const auth = await authenticateRequest("import")
     if (authFailed(auth)) return auth.error
     const { user, supabase } = auth
 
     const plan = await getUserPlan(user.id)
-    const limits = getPlanLimits(plan)
-    if (!limits.canImport) {
-      return forbiddenResponse("Import is a Pro feature. Upgrade to import contacts.")
-    }
+    const isFreeOnboardingImport = plan === "free"
 
     const formData = await request.formData()
     const file = formData.get("file") as File
@@ -178,15 +179,43 @@ export async function POST(request: Request) {
       })
     }
 
+    if (isFreeOnboardingImport) {
+      allowanceService = await createServiceClient()
+      allowanceUserId = user.id
+      const { data: reservation, error: reservationError } = await allowanceService.rpc(
+        "reserve_free_csv_contacts",
+        { target_user_id: user.id, requested_count: deduped.length, limit_count: 5 }
+      )
+      if (reservationError) return errorResponse("Could not verify your onboarding import allowance")
+      const allowance = reservation as { allowed?: boolean; remaining?: number } | null
+      if (!allowance?.allowed && (allowance?.remaining || 0) === 0) {
+        return forbiddenResponse("Your five free CSV imports are already used. Upgrade for unlimited importing.")
+      }
+      if (!allowance?.allowed) {
+        const remaining = Math.max(0, allowance?.remaining || 0)
+        return badRequestResponse(`Your free onboarding import has room for ${remaining} more contact${remaining === 1 ? "" : "s"}. Trim this CSV or upgrade for unlimited importing.`)
+      }
+      reservedContactCount = deduped.length
+    }
+
     const { data, error } = await supabase
       .from("contacts")
       .insert(deduped)
       .select()
 
     if (error) {
+      if (reservedContactCount > 0 && allowanceService && allowanceUserId) {
+        await allowanceService.rpc("refund_free_csv_contacts", {
+          target_user_id: allowanceUserId,
+          refund_count: reservedContactCount,
+        })
+        reservedContactCount = 0
+      }
       console.error("Import error:", error)
       return errorResponse("Failed to import contacts")
     }
+
+    reservedContactCount = 0
 
     // Generate embeddings after the response is sent. after() keeps the
     // serverless instance alive until this finishes, so a frozen/reclaimed
@@ -245,6 +274,16 @@ export async function POST(request: Request) {
       ...(duplicateSummary.length > 0 ? { duplicates: duplicateSummary } : {}),
     })
   } catch (error) {
+    if (reservedContactCount > 0 && allowanceService && allowanceUserId) {
+      try {
+        await allowanceService.rpc("refund_free_csv_contacts", {
+          target_user_id: allowanceUserId,
+          refund_count: reservedContactCount,
+        })
+      } catch {
+        // Preserve the original import failure.
+      }
+    }
     console.error("CSV import error:", error)
     return errorResponse("Internal server error")
   }

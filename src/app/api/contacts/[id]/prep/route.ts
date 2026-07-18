@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server"
+import { createHash } from "crypto"
 import { authenticateRequest, authFailed, forbiddenResponse, notFoundResponse, errorResponse, isValidUUID, badRequestResponse, sanitizeForPrompt } from "@/lib/api-utils"
 import { getUserPlan } from "@/lib/subscription"
 import { calculateHealthScore } from "@/lib/health"
 import { log } from "@/lib/logger"
+import { researchInvestor } from "@/lib/web-research"
 
 export async function POST(
   request: Request,
@@ -119,7 +121,78 @@ RULES:
 - If the relationship is cold, acknowledge it naturally in the starters.
 - Keep the entire brief under 250 words.`
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const forceRefresh = new URL(request.url).searchParams.get("refresh") === "1"
+    const researchPromise = (async () => {
+      if (!contact.name || (!contact.company && !contact.job_title && !contact.website)) {
+        return {
+          report: null,
+          warning: "Add a firm, role, or website to run identity-safe public research.",
+        }
+      }
+
+      const identityFingerprint = createHash("sha256")
+        .update([contact.name, contact.company, contact.job_title, contact.website]
+          .map((value) => (value || "").trim().toLowerCase())
+          .join("|"))
+        .digest("hex")
+      const cacheCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+
+      if (!forceRefresh) {
+        const { data: cached } = await supabase
+          .from("investor_research_reports")
+          .select("summary, citations, model, generated_at")
+          .eq("user_id", user.id)
+          .eq("contact_id", id)
+          .eq("identity_fingerprint", identityFingerprint)
+          .gte("generated_at", cacheCutoff)
+          .order("generated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (cached) return { report: cached, warning: null }
+      }
+
+      try {
+        const researched = await researchInvestor({
+          name: contact.name,
+          company: contact.company,
+          jobTitle: contact.job_title,
+          website: contact.website,
+        })
+        const generatedAt = new Date().toISOString()
+        const report = {
+          summary: researched.summary,
+          citations: researched.citations,
+          model: researched.model,
+          generated_at: generatedAt,
+        }
+        const { error } = await supabase.from("investor_research_reports").insert({
+          user_id: user.id,
+          contact_id: id,
+          identity_fingerprint: identityFingerprint,
+          ...report,
+        })
+        if (error) {
+          log("warn", "Investor research cache write failed", {
+            action: "contact.prep",
+            route: `/api/contacts/${id}/prep`,
+            userId: user.id,
+            error: error.message,
+          })
+        }
+        return { report, warning: null }
+      } catch (error) {
+        log("warn", "Investor web research failed", {
+          action: "contact.prep",
+          route: `/api/contacts/${id}/prep`,
+          userId: user.id,
+          error: error instanceof Error ? error.message : String(error),
+        })
+        return { report: null, warning: "Public research is temporarily unavailable. Your CRM brief is still ready." }
+      }
+    })()
+
+    const [response, research] = await Promise.all([fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -137,7 +210,7 @@ RULES:
         temperature: 0.6,
         max_tokens: 500,
       }),
-    })
+    }), researchPromise])
 
     if (!response.ok) {
       log("error", "Meeting prep generation failed", {
@@ -159,7 +232,12 @@ RULES:
       contactId: id,
     })
 
-    return NextResponse.json({ brief, contactName: contact.name })
+    return NextResponse.json({
+      brief,
+      contactName: contact.name,
+      research: research.report,
+      researchWarning: research.warning,
+    })
   } catch (error) {
     log("error", "Meeting prep error", { action: "contact.prep", error: String(error) })
     return errorResponse("Internal server error")

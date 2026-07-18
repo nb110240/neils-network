@@ -64,10 +64,9 @@ describe("POST /api/contacts/merge", () => {
   })
 
   it("returns 400 when one or both contacts are not found", async () => {
-    // mock returns null data for the contact lookups
     h.supabase = createMockSupabase({
       authUser: { id: "u1" },
-      queryResult: { data: null, error: null },
+      rpcResult: { data: null, error: { message: "One or both contacts not found" } },
     })
     const res = await POST(postRequest(URL, { keepId: KEEP_ID, removeId: REMOVE_ID }))
     expect(res.status).toBe(400)
@@ -76,26 +75,17 @@ describe("POST /api/contacts/merge", () => {
   })
 
   it("merges two contacts on the happy path", async () => {
-    // .single() calls (contact lookups + merge_log insert) return a contact row
     h.supabase = createMockSupabase({
       authUser: { id: "u1" },
-      queryResult: {
+      rpcResult: {
         data: {
-          id: KEEP_ID,
-          created_by: "u1",
-          email: "keep@example.com",
-          raw_note: "note",
-          created_at: "2026-01-01T00:00:00Z",
+          keepId: KEEP_ID,
+          removeId: REMOVE_ID,
+          mergeLogId: "33333333-3333-4333-8333-333333333333",
+          fieldsMerged: ["email"],
         },
         error: null,
       },
-    })
-    // Non-.single() queries (contact_activities / contact_tags lookups) are
-    // awaited directly and must resolve to an array, so override `then`.
-    Object.defineProperty(h.supabase._queryBuilder, "then", {
-      value: (resolve: (v: { data: unknown[]; error: null }) => void) =>
-        Promise.resolve({ data: [], error: null }).then(resolve),
-      configurable: true,
     })
     const res = await POST(postRequest(URL, { keepId: KEEP_ID, removeId: REMOVE_ID }))
     expect(res.status).toBe(200)
@@ -116,20 +106,15 @@ describe("POST /api/contacts/merge", () => {
   it("processes a valid bulk merge payload", async () => {
     h.supabase = createMockSupabase({
       authUser: { id: "u1" },
-      queryResult: {
+      rpcResult: {
         data: {
-          id: KEEP_ID,
-          created_by: "u1",
-          raw_note: "n",
-          created_at: "2026-01-01T00:00:00Z",
+          keepId: KEEP_ID,
+          removeId: REMOVE_ID,
+          mergeLogId: "33333333-3333-4333-8333-333333333333",
+          fieldsMerged: [],
         },
         error: null,
       },
-    })
-    Object.defineProperty(h.supabase._queryBuilder, "then", {
-      value: (resolve: (v: { data: unknown[]; error: null }) => void) =>
-        Promise.resolve({ data: [], error: null }).then(resolve),
-      configurable: true,
     })
     const res = await POST(
       postRequest(URL, { pairs: [{ keepId: KEEP_ID, removeId: REMOVE_ID }] })

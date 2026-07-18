@@ -28,8 +28,6 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 import { POST } from "@/app/api/contacts/merge/undo/route"
 
 const MERGE_LOG_ID = "11111111-1111-4111-8111-111111111111"
-const KEPT_ID = "22222222-2222-4222-8222-222222222222"
-const REMOVED_ID = "33333333-3333-4333-8333-333333333333"
 const URL = "http://localhost/api/contacts/merge/undo"
 
 describe("POST /api/contacts/merge/undo", () => {
@@ -59,7 +57,7 @@ describe("POST /api/contacts/merge/undo", () => {
   it("returns 400 when the merge log is not found", async () => {
     h.supabase = createMockSupabase({
       authUser: { id: "u1" },
-      queryResult: { data: null, error: null },
+      rpcResult: { data: null, error: { message: "Merge not found" } },
     })
     const res = await POST(postRequest(URL, { mergeLogId: MERGE_LOG_ID }))
     expect(res.status).toBe(400)
@@ -70,18 +68,7 @@ describe("POST /api/contacts/merge/undo", () => {
   it("returns 400 when the merge was already undone", async () => {
     h.supabase = createMockSupabase({
       authUser: { id: "u1" },
-      queryResult: {
-        data: {
-          id: MERGE_LOG_ID,
-          user_id: "u1",
-          kept_contact_id: KEPT_ID,
-          removed_contact_id: REMOVED_ID,
-          kept_before: {},
-          removed_before: {},
-          undone_at: "2026-05-01T00:00:00Z",
-        },
-        error: null,
-      },
+      rpcResult: { data: null, error: { message: "Merge already undone" } },
     })
     const res = await POST(postRequest(URL, { mergeLogId: MERGE_LOG_ID }))
     expect(res.status).toBe(400)
@@ -92,20 +79,7 @@ describe("POST /api/contacts/merge/undo", () => {
   it("undoes a merge on the happy path", async () => {
     h.supabase = createMockSupabase({
       authUser: { id: "u1" },
-      queryResult: {
-        data: {
-          id: MERGE_LOG_ID,
-          user_id: "u1",
-          kept_contact_id: KEPT_ID,
-          removed_contact_id: REMOVED_ID,
-          kept_before: { email: "keep@example.com", raw_note: "n" },
-          removed_before: { email: "removed@example.com", raw_note: "m" },
-          moved_activity_ids: [],
-          moved_tag_ids: [],
-          undone_at: null,
-        },
-        error: null,
-      },
+      rpcResult: { data: { success: true, mergeLogId: MERGE_LOG_ID }, error: null },
     })
     const res = await POST(postRequest(URL, { mergeLogId: MERGE_LOG_ID }))
     expect(res.status).toBe(200)

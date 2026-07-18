@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -33,8 +33,7 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Protected routes - redirect to login if not authenticated
-  const protectedPaths = ["/dashboard", "/search", "/contact", "/add", "/import", "/contacts", "/settings", "/scan", "/dev", "/support", "/graph", "/intros", "/reach-out"]
+  const protectedPaths = ["/dashboard", "/search", "/contact", "/add", "/import", "/contacts", "/settings", "/scan", "/dev", "/support", "/graph", "/intros", "/reach-out", "/capture", "/inbox", "/moves"]
   const isProtectedPath = protectedPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)
   )
@@ -45,17 +44,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Redirect authenticated users away from login page
   if (request.nextUrl.pathname === "/login" && user) {
     const url = request.nextUrl.clone()
     url.pathname = "/dashboard"
     return NextResponse.redirect(url)
   }
 
-  // Logged-in visitors who land on the marketing homepage go straight to the
-  // app. Doing this here (the middleware already resolved `user`) lets `/` stay
-  // a static, CDN-served page for logged-out visitors — for whom getUser() with
-  // no session is a fast no-op — instead of a dynamic, cold-start-prone route.
   if (request.nextUrl.pathname === "/" && user) {
     const url = request.nextUrl.clone()
     url.pathname = "/dashboard"
@@ -67,7 +61,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Exclude Sentry monitoring tunnel, Next.js internals, and static files
     "/((?!monitoring|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 }

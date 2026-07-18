@@ -7,6 +7,7 @@ const h = vi.hoisted(() => ({
   supabase: null as unknown,
   rateLimitSuccess: true,
   plan: "pro" as "free" | "pro" | "team",
+  analysis: vi.fn(),
 }))
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -34,6 +35,8 @@ vi.mock("@/lib/openai", () => ({
   generateEmbedding: vi.fn(async () => [0.1, 0.2, 0.3]),
   buildContactEmbeddingText: vi.fn(() => "embedding text"),
 }))
+
+vi.mock("@/lib/action-extraction", () => ({ analyzeInteraction: h.analysis }))
 
 import { GET, POST } from "@/app/api/calendar/sync/route"
 
@@ -90,6 +93,13 @@ describe("/api/calendar/sync", () => {
   beforeEach(() => {
     h.rateLimitSuccess = true
     h.plan = "pro"
+    h.analysis.mockReset()
+    h.analysis.mockResolvedValue({
+      summary: "Jane will send the deck.",
+      contactPatch: {},
+      commitments: [],
+      followUpDraft: null,
+    })
     process.env.CRON_SECRET = "test-cron-secret"
     process.env.GOOGLE_CLIENT_ID = "test-client-id"
     process.env.GOOGLE_CLIENT_SECRET = "test-client-secret"
@@ -112,6 +122,18 @@ describe("/api/calendar/sync", () => {
       h.rateLimitSuccess = false
       const res = await POST()
       expect(res.status).toBe(429)
+    })
+
+    it("rejects manual sync for a downgraded free user before using calendar or AI", async () => {
+      h.plan = "free"
+      h.supabase = createMockSupabase({ authUser: { id: "u1", email: "u1@x.com" } })
+      const fetchMock = vi.fn()
+      vi.stubGlobal("fetch", fetchMock)
+      const response = await POST()
+      expect(response.status).toBe(403)
+      expect((await response.json()).error).toContain("Pro feature")
+      expect(fetchMock).not.toHaveBeenCalled()
+      expect(h.analysis).not.toHaveBeenCalled()
     })
 
     it("returns a 'no calendar connected' result when the user has no integration", async () => {
@@ -173,6 +195,97 @@ describe("/api/calendar/sync", () => {
       expect(json.eventsProcessed).toBe(1)
     })
 
+    it("turns meaningful calendar descriptions into deduplicated pending reviews", async () => {
+      h.supabase = perTableSupabase({
+        authUser: { id: "u1", email: "u1@x.com" },
+        tables: {
+          integrations: {
+            id: "int1",
+            access_token: "ya29.token",
+            refresh_token: "1//refresh",
+            token_expires_at: new Date(Date.now() + 3_600_000).toISOString(),
+          },
+          contacts: [{
+            id: "contact-1",
+            email: "jane@acme.com",
+            name: "Jane",
+            company: "Acme",
+            job_title: "Partner",
+            how_we_met: null,
+            next_steps: null,
+          }],
+          contact_activities: [],
+          after_call_reviews: [],
+        },
+      })
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => ({
+          ok: true,
+          json: async () => ({
+            items: [{
+              id: "evt-with-notes",
+              summary: "Investor update",
+              description: "<p>Jane agreed to send the partnership deck by Friday.</p>",
+              start: { dateTime: "2026-05-01T10:00:00Z" },
+              attendees: [
+                { email: "u1@x.com" },
+                { email: "jane@acme.com", displayName: "Jane" },
+              ],
+            }],
+          }),
+          text: async () => "",
+        }))
+      )
+
+      const res = await POST()
+      const json = await res.json()
+      expect(res.status).toBe(200)
+      expect(json.reviewsCreated).toBe(1)
+      expect(h.analysis).toHaveBeenCalledOnce()
+      expect(h.analysis).toHaveBeenCalledWith(expect.objectContaining({
+        rawText: "Jane agreed to send the partnership deck by Friday.",
+        existingContact: expect.objectContaining({ email: "jane@acme.com" }),
+      }))
+    })
+
+    it("filters existing reviews before capping the next five unseen events", async () => {
+      const events = Array.from({ length: 6 }, (_, index) => ({
+        id: `evt-${index + 1}`,
+        summary: `Investor update ${index + 1}`,
+        description: `Jane shared meaningful meeting notes number ${index + 1}.`,
+        start: { dateTime: `2026-05-0${index + 1}T10:00:00Z` },
+        attendees: [
+          { email: "u1@x.com" },
+          { email: "jane@acme.com", displayName: "Jane" },
+        ],
+      }))
+      h.supabase = perTableSupabase({
+        authUser: { id: "u1", email: "u1@x.com" },
+        tables: {
+          integrations: {
+            id: "int1",
+            access_token: "ya29.token",
+            token_expires_at: new Date(Date.now() + 3_600_000).toISOString(),
+          },
+          contacts: [{ id: "contact-1", email: "jane@acme.com", name: "Jane" }],
+          contact_activities: [],
+          after_call_reviews: ["evt-6", "evt-5", "evt-4", "evt-3", "evt-2"].map((external_source_id) => ({ external_source_id })),
+        },
+      })
+      vi.stubGlobal("fetch", vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ items: events }),
+        text: async () => "",
+      })))
+
+      const response = await POST()
+      expect(response.status).toBe(200)
+      expect((await response.json()).reviewsCreated).toBe(1)
+      expect(h.analysis).toHaveBeenCalledOnce()
+      expect(h.analysis).toHaveBeenCalledWith(expect.objectContaining({ title: "Investor update 1" }))
+    })
+
     it("returns 500 when the sync throws unexpectedly", async () => {
       h.supabase = createMockSupabase({
         authUser: { id: "u1", email: "u1@x.com" },
@@ -212,16 +325,19 @@ describe("/api/calendar/sync", () => {
     })
 
     it("returns 'no integrations' when there are none", async () => {
-      h.supabase = createMockSupabase({
+      const client = createMockSupabase({
         authUser: null,
         queryResult: { data: [], error: null },
       })
+      h.supabase = client
       const res = await GET(
         buildRequest({ url: URL, headers: { authorization: "Bearer test-cron-secret" } })
       )
       expect(res.status).toBe(200)
       const json = await res.json()
       expect(json.synced).toBe(0)
+      expect(client._queryBuilder.order).toHaveBeenCalledWith("last_attempt_at", { ascending: true, nullsFirst: true })
+      expect(client._queryBuilder.limit).toHaveBeenCalledWith(3)
     })
   })
 })

@@ -6,19 +6,22 @@ import { usePathname, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { LogOut, Plus, Search, LayoutDashboard, Upload, Users, Settings, ScanLine, Code, Menu, X, Network, Sparkles, ChevronDown } from "lucide-react"
+import { LogOut, Plus, Search, LayoutDashboard, Upload, Users, Settings, ScanLine, Code, Menu, X, Network, Sparkles, ChevronDown, ListChecks, Inbox, FileText } from "lucide-react"
 
 // Client component can't read server env vars — hardcoded fallback matches .env ADMIN_EMAILS
 const ADMIN_EMAILS = ["neilbajaj72@gmail.com"]
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/moves", label: "Moves", icon: ListChecks },
   { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/search", label: "Search", icon: Search },
   { href: "/add", label: "Add", icon: Plus },
 ]
 
 const moreNavItems = [
+  { href: "/capture", label: "Capture Meeting", icon: FileText },
+  { href: "/inbox", label: "Review Inbox", icon: Inbox },
   { href: "/import", label: "Import", icon: Upload },
   { href: "/scan", label: "Scan QR", icon: ScanLine },
   { href: "/graph", label: "Graph", icon: Network },

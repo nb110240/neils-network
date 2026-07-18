@@ -35,6 +35,93 @@ export interface ContactActivity {
   created_at: string
 }
 
+export type ReviewSource = "manual" | "calendar" | "granola" | "forwarded_email"
+export type ReviewStatus = "pending" | "approved" | "dismissed"
+export type CommitmentDirection = "user_owes" | "contact_owes"
+export type CommitmentStatus = "open" | "completed" | "snoozed" | "cancelled"
+export type IntroRequestStatus = "draft" | "requested" | "accepted" | "introduced" | "meeting_booked" | "closed" | "declined"
+export type IntroPathConfidence = "verified" | "possible" | "context_only"
+
+export interface ProposedContactPatch {
+  name?: string | null
+  email?: string | null
+  company?: string | null
+  job_title?: string | null
+  how_we_met?: string | null
+  next_steps?: string | null
+}
+
+export interface ProposedCommitment {
+  title: string
+  direction: CommitmentDirection
+  details: string | null
+  due_at: string | null
+  evidence: string | null
+  confidence: number
+  priority: number
+}
+
+export interface AfterCallReview {
+  id: string
+  user_id: string
+  contact_id: string | null
+  source: ReviewSource
+  external_source_id: string | null
+  title: string
+  occurred_at: string
+  raw_text: string
+  content_hash: string
+  summary: string
+  proposed_contact_patch: ProposedContactPatch
+  proposed_commitments: ProposedCommitment[]
+  proposed_follow_up: string | null
+  status: ReviewStatus
+  reviewed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface Commitment {
+  id: string
+  user_id: string
+  contact_id: string
+  source_activity_id: string | null
+  review_id: string | null
+  direction: CommitmentDirection
+  title: string
+  details: string | null
+  due_at: string | null
+  status: CommitmentStatus
+  snoozed_until: string | null
+  evidence: string | null
+  confidence: number
+  priority: number
+  completed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface IntroRequest {
+  id: string
+  user_id: string
+  target_contact_id: string
+  connector_contact_id: string | null
+  status: IntroRequestStatus
+  reason: string
+  path_evidence: string | null
+  path_confidence: IntroPathConfidence
+  strength_score: number
+  draft_message: string
+  next_follow_up_at: string | null
+  requested_at: string | null
+  accepted_at: string | null
+  introduced_at: string | null
+  meeting_booked_at: string | null
+  closed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface ContactFormData {
   name?: string
   email?: string

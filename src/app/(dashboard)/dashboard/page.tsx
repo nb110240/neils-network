@@ -24,6 +24,9 @@ import { DashboardWalkthrough } from "@/components/dashboard-walkthrough"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { InstallPrompt } from "@/components/install-prompt"
 import { FollowUpList, type FollowUpContact } from "@/components/follow-up-list"
+import { NextMoves } from "@/components/next-moves"
+import { buildNextMoves } from "@/lib/next-moves"
+import type { AfterCallReview, Commitment, IntroRequest } from "@/lib/types"
 import { Plus, Users, ArrowRight, ThermometerSnowflake, Crown, HandHeart } from "lucide-react"
 
 function cadenceLabel(days: number): string {
@@ -48,7 +51,7 @@ export default async function DashboardPage() {
   // user.id), so fetch them in parallel instead of serially. The list IS the
   // complete unarchived set, so its length is the total contact count — a
   // separate COUNT round-trip was redundant.
-  const [plan, { data: allContacts }] = await Promise.all([
+  const [plan, { data: allContacts }, { data: commitmentRows }, { data: reviewRows }, { data: introRows }] = await Promise.all([
     getUserPlan(user.id),
     supabase
       .from("contacts")
@@ -56,6 +59,19 @@ export default async function DashboardPage() {
       .eq("created_by", user.id)
       .is("archived_at", null)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("commitments")
+      .select("*")
+      .eq("user_id", user.id),
+    supabase
+      .from("after_call_reviews")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("occurred_at", { ascending: false }),
+    supabase
+      .from("intro_requests")
+      .select("*")
+      .eq("user_id", user.id),
   ])
 
   const totalContacts = allContacts?.length ?? 0
@@ -79,6 +95,27 @@ export default async function DashboardPage() {
     ...c,
     health: calculateHealthScore(c.last_contact_date, c.created_at, c.cadence_days),
   }))
+
+  const commitments = (commitmentRows || []) as Commitment[]
+  const reviews = (reviewRows || []) as AfterCallReview[]
+  const introRequests = (introRows || []) as IntroRequest[]
+  const nextMoves = buildNextMoves({
+    commitments,
+    reviews,
+    introRequests,
+    contacts: (allContacts || []).map((contact) => ({
+      id: contact.id,
+      name: contact.name,
+      company: contact.company,
+      next_steps: contact.next_steps,
+      follow_up_needed: contact.follow_up_needed,
+      next_due_date: contact.next_due_date,
+      snoozed_until: contact.snoozed_until,
+      last_contact_date: contact.last_contact_date,
+      created_at: contact.created_at,
+    })),
+    nowMs: Date.now(),
+  })
 
   // --- Reach Out Today: unified prioritized list ---
   const now = new Date().getTime()
@@ -218,7 +255,7 @@ export default async function DashboardPage() {
     .slice(0, 4)
 
   const recentContacts = contactsWithHealth.slice(0, 6)
-  const isEmpty = (allContacts || []).length === 0
+  const isEmpty = (allContacts || []).length === 0 && reviews.length === 0
 
   // Brand new user — guided welcome experience
   if (isEmpty) {
@@ -244,7 +281,15 @@ export default async function DashboardPage() {
       {/* Walkthrough tooltip tour for users with 1-4 contacts */}
       <DashboardWalkthrough contactCount={totalContacts || 0} />
       {/* Onboarding checklist for users with < 10 contacts */}
-      <OnboardingChecklist contactCount={totalContacts || 0} />
+      <OnboardingChecklist
+        contactCount={totalContacts || 0}
+        calendarConnected={calendarConnected}
+        reviewCount={reviews.length}
+        pendingReviewCount={reviews.filter((review) => review.status === "pending").length}
+        actionCount={commitments.length}
+        moveCount={nextMoves.length}
+        plan={plan}
+      />
       {/* Contact limit warning for free users approaching 50 */}
       {plan === "free" && (totalContacts || 0) >= 45 && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3 flex items-center justify-between gap-4">
@@ -281,6 +326,8 @@ export default async function DashboardPage() {
           </Button>
         </div>
       </div>
+
+      <NextMoves moves={nextMoves} />
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 stagger-children">

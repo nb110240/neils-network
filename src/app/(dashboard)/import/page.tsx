@@ -46,9 +46,8 @@ function ImportPageInner() {
   const [isLoading, setIsLoading] = useState(false)
   const [isPro, setIsPro] = useState<boolean | null>(null)
 
-  // Gate up front: check the plan the same way the graph page does, so free
-  // users see the Pro gate before doing any upload or mapping work. The API
-  // 403 on POST /api/import/csv remains the server-side enforcement.
+  // Free accounts get a durable five-contact CSV onboarding import. Google
+  // and unlimited bulk imports remain Pro and are still server-enforced.
   useEffect(() => {
     async function checkPlan() {
       try {
@@ -205,7 +204,7 @@ function ImportPageInner() {
         </div>
       </div>
 
-      {/* Plan check in flight — don't flash the import UI to free users */}
+      {/* Plan check in flight */}
       {isPro === null && (
         <Card className="glass shadow-refined">
           <CardContent className="flex items-center justify-center py-16">
@@ -214,47 +213,30 @@ function ImportPageInner() {
         </Card>
       )}
 
-      {/* Free plan: gate up front (same pattern as the graph page Pro gate) */}
+      {/* Free onboarding allowance */}
       {isPro === false && (
-        <Card className="glass shadow-refined animate-fade-in">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="w-14 h-14 rounded-2xl bg-[var(--copper)]/10 flex items-center justify-center mb-4">
-              <Crown className="h-6 w-6 text-[var(--copper-text)]" />
+        <Card className="border-[var(--copper)]/20 bg-[var(--copper)]/5 shadow-refined animate-fade-in">
+          <CardContent className="flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-medium">Your first five CSV contacts are free</p>
+              <p className="mt-1 text-sm text-stone-700 dark:text-stone-300">Upload a CSV with up to five contacts. Unlimited CSV and Google Contacts import are included with Pro.</p>
             </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--copper)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--copper-text)] mb-3">
-              <Crown className="h-3 w-3" />
-              Pro
-            </span>
-            <h3 className="text-xl font-normal mb-2">Import is a Pro feature</h3>
-            <p className="text-muted-foreground text-center max-w-sm mb-6">
-              CSV and Google import are Pro features. Free plan includes 50 contacts added by note or one at a time.
-            </p>
-            <Button asChild className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0">
-              <Link href="/pricing">
-                <Crown className="mr-2 h-4 w-4" />
-                Upgrade to Pro
-              </Link>
+            <Button asChild variant="outline" size="sm" className="shrink-0">
+              <Link href="/pricing"><Crown className="mr-2 h-4 w-4" /> See Pro</Link>
             </Button>
-            <Link
-              href="/add"
-              className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--copper-text)] hover:underline"
-            >
-              Add contacts one at a time instead
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
           </CardContent>
         </Card>
       )}
 
       {/* One-time import disclaimer */}
-      {isPro === true && mode === "choose" && (
+      {isPro !== null && mode === "choose" && (
         <p className="text-xs text-muted-foreground">
           Imports are one-time. Future changes in Google Contacts won&apos;t sync automatically.
         </p>
       )}
 
       {/* Step: Choose import method */}
-      {isPro === true && mode === "choose" && (
+      {isPro !== null && mode === "choose" && (
         <div className="grid md:grid-cols-2 gap-4 animate-fade-in">
           <button
             type="button"
@@ -269,7 +251,7 @@ function ImportPageInner() {
               </p>
             </div>
           </button>
-          <button
+          {isPro ? <button
             type="button"
             className="text-left w-full rounded-xl border bg-card shadow-refined cursor-pointer transition-all hover:shadow-refined-lg hover:-translate-y-0.5 hover:border-[var(--copper)]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             onClick={handleGmailImport}
@@ -286,7 +268,13 @@ function ImportPageInner() {
                 Import directly from your Gmail account
               </p>
             </div>
-          </button>
+          </button> : <Link href="/pricing" className="text-left w-full rounded-xl border bg-card shadow-refined transition-all hover:border-[var(--copper)]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+            <div className="flex flex-col items-center justify-center py-10 px-6">
+              <Crown className="h-10 w-10 text-[var(--copper-text)] mb-4" />
+              <h3 className="text-lg font-medium">Google Contacts · Pro</h3>
+              <p className="text-sm text-muted-foreground text-center mt-1">Upgrade for direct Google import and unlimited CSVs</p>
+            </div>
+          </Link>}
         </div>
       )}
 
@@ -320,7 +308,7 @@ function ImportPageInner() {
       )}
 
       {/* CSV: Upload */}
-      {isPro === true && mode === "csv" && step === "upload" && (
+      {isPro !== null && mode === "csv" && step === "upload" && (
         <Card className="glass shadow-refined animate-fade-in">
           <CardHeader>
             <CardTitle className="text-lg font-normal">Upload CSV File</CardTitle>
@@ -363,7 +351,7 @@ function ImportPageInner() {
       )}
 
       {/* CSV: Map Columns */}
-      {isPro === true && mode === "csv" && step === "map" && (
+      {isPro !== null && mode === "csv" && step === "map" && (
         <div className="space-y-6 animate-fade-in">
           <Card className="glass shadow-refined">
             <CardHeader>
@@ -411,6 +399,12 @@ function ImportPageInner() {
                 </p>
               )}
 
+              {isPro === false && totalRows > 5 && (
+                <p className="text-sm text-amber-800 dark:text-amber-300">
+                  Free onboarding supports up to five CSV contacts. Trim this file to five rows or upgrade for unlimited importing.
+                </p>
+              )}
+
               <div className="flex gap-3 pt-4">
                 <Button
                   variant="outline"
@@ -424,7 +418,7 @@ function ImportPageInner() {
                 <Button
                   className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
                   onClick={handleImport}
-                  disabled={!hasNameMapping || totalRows === 0}
+                  disabled={!hasNameMapping || totalRows === 0 || (isPro === false && totalRows > 5)}
                 >
                   <Upload className="mr-2 h-4 w-4" />
                   Import {totalRows} {totalRows === 1 ? "Contact" : "Contacts"}
@@ -436,7 +430,7 @@ function ImportPageInner() {
       )}
 
       {/* Importing */}
-      {isPro === true && step === "importing" && (
+      {isPro !== null && step === "importing" && (
         <Card className="glass shadow-refined animate-fade-in">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Loader2 className="h-10 w-10 text-[var(--copper-text)] animate-spin mb-4" />
@@ -449,7 +443,7 @@ function ImportPageInner() {
       )}
 
       {/* Done */}
-      {isPro === true && step === "done" && (
+      {isPro !== null && step === "done" && (
         <Card className="glass shadow-refined animate-fade-in">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <div className="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-4">
@@ -462,9 +456,9 @@ function ImportPageInner() {
               Embeddings are being generated in the background for semantic search
             </p>
             <div className="flex gap-3 mt-6">
-              <Button variant="outline" onClick={() => { setStep("upload"); setFile(null); setMode("choose"); setImportedCount(0); setGoogleImportedCount(0) }}>
+              {isPro && <Button variant="outline" onClick={() => { setStep("upload"); setFile(null); setMode("choose"); setImportedCount(0); setGoogleImportedCount(0) }}>
                 Import More
-              </Button>
+              </Button>}
               <Button
                 className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
                 onClick={() => router.push("/contacts")}

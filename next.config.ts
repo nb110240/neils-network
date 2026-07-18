@@ -4,6 +4,10 @@ import { withSentryConfig } from "@sentry/nextjs";
 const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
   poweredByHeader: false,
+  // Keep Turbopack scoped to this checkout even when a parent directory has
+  // an unrelated lockfile. This prevents local and CI builds from crawling
+  // the user's entire home directory.
+  turbopack: { root: process.cwd() },
   async redirects() {
     return [
       {

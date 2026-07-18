@@ -38,6 +38,8 @@ import { RecentlyDeleted } from "@/components/recently-deleted"
 import { DuplicateReview } from "@/components/duplicate-review"
 import { DataExportButton } from "@/components/data-export-button"
 import { MfaSettings } from "@/components/mfa-settings"
+import { InboundNotesAddress } from "@/components/inbound-notes-address"
+import { GranolaIntegration } from "@/components/granola-integration"
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -377,6 +379,9 @@ export default function SettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      <InboundNotesAddress accountEmail={email} isPaidPlan={isPaidPlan} />
+      <GranolaIntegration isPaidPlan={isPaidPlan} />
 
       {/* Preferences Section */}
       <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 pt-2">Preferences</h2>

@@ -1,203 +1,84 @@
-"use client"
-
-import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { Check, Circle, FileText, Sparkles, Upload, CalendarDays, ArrowRight } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Check, Circle, Plus, Search, Users, Eye, X, Sparkles, ChevronRight, Download } from "lucide-react"
-
-const STORAGE_KEY = "savvo-onboarding-checklist"
-const DISMISSED_KEY = "savvo-onboarding-checklist-dismissed"
-
-interface ChecklistItem {
-  id: string
-  label: string
-  description: string
-  href: string
-  icon: React.ElementType
-  /** How to auto-detect completion */
-  autoComplete?: boolean
-}
-
-const CHECKLIST_ITEMS: ChecklistItem[] = [
-  {
-    id: "add-contact",
-    label: "Add your first contact",
-    description: "Type what you remember, and AI does the rest",
-    href: "/add",
-    icon: Plus,
-  },
-  {
-    id: "view-contact",
-    label: "View a contact's profile",
-    description: "See health score, details, and timeline",
-    href: "/contacts",
-    icon: Eye,
-  },
-  {
-    id: "try-search",
-    label: "Search your network",
-    description: "Find people by what you remember, not just names",
-    href: "/search",
-    icon: Search,
-  },
-  {
-    id: "explore-dashboard",
-    label: "Check your dashboard",
-    description: "See who needs attention and network health",
-    href: "/dashboard",
-    icon: Users,
-  },
-  {
-    id: "install-app",
-    label: "Add Savvo to your home screen",
-    description: "One-tap launch, offline access for recent contacts",
-    href: "/install",
-    icon: Download,
-  },
-]
+import type { PlanType } from "@/lib/types"
 
 interface OnboardingChecklistProps {
   contactCount: number
+  calendarConnected: boolean
+  reviewCount: number
+  pendingReviewCount: number
+  actionCount: number
+  moveCount: number
+  plan: PlanType
 }
 
-export function OnboardingChecklist({ contactCount }: OnboardingChecklistProps) {
-  const pathname = usePathname()
-  const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set())
-  const [dismissed, setDismissed] = useState(true) // default hidden until loaded
+export function OnboardingChecklist({
+  contactCount,
+  calendarConnected,
+  reviewCount,
+  pendingReviewCount,
+  actionCount,
+  moveCount,
+  plan,
+}: OnboardingChecklistProps) {
+  const hasContext = contactCount >= 5 || calendarConnected || reviewCount > 0
+  const hasInteraction = reviewCount > 0
+  const hasApprovedAction = actionCount > 0
+  if (hasApprovedAction || (moveCount > 0 && contactCount >= 5) || contactCount >= 10) return null
 
-  // Load state from localStorage
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      try {
-        setCompletedSteps(new Set(JSON.parse(saved)))
-      } catch {
-        // ignore
-      }
-    }
-    setDismissed(localStorage.getItem(DISMISSED_KEY) === "true")
-  }, [])
-
-  // Auto-complete based on navigation and contact count
-  useEffect(() => {
-    if (typeof window === "undefined") return
-
-    const newCompleted = new Set(completedSteps)
-
-    // Auto-complete "add-contact" when user has contacts
-    if (contactCount > 0) newCompleted.add("add-contact")
-
-    // Auto-complete based on current page visit
-    if (pathname === "/contacts" || pathname?.startsWith("/contact/")) {
-      newCompleted.add("view-contact")
-    }
-    if (pathname === "/search") {
-      newCompleted.add("try-search")
-    }
-    if (pathname === "/dashboard" && contactCount > 0) {
-      newCompleted.add("explore-dashboard")
-    }
-    // Auto-complete the install step if running as an installed PWA
-    if (
-      typeof window !== "undefined" &&
-      (window.matchMedia?.("(display-mode: standalone)").matches ||
-        (navigator as { standalone?: boolean }).standalone)
-    ) {
-      newCompleted.add("install-app")
-    }
-
-    if (newCompleted.size !== completedSteps.size) {
-      setCompletedSteps(newCompleted)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([...newCompleted]))
-    }
-  }, [pathname, contactCount, completedSteps])
-
-  // Don't show if dismissed or all complete or too many contacts
-  if (dismissed || contactCount >= 10 || completedSteps.size === CHECKLIST_ITEMS.length) return null
-
-  const progress = completedSteps.size
-  const total = CHECKLIST_ITEMS.length
-
-  function handleDismiss() {
-    setDismissed(true)
-    localStorage.setItem(DISMISSED_KEY, "true")
-  }
+  const steps = [
+    { label: "Bring in real context", complete: hasContext },
+    { label: "Capture one investor interaction", complete: hasInteraction },
+    { label: "Approve your first next move", complete: hasApprovedAction },
+  ]
+  const completed = steps.filter((step) => step.complete).length
+  const primary = pendingReviewCount > 0
+    ? { href: "/inbox", label: "Review your next move" }
+    : { href: "/capture", label: "Paste meeting notes" }
 
   return (
-    <Card className="shadow-refined border-[var(--copper)]/20 overflow-hidden">
-      {/* Header with progress */}
-      <div className="px-4 pt-4 pb-2 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-[var(--copper)]/10 flex items-center justify-center">
-            <Sparkles className="h-4 w-4 text-[var(--copper-text)]" />
+    <Card className="overflow-hidden border-[var(--copper)]/25 shadow-refined">
+      <div className="h-1 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)]" />
+      <CardContent className="p-5 sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--copper)]/10">
+                <Sparkles className="h-4 w-4 text-[var(--copper-text)]" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold">Get a real next move in under 10 minutes</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Use your own investor context. Savvo will not change or send anything until you approve it.</p>
+              </div>
+            </div>
+            <ol className="mt-5 grid gap-3 sm:grid-cols-3" aria-label={`${completed} of ${steps.length} activation steps complete`}>
+              {steps.map((step) => (
+                <li key={step.label} className="flex items-center gap-2 text-sm">
+                  {step.complete
+                    ? <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--copper)]"><Check className="h-3 w-3 text-white" /></span>
+                    : <Circle className="h-5 w-5 text-stone-400 dark:text-stone-500" />}
+                  <span className={step.complete ? "text-muted-foreground line-through" : "font-medium"}>{step.label}</span>
+                </li>
+              ))}
+            </ol>
           </div>
-          <div>
-            <h3 className="text-sm font-semibold">Get started with Savvo</h3>
-            <p className="text-xs text-muted-foreground">{progress}/{total} complete</p>
+
+          <div className="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col">
+            <Button asChild className="min-h-11 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] border-0">
+              <Link href={primary.href}><FileText className="mr-2 h-4 w-4" />{primary.label}<ArrowRight className="ml-2 h-4 w-4" /></Link>
+            </Button>
+            <div className="flex gap-1">
+              <Button variant="ghost" size="sm" className="min-h-11" asChild>
+                <Link href="/import"><Upload className="mr-2 h-4 w-4" />Import five</Link>
+              </Button>
+              <Button variant="ghost" size="sm" className="min-h-11" asChild>
+                <Link href={plan === "free" ? "/pricing" : "/settings"}><CalendarDays className="mr-2 h-4 w-4" />Calendar</Link>
+              </Button>
+            </div>
           </div>
         </div>
-        <button
-          onClick={handleDismiss}
-          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
-          aria-label="Dismiss checklist"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      </div>
-
-      {/* Progress bar */}
-      <div className="mx-4 mb-3 h-1 rounded-full bg-stone-100 dark:bg-stone-800 overflow-hidden">
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] transition-all duration-700 ease-out"
-          style={{ width: `${(progress / total) * 100}%` }}
-        />
-      </div>
-
-      <CardContent className="px-2 pb-3 pt-0 space-y-0.5">
-        {CHECKLIST_ITEMS.map((item) => {
-          const isComplete = completedSteps.has(item.id)
-          const Icon = item.icon
-          return (
-            <Link
-              key={item.id}
-              href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group ${
-                isComplete
-                  ? "opacity-60"
-                  : "hover:bg-[var(--copper)]/5"
-              }`}
-            >
-              {/* Checkbox */}
-              <div className="shrink-0">
-                {isComplete ? (
-                  <div className="h-5 w-5 rounded-full bg-[var(--copper)] flex items-center justify-center">
-                    <Check className="h-3 w-3 text-white" />
-                  </div>
-                ) : (
-                  <Circle className="h-5 w-5 text-stone-300 dark:text-stone-600" />
-                )}
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium leading-tight ${isComplete ? "line-through text-muted-foreground" : ""}`}>
-                  {item.label}
-                </p>
-                {!isComplete && (
-                  <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
-                )}
-              </div>
-
-              {/* Arrow for incomplete items */}
-              {!isComplete && (
-                <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all shrink-0" />
-              )}
-            </Link>
-          )
-        })}
       </CardContent>
     </Card>
   )

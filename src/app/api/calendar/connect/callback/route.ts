@@ -48,9 +48,13 @@ export async function GET(request: Request) {
     }
 
     const tokens = await tokenRes.json()
+    if (!tokens?.access_token || !Number.isFinite(tokens.expires_in)) {
+      console.error("Calendar callback: Google returned an invalid token payload")
+      return NextResponse.redirect(`${appUrl}/dashboard?calendar=error`)
+    }
 
     const supabase = await createServiceClient()
-    await supabase.from("integrations").upsert(
+    const { error: saveError } = await supabase.from("integrations").upsert(
       {
         user_id: userId,
         provider: "google_calendar",
@@ -60,6 +64,10 @@ export async function GET(request: Request) {
       },
       { onConflict: "user_id,provider" }
     )
+    if (saveError) {
+      console.error("Calendar callback: could not save integration", saveError.message)
+      return NextResponse.redirect(`${appUrl}/dashboard?calendar=error`)
+    }
 
     return NextResponse.redirect(`${appUrl}/dashboard?calendar=connected`)
   } catch (err) {

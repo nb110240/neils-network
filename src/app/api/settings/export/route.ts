@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { authenticateRequest, authFailed, errorResponse } from "@/lib/api-utils"
 import { log } from "@/lib/logger"
+import { createServiceClient } from "@/lib/supabase/server"
 
 /**
  * GDPR Art. 20 data portability: return everything a user owns as JSON,
@@ -12,8 +13,9 @@ export async function GET() {
     const auth = await authenticateRequest("export")
     if (authFailed(auth)) return auth.error
     const { user, supabase } = auth
+    const service = await createServiceClient()
 
-    const [contacts, activities, tags, contactTags, events, preferences, integrations] =
+    const [contacts, activities, tags, contactTags, events, preferences, integrations, usage, reviews, commitments, researchReports, introRequests] =
       await Promise.all([
         supabase.from("contacts").select("*").eq("created_by", user.id),
         supabase.from("contact_activities").select("*").eq("user_id", user.id),
@@ -24,11 +26,26 @@ export async function GET() {
           .eq("contacts.created_by", user.id),
         supabase.from("events").select("*").eq("created_by", user.id),
         supabase.from("user_preferences").select("*").eq("user_id", user.id),
-        supabase
+        service
           .from("integrations")
-          .select("id, provider, created_at, last_sync_at")
+          .select("id, provider, created_at, last_sync_at, last_attempt_at")
           .eq("user_id", user.id),
+        service
+          .from("usage_counters")
+          .select("ai_reviews_used, csv_contacts_imported, created_at, updated_at")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+        supabase.from("after_call_reviews").select("*").eq("user_id", user.id),
+        supabase.from("commitments").select("*").eq("user_id", user.id),
+        supabase.from("investor_research_reports").select("*").eq("user_id", user.id),
+        supabase.from("intro_requests").select("*").eq("user_id", user.id),
       ])
+
+    const failedQuery = [contacts, activities, tags, contactTags, events, preferences, integrations, usage, reviews, commitments, researchReports, introRequests]
+      .find((result) => result.error)
+    if (failedQuery?.error) {
+      throw new Error(`Export query failed: ${failedQuery.error.message}`)
+    }
 
     const payload = {
       exported_at: new Date().toISOString(),
@@ -44,6 +61,11 @@ export async function GET() {
       events: events.data ?? [],
       user_preferences: preferences.data ?? [],
       integrations: integrations.data ?? [],
+      free_usage: usage.data ?? null,
+      after_call_reviews: reviews.data ?? [],
+      commitments: commitments.data ?? [],
+      investor_research_reports: researchReports.data ?? [],
+      intro_requests: introRequests.data ?? [],
     }
 
     log("info", "data export", {

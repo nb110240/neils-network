@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
   signCalendarOAuthState,
   verifyCalendarOAuthState,
@@ -14,6 +14,7 @@ describe("calendar OAuth state", () => {
   })
 
   afterEach(() => {
+    vi.restoreAllMocks()
     if (originalSecret === undefined) delete process.env.OAUTH_STATE_SECRET
     else process.env.OAUTH_STATE_SECRET = originalSecret
 
@@ -32,6 +33,13 @@ describe("calendar OAuth state", () => {
 
     expect(verifyCalendarOAuthState(`${state}tampered`)).toBeNull()
     expect(verifyCalendarOAuthState("missing-signature")).toBeNull()
+  })
+
+  it("rejects an otherwise valid state after ten minutes", () => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(1_800_000_000_000)
+    const state = signCalendarOAuthState("user-123")
+    now.mockReturnValue(1_800_000_000_000 + 10 * 60 * 1000 + 1)
+    expect(verifyCalendarOAuthState(state)).toBeNull()
   })
 
   it("fails closed when no signing secret is configured", () => {

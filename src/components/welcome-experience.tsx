@@ -7,21 +7,20 @@ import {
   getTimeGreeting,
   inferCompanyFromEmail,
 } from "@/lib/personalization"
-import { Plus, ArrowRight, Upload, Network } from "lucide-react"
+import { Plus, ArrowRight, Upload, Network, FileText, CalendarDays } from "lucide-react"
+import type { PlanType } from "@/lib/types"
 
 interface WelcomeExperienceProps {
   userName: string | null
   userEmail: string | null
-  plan: string
+  plan: PlanType
 }
 
 /**
  * Empty-state dashboard for users with zero contacts.
  *
- * Single-action by design: the only thing a new user should be deciding is
- * "do I click the button or not." Goal picker and how-it-works grid were
- * removed (2026-05-28) because they competed visually with the CTA and were
- * the activation-overwhelm complaint in user feedback #1.
+ * The fastest value path is a real meeting note. Adding/importing contacts and
+ * connecting a calendar remain available as quiet alternatives.
  */
 export function WelcomeExperience({
   userName,
@@ -35,8 +34,8 @@ export function WelcomeExperience({
   const greeting = firstName ? `${timeGreeting}, ${firstName}` : timeGreeting
 
   const subtitle = company
-    ? `Let's set up your network manager for your work at ${company}.`
-    : "Let's set up your personal network manager."
+    ? `Turn your latest investor conversation for ${company} into the right next move.`
+    : "Turn your latest investor conversation into the right next move."
 
   return (
     <div className="max-w-2xl mx-auto py-12 sm:py-20 animate-fade-in">
@@ -54,31 +53,41 @@ export function WelcomeExperience({
             className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0 h-14 px-10 text-base shadow-lg hover:shadow-xl transition-all"
           >
             <Link
-              href="/add"
+              href="/capture"
               id="onboarding-add-cta"
-              onClick={() => captureEvent("welcome_cta_clicked")}
+              onClick={() => captureEvent("welcome_capture_clicked")}
             >
-              <Plus className="mr-2.5 h-5 w-5" />
-              Add your first contact
+              <FileText className="mr-2.5 h-5 w-5" />
+              Paste meeting notes
               <ArrowRight className="ml-2.5 h-5 w-5" />
             </Link>
           </Button>
           <p className="text-xs text-muted-foreground">
-            Takes 10 seconds. Just describe who you met.
+            Savvo extracts promises and a follow-up. You approve every change.
           </p>
-          {plan !== "free" && (
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
             <Button
               variant="ghost"
               size="sm"
               asChild
-              className="text-muted-foreground hover:text-[var(--copper-text)]"
+              className="min-h-11 px-3 text-muted-foreground hover:text-[var(--copper-text)]"
             >
-              <Link href="/import">
-                <Upload className="mr-2 h-4 w-4" />
-                Or import existing contacts
+              <Link href="/add" onClick={() => captureEvent("welcome_add_contact_clicked")}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add a person
               </Link>
             </Button>
-          )}
+            <Button variant="ghost" size="sm" asChild className="min-h-11 px-3 text-muted-foreground hover:text-[var(--copper-text)]">
+              <Link href="/import">
+                <Upload className="mr-2 h-4 w-4" /> Import five
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild className="min-h-11 px-3 text-muted-foreground hover:text-[var(--copper-text)]">
+              <Link href={plan === "free" ? "/pricing" : "/settings"}>
+                <CalendarDays className="mr-2 h-4 w-4" /> Connect calendar
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {/* Privacy reassurance — one line, not a card competing for attention */}

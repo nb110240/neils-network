@@ -43,23 +43,23 @@ function MarketingPage() {
       <section className="pt-24 sm:pt-32 pb-12 sm:pb-20 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-8 sm:gap-12 items-center">
           <div>
-            <p className="text-sm font-medium text-[var(--copper-text)] mb-4">The investor CRM for founders</p>
+            <p className="text-sm font-medium text-[var(--copper-text)] mb-4">Raise autopilot for founder-led fundraising</p>
             <h1 className="text-4xl sm:text-5xl leading-[1.08] tracking-tight mb-4">
-              Run your raise without a <em className="not-italic text-[var(--copper-text)]">spreadsheet</em>
+              Turn every investor conversation into the <em className="not-italic text-[var(--copper-text)]">right next move</em>
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed mb-6 max-w-md">
-              Met 12 investors this week? Type what you remember after every pitch. Savvo tracks who you met, who is going cold, and who is waiting on a follow-up, so nothing slips.
+              Paste meeting notes or import them from your calendar and Granola. Savvo finds promises, drafts the follow-up, and ranks your Next 3 Moves. You approve every change.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link href="/login?mode=signup" className="inline-flex items-center px-6 py-3 rounded-xl text-base font-semibold bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 transition-opacity">
-                Start tracking your raise
+                Create your first move
               </Link>
               <Link href="#how" className="inline-flex items-center px-6 py-3 rounded-xl text-base font-medium border border-border hover:border-[var(--copper)]/30 transition-colors">
-                See how it works
+                See the 10-minute setup
               </Link>
             </div>
             <p className="text-sm text-muted-foreground mt-4 max-w-md">
-              After the round closes, Savvo keeps every relationship alive: hires, board, customers, and your broader network.
+              Start with one real investor conversation. No dashboard setup, no generic chat, and no message is ever sent for you.
             </p>
             <Link href="/from-spreadsheet" className="inline-flex items-center gap-2 mt-3 py-1 text-sm text-muted-foreground hover:text-[var(--copper-text)] transition-colors group">
               <span>📋</span>
@@ -69,17 +69,21 @@ function MarketingPage() {
           </div>
           <div className="relative mt-4 md:mt-0">
             <div className="rounded-2xl border shadow-refined-lg p-6 rotate-1">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-11 h-11 rounded-xl bg-[var(--copper)]/10 flex items-center justify-center text-orange-800 dark:text-orange-300 font-semibold text-sm">SC</div>
+              <div className="flex items-center justify-between gap-3 mb-4">
                 <div>
-                  <div className="font-semibold">Sarah Chen</div>
-                  <div className="text-sm text-muted-foreground">Partner at Sequoia</div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-[var(--copper-text)]">After-call review</div>
+                  <div className="mt-1 font-semibold">Seed investor meeting</div>
                 </div>
+                <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">Needs approval</span>
               </div>
-              <div className="space-y-2 pt-3 border-t text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Health</span><span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-700 text-white"><span className="w-1.5 h-1.5 rounded-full bg-white" />Active</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Intro&apos;d by</span><span>Marcus at YC</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Next step</span><span>Send Q2 metrics</span></div>
+              <div className="space-y-3 border-y py-4 text-sm">
+                <div><p className="text-xs text-muted-foreground">You promised</p><p className="font-medium">Send cohort analysis by Friday</p></div>
+                <div><p className="text-xs text-muted-foreground">They promised</p><p className="font-medium">Introduce you to the fintech partner</p></div>
+                <div className="rounded-lg bg-muted/50 p-3"><p className="text-xs text-muted-foreground">Follow-up draft</p><p className="mt-1 text-stone-700 dark:text-stone-300">Thanks for the thoughtful churn questions. I&apos;ll send the cohort view Friday.</p></div>
+              </div>
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <span className="text-xs text-muted-foreground">Nothing changes until you approve.</span>
+                <span className="rounded-lg bg-[var(--copper)] px-3 py-2 text-xs font-semibold text-white">Review</span>
               </div>
             </div>
           </div>
@@ -89,13 +93,13 @@ function MarketingPage() {
       <section className="py-12 sm:py-20 px-4 sm:px-6 bg-card/50" id="how">
         <div className="max-w-5xl mx-auto">
           <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper-text)] mb-2">How it works</p>
-          <h2 className="text-3xl tracking-tight mb-3">Three steps to get started</h2>
-          <p className="text-muted-foreground mb-10 max-w-lg">Savvo replaces spreadsheets and forgotten business cards. Just talk about the people you meet.</p>
+          <h2 className="text-3xl tracking-tight mb-3">A real next action in under 10 minutes</h2>
+          <p className="text-muted-foreground mb-10 max-w-lg">Use context you already have. Paste one note, import five contacts, or connect your calendar.</p>
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { num: "01", title: "Write what you remember", desc: "Type a quick note like you'd text a friend. AI extracts the details you'd normally forget.", example: '"Met John Doe at AI Summit, he\'s VP of Engineering at Nextera Health, wants to grab coffee next week"' },
-              { num: "02", title: "Details are extracted", desc: "Name, company, role, how you met, and next steps, all structured automatically." },
-              { num: "03", title: "Stay connected effortlessly", desc: "Health scores show which relationships are fading. Daily emails nudge you to reach out." },
+              { num: "01", title: "Bring one real interaction", desc: "Paste a meeting note, import your first five contacts, or connect Calendar or Granola.", example: '"Maya asked about churn. I promised to send cohorts Friday. She will introduce her fintech partner."' },
+              { num: "02", title: "Approve what matters", desc: "Savvo proposes contact updates, commitments, and a follow-up. Edit or reject anything before it reaches your CRM." },
+              { num: "03", title: "Work your Next 3 Moves", desc: "Overdue promises, reviews, warm intros, and waiting-on-them actions are ranked in one explainable list." },
             ].map((step) => (
               <div key={step.num}>
                 <span aria-hidden="true" className="text-4xl font-normal text-stone-500 dark:text-stone-400 block mb-1">{step.num}</span>
@@ -322,14 +326,14 @@ function MarketingPage() {
               <div className="shrink-0 w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/30 flex items-center justify-center text-lg">&#9889;</div>
               <div>
                 <h3 className="font-medium mb-1">Everything is optional</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">Google sync, imports, and calendar are all opt-in. Use Savvo with just manual notes if you prefer. No account linking is required.</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">Calendar, Granola, email forwarding, and imports are opt-in. AI proposals wait in Review Inbox, and Savvo never sends a message for you.</p>
               </div>
             </div>
             <div className="flex gap-4">
               <div className="shrink-0 w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/30 flex items-center justify-center text-lg">&#128220;</div>
               <div>
                 <h3 className="font-medium mb-1">Export anytime</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">Download all your contacts as a CSV whenever you want. Delete your account and all data is permanently removed within 30 days.</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">Download contacts as CSV or export your full Savvo data as JSON. Delete meeting text or your whole account whenever you choose.</p>
               </div>
             </div>
           </div>
@@ -340,17 +344,17 @@ function MarketingPage() {
       <section className="py-12 sm:py-20 px-4 sm:px-6" id="features">
         <div className="max-w-5xl mx-auto">
           <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper-text)] mb-2">Features</p>
-          <h2 className="text-3xl tracking-tight mb-10">Everything your network needs</h2>
+          <h2 className="text-3xl tracking-tight mb-10">Everything your raise needs next</h2>
           <div className="grid md:grid-cols-3 gap-4">
             {[
-              { title: "Natural Language Input", desc: "Just type what you remember. Name, company, context, and next steps are extracted automatically." },
-              { title: "Health Scores", desc: "Every contact gets a color-coded score. Green means active. Red means you're about to lose touch." },
-              { title: "Smart Search", desc: '"Who do I know in healthcare AI?" Search by meaning, not just keywords.' },
-              { title: "AI Follow-Up Drafts", desc: "One tap to draft a personalized follow-up message. AI reads your history and writes something natural." },
-              { title: "Daily Digest", desc: "Every morning: 3 relationships that need attention. With context and a one-click link." },
-              { title: "CSV & Gmail Import", desc: "Bring your existing network in seconds. Upload a CSV or pull from Google Contacts." },
-              { title: "Google Calendar Sync", desc: "Had a 1:1 meeting? Savvo detects it and adds the person automatically." },
-              { title: '"Going Cold" Dashboard', desc: "See every fading relationship at a glance. Sorted by urgency." },
+              { title: "Commitment Engine", desc: "Separate what you promised from what the investor promised, with evidence and due dates." },
+              { title: "Next 3 Moves", desc: "An explainable priority list across commitments, approvals, follow-ups, and warm introductions." },
+              { title: "Approval Inbox", desc: "Review and edit every AI proposal before it updates a contact or creates an action." },
+              { title: "Calendar, Email & Granola", desc: "Bring in event descriptions, forwarded notes, summaries, and transcripts without building another recorder." },
+              { title: "Sourced Investor Research", desc: "Separate your CRM facts from current public research with time stamps and clickable citations." },
+              { title: "Warm Intro Pipeline", desc: "Find evidence-backed connectors, prepare the ask, and track it through meeting booked." },
+              { title: "First Five Import", desc: "Import five CSV contacts free, or use Pro for unlimited CSV and Google Contacts import." },
+              { title: "Private by Default", desc: "Nothing changes and nothing sends until you explicitly approve or copy it." },
             ].map((f) => (
               <div key={f.title} className="p-5 rounded-xl border hover:border-[var(--copper)]/30 hover:shadow-refined transition-all">
                 <h3 className="text-base font-medium mb-1">{f.title}</h3>
@@ -373,10 +377,10 @@ function MarketingPage() {
               <div className="text-3xl font-normal mb-1">$0 <span className="text-base text-muted-foreground font-normal">/month</span></div>
               <p className="text-sm text-muted-foreground mb-4">For getting started</p>
               <ul className="space-y-2 text-sm mb-6">
-                {["50 contacts", "Health scores", "Natural language input", "5 smart searches / month", "Weekly digest emails"].map((f) => (
+                {["50 contacts", "3 AI meeting reviews", "First 5 CSV contacts", "Next 3 Moves", "5 smart searches / month", "Weekly digest emails"].map((f) => (
                   <li key={f} className="flex items-center gap-2"><span className="text-emerald-500 font-bold">&#10003;</span> {f}</li>
                 ))}
-                {["Import (CSV & Gmail)", "Google Calendar sync", "Daily digest emails"].map((f) => (
+                {["Unlimited import", "Google Calendar sync", "Granola and email ingestion", "Daily digest emails"].map((f) => (
                   <li key={f} className="flex items-center gap-2 text-stone-700 dark:text-stone-300"><span className="font-bold">&#10007;</span> {f}</li>
                 ))}
               </ul>
@@ -388,7 +392,7 @@ function MarketingPage() {
               <div className="text-3xl font-normal mb-1">$8 <span className="text-base text-muted-foreground font-normal">/month</span></div>
               <p className="text-sm text-stone-700 dark:text-stone-300 mb-4">or $75/year</p>
               <ul className="space-y-2 text-sm mb-6">
-                {["Unlimited contacts", "Health scores", "Natural language input", "Unlimited smart search", "AI follow-up drafts", "CSV & Gmail import", "Google Calendar sync", "Daily digest emails", "Event mode", "LinkedIn import"].map((f) => (
+                {["Unlimited contacts", "Unlimited meeting reviews", "Commitment Engine and Next 3 Moves", "Sourced investor research", "Warm intro pipeline", "Unlimited CSV and Google import", "Calendar, Granola, and email ingestion", "Daily digest emails"].map((f) => (
                   <li key={f} className="flex items-center gap-2"><span className="text-emerald-500 font-bold">&#10003;</span> {f}</li>
                 ))}
               </ul>
@@ -396,7 +400,7 @@ function MarketingPage() {
             </div>
           </div>
           <p className="text-center text-sm text-muted-foreground mt-6">
-            Team plan available soon at $12/user/mo, with shared graphs, intro requests, and admin tools.
+            Team workflows will come later. Savvo is focused first on making one founder&apos;s raise execution exceptional.
           </p>
         </div>
       </section>

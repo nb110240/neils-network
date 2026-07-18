@@ -5,6 +5,26 @@ import { getUserPlan } from "@/lib/subscription"
 import { safeCompare } from "@/lib/api-utils"
 import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
+import { analyzeInteraction } from "@/lib/action-extraction"
+import { hashMeetingContent, htmlToPlainText } from "@/lib/meeting-content"
+
+interface CalendarReviewCandidate {
+  contactId: string
+  eventId: string
+  title: string
+  occurredAt: string
+  rawText: string
+  contact: {
+    name: string | null
+    email: string | null
+    company: string | null
+    job_title: string | null
+    how_we_met: string | null
+    next_steps: string | null
+  }
+}
+
+const MAX_CALENDAR_SYNCS_PER_CRON = 3
 
 // Manual sync: user triggers from dashboard
 export async function POST() {
@@ -12,14 +32,18 @@ export async function POST() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    if ((await getUserPlan(user.id)) === "free") {
+      return NextResponse.json({ error: "Calendar sync is a Pro feature" }, { status: 403 })
     }
 
     // Rate limit: 5 manual syncs per hour per user
     const rl = await rateLimit(`calendar-sync:${user.id}`, "import")
     if (!rl.success) {
       return NextResponse.json(
-        { message: "Too many sync requests. Try again later." },
+        { error: "Too many sync requests. Try again later." },
         { status: 429, headers: rateLimitHeaders(rl) }
       )
     }
@@ -28,7 +52,7 @@ export async function POST() {
     return NextResponse.json(result)
   } catch (error) {
     console.error("Calendar sync error:", error)
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
@@ -38,7 +62,7 @@ export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization")
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : ""
   if (!cronSecret || !token || !safeCompare(token, cronSecret)) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   try {
@@ -46,34 +70,53 @@ export async function GET(request: Request) {
 
     const { data: integrations } = await supabase
       .from("integrations")
-      .select("user_id")
+      .select("id, user_id")
       .eq("provider", "google_calendar")
+      .order("last_attempt_at", { ascending: true, nullsFirst: true })
+      .limit(MAX_CALENDAR_SYNCS_PER_CRON)
 
     if (!integrations || integrations.length === 0) {
       return NextResponse.json({ message: "No calendar integrations", synced: 0 })
     }
 
     let synced = 0
-    for (const { user_id } of integrations) {
-      // Skip users who have downgraded from Pro
-      const plan = await getUserPlan(user_id)
-      if (plan === "free") continue
-
-      const { data: { user } } = await supabase.auth.admin.getUserById(user_id)
-      if (!user?.email) continue
-
-      try {
-        await syncCalendarForUser(user_id, user.email)
-        synced++
-      } catch (err) {
-        console.error(`Calendar sync failed for user ${user_id}:`, err)
-      }
+    // The query itself is capped, so total work is bounded even as the user
+    // base grows. Oldest-attempted integrations rotate to the front.
+    for (let index = 0; index < integrations.length; index += 3) {
+      const batch = integrations.slice(index, index + 3)
+      const results = await Promise.all(batch.map(async ({ id, user_id }) => {
+        await supabase
+          .from("integrations")
+          .update({ last_attempt_at: new Date().toISOString() })
+          .eq("id", id)
+        try {
+          const plan = await getUserPlan(user_id)
+          if (plan === "free") {
+            await supabase.from("integrations").update({ last_sync_error: "Plan does not include calendar sync" }).eq("id", id)
+            return false
+          }
+          const { data: { user } } = await supabase.auth.admin.getUserById(user_id)
+          if (!user?.email) return false
+          const result = await syncCalendarForUser(user_id, user.email)
+          if (!result.success) {
+            await supabase.from("integrations").update({ last_sync_error: result.message || "Calendar sync did not complete" }).eq("id", id)
+            return false
+          }
+          await supabase.from("integrations").update({ last_sync_error: null }).eq("id", id)
+          return true
+        } catch (err) {
+          console.error(`Calendar sync failed for user ${user_id}:`, err)
+          await supabase.from("integrations").update({ last_sync_error: String(err).slice(0, 500) }).eq("id", id)
+          return false
+        }
+      }))
+      synced += results.filter(Boolean).length
     }
 
     return NextResponse.json({ success: true, synced })
   } catch (error) {
     console.error("Calendar cron error:", error)
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
@@ -154,7 +197,7 @@ async function syncCalendarForUser(userId: string, userEmail: string) {
   // Check both email AND name to catch contacts added without email
   const { data: existingContacts } = await supabase
     .from("contacts")
-    .select("id, email, name")
+    .select("id, email, name, company, job_title, how_we_met, next_steps")
     .eq("created_by", userId)
     .is("archived_at", null)
 
@@ -171,8 +214,17 @@ async function syncCalendarForUser(userId: string, userEmail: string) {
   }
 
   const emailToContactIds = new Map<string, string[]>()
+  const contactById = new Map<string, {
+    name: string | null
+    email: string | null
+    company: string | null
+    job_title: string | null
+    how_we_met: string | null
+    next_steps: string | null
+  }>()
   for (const c of existingContacts || []) {
     if (c.email) pushToMap(emailToContactIds, c.email.toLowerCase(), c.id)
+    contactById.set(c.id, c)
   }
 
   const emailMatchState = (
@@ -195,6 +247,32 @@ async function syncCalendarForUser(userId: string, userEmail: string) {
     rawNote: string
     how_we_met: string
   }> = []
+  const reviewCandidates: CalendarReviewCandidate[] = []
+
+  const queueReview = (
+    event: Record<string, unknown>,
+    contactId: string,
+    fallbackContact: CalendarReviewCandidate["contact"]
+  ) => {
+    const eventId = typeof event.id === "string" ? event.id : ""
+    const description = typeof event.description === "string" ? htmlToPlainText(event.description) : ""
+    if (!eventId || description.length < 20) return
+
+    const start = event.start as { dateTime?: string; date?: string } | undefined
+    const occurredAt = start?.dateTime || (start?.date ? `${start.date}T12:00:00.000Z` : "")
+    if (!occurredAt) return
+
+    reviewCandidates.push({
+      contactId,
+      eventId,
+      title: typeof event.summary === "string" && event.summary.trim()
+        ? event.summary.trim().slice(0, 200)
+        : "Calendar meeting",
+      occurredAt,
+      rawText: description.slice(0, 100000),
+      contact: contactById.get(contactId) || fallbackContact,
+    })
+  }
 
   for (const event of events) {
     const attendees = event.attendees || []
@@ -268,6 +346,14 @@ async function syncCalendarForUser(userId: string, userEmail: string) {
             )
         }
       }
+      queueReview(event, matchedContactId, {
+        name: otherPerson.displayName || null,
+        email: otherPerson.email || null,
+        company: null,
+        job_title: null,
+        how_we_met: null,
+        next_steps: null,
+      })
       continue
     }
 
@@ -299,6 +385,16 @@ async function syncCalendarForUser(userId: string, userEmail: string) {
       // Register the new contact's email so a second event for the same
       // person in this run links instead of duplicating.
       pushToMap(emailToContactIds, otherEmail, newId)
+      const newContactContext = {
+        name,
+        email: otherPerson.email,
+        company: null,
+        job_title: null,
+        how_we_met: `1:1 meeting: ${eventSummary}`,
+        next_steps: null,
+      }
+      contactById.set(newId, newContactContext)
+      queueReview(event, newId, newContactContext)
       pendingEmbeddings.push({ id: newId, name, email: otherPerson.email, rawNote, how_we_met: `1:1 meeting: ${eventSummary}` })
       newContacts++
     } else if (error && (error.code === "23505" || /duplicate key|unique/i.test(error.message || ""))) {
@@ -338,9 +434,28 @@ async function syncCalendarForUser(userId: string, userEmail: string) {
           },
           { onConflict: "contact_id,source,source_event_id", ignoreDuplicates: true }
         )
+        queueReview(event, existing.id as string, {
+          name,
+          email: otherPerson.email,
+          company: null,
+          job_title: null,
+          how_we_met: null,
+          next_steps: null,
+        })
       }
     }
   }
+
+  // Calendar notes are useful context, but they are never allowed to mutate
+  // CRM data directly. Analyze at most five new notes per sync and put the
+  // proposals in the same human approval inbox as pasted notes.
+  const reviewsCreated = await createCalendarReviews(
+    reviewCandidates
+      .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)),
+    userId,
+    userEmail,
+    supabase
+  )
 
   // Update last sync time
   await supabase
@@ -360,12 +475,69 @@ async function syncCalendarForUser(userId: string, userEmail: string) {
   return {
     success: true,
     newContacts,
+    reviewsCreated,
     eventsProcessed: events.length,
     skippedAmbiguous,
     // Include the actual emails so the UI can link into duplicate-review
     // with the right filter instead of forcing the user to hunt.
     ambiguousEmails: Array.from(ambiguousEmails),
   }
+}
+
+async function createCalendarReviews(
+  candidates: CalendarReviewCandidate[],
+  userId: string,
+  userEmail: string,
+  supabase: Awaited<ReturnType<typeof createServiceClient>>
+): Promise<number> {
+  if (candidates.length === 0) return 0
+
+  const { data: existing } = await supabase
+    .from("after_call_reviews")
+    .select("external_source_id")
+    .eq("user_id", userId)
+    .eq("source", "calendar")
+
+  const existingIds = new Set(
+    (existing || []).map((review: { external_source_id: string | null }) => review.external_source_id)
+  )
+  const unseenCandidates = candidates
+    .filter((candidate) => !existingIds.has(candidate.eventId))
+    .slice(0, 5)
+  const results = await Promise.all(unseenCandidates.map(async (candidate) => {
+    try {
+      const analysis = await analyzeInteraction({
+        rawText: candidate.rawText,
+        title: candidate.title,
+        occurredAt: candidate.occurredAt,
+        existingContact: candidate.contact,
+        userName: userEmail.split("@")[0] || null,
+      })
+      const { error } = await supabase.from("after_call_reviews").insert({
+        user_id: userId,
+        contact_id: candidate.contactId,
+        source: "calendar",
+        external_source_id: candidate.eventId,
+        title: candidate.title,
+        occurred_at: candidate.occurredAt,
+        raw_text: candidate.rawText,
+        content_hash: hashMeetingContent(candidate.rawText),
+        summary: analysis.summary,
+        proposed_contact_patch: analysis.contactPatch,
+        proposed_commitments: analysis.commitments,
+        proposed_follow_up: analysis.followUpDraft,
+      })
+      if (!error) return true
+      if (error.code !== "23505") console.error("calendar-sync review insert failed:", error.message)
+    } catch (error) {
+      // A single malformed description or transient model failure must not
+      // prevent contact sync. The next sync can retry because no review exists.
+      console.error(`calendar-sync review analysis failed for ${candidate.eventId}:`, error)
+    }
+    return false
+  }))
+
+  return results.filter(Boolean).length
 }
 
 async function embedNewCalendarContacts(

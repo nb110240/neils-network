@@ -350,7 +350,7 @@ function MarketingPage() {
               { title: "Commitment Engine", desc: "Separate what you promised from what the investor promised, with evidence and due dates." },
               { title: "Next 3 Moves", desc: "An explainable priority list across commitments, approvals, follow-ups, and warm introductions." },
               { title: "Approval Inbox", desc: "Review and edit every AI proposal before it updates a contact or creates an action." },
-              { title: "Calendar, Email & Granola", desc: "Bring in event descriptions, forwarded notes, summaries, and transcripts without building another recorder." },
+              { title: "Calendar & Granola", desc: "Bring in event descriptions, summaries, and transcripts without building another recorder." },
               { title: "Sourced Investor Research", desc: "Separate your CRM facts from current public research with time stamps and clickable citations." },
               { title: "Warm Intro Pipeline", desc: "Find evidence-backed connectors, prepare the ask, and track it through meeting booked." },
               { title: "First Five Import", desc: "Import five CSV contacts free, or use Pro for unlimited CSV and Google Contacts import." },
@@ -380,7 +380,7 @@ function MarketingPage() {
                 {["50 contacts", "3 AI meeting reviews", "First 5 CSV contacts", "Next 3 Moves", "5 smart searches / month", "Weekly digest emails"].map((f) => (
                   <li key={f} className="flex items-center gap-2"><span className="text-emerald-500 font-bold">&#10003;</span> {f}</li>
                 ))}
-                {["Unlimited import", "Google Calendar sync", "Granola and email ingestion", "Daily digest emails"].map((f) => (
+                {["Unlimited import", "Google Calendar sync", "Granola ingestion", "Daily digest emails"].map((f) => (
                   <li key={f} className="flex items-center gap-2 text-stone-700 dark:text-stone-300"><span className="font-bold">&#10007;</span> {f}</li>
                 ))}
               </ul>
@@ -392,7 +392,7 @@ function MarketingPage() {
               <div className="text-3xl font-normal mb-1">$8 <span className="text-base text-muted-foreground font-normal">/month</span></div>
               <p className="text-sm text-stone-700 dark:text-stone-300 mb-4">or $75/year</p>
               <ul className="space-y-2 text-sm mb-6">
-                {["Unlimited contacts", "Unlimited meeting reviews", "Commitment Engine and Next 3 Moves", "Sourced investor research", "Warm intro pipeline", "Unlimited CSV and Google import", "Calendar, Granola, and email ingestion", "Daily digest emails"].map((f) => (
+                {["Unlimited contacts", "Unlimited meeting reviews", "Commitment Engine and Next 3 Moves", "Sourced investor research", "Warm intro pipeline", "Unlimited CSV and Google import", "Calendar and Granola ingestion", "Daily digest emails"].map((f) => (
                   <li key={f} className="flex items-center gap-2"><span className="text-emerald-500 font-bold">&#10003;</span> {f}</li>
                 ))}
               </ul>

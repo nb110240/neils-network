@@ -99,6 +99,7 @@ export default async function DashboardPage() {
   const commitments = (commitmentRows || []) as Commitment[]
   const reviews = (reviewRows || []) as AfterCallReview[]
   const introRequests = (introRows || []) as IntroRequest[]
+  const now = new Date().getTime()
   const nextMoves = buildNextMoves({
     commitments,
     reviews,
@@ -114,11 +115,10 @@ export default async function DashboardPage() {
       last_contact_date: contact.last_contact_date,
       created_at: contact.created_at,
     })),
-    nowMs: Date.now(),
+    nowMs: now,
   })
 
   // --- Reach Out Today: unified prioritized list ---
-  const now = new Date().getTime()
   const todayStr = new Date().toISOString().split("T")[0]
   const daysSince = (dateStr: string | null, fallback: string) => {
     const ref = dateStr || fallback

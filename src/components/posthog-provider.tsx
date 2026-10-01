@@ -50,12 +50,19 @@ export function PostHogProvider() {
         capture_pageleave: true,
         person_profiles: "identified_only",
         respect_dnt: true,
-        // Strip share-link tokens from every event's URL properties.
+        // Feature flags are unused; skipping the /flags request also keeps
+        // initial-URL person properties (which can hold a share token) from
+        // being sent outside before_send.
+        advanced_disable_flags: true,
+        // Strip share-link tokens from every string property, including
+        // session-entry URLs and $set/$set_once person properties.
         before_send: (event) => {
           if (!event) return event
-          for (const key of ["$current_url", "$pathname", "$referrer", "$initial_current_url", "$initial_pathname", "path"]) {
-            const value = event.properties?.[key]
-            if (typeof value === "string") event.properties[key] = redactShareTokens(value)
+          for (const bag of [event.properties, event.$set, event.$set_once]) {
+            if (!bag) continue
+            for (const [key, value] of Object.entries(bag)) {
+              if (typeof value === "string") bag[key] = redactShareTokens(value)
+            }
           }
           return event
         },

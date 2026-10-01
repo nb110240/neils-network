@@ -370,7 +370,7 @@ export default function SettingsPage() {
               )}
               {isPaidPlan && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  Unlimited contacts \u00B7 CSV &amp; Gmail import \u00B7 Calendar sync \u00B7 Daily digest \u00B7 AI drafts &amp; prep
+                  Unlimited contacts · CSV &amp; Gmail import · Calendar sync · Daily digest · AI drafts &amp; prep
                 </p>
               )}
             </div>

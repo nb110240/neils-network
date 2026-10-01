@@ -54,6 +54,10 @@ describe("investor stages", () => {
     ["Partner intro requested", "intro_requested"],
     ["Notes", null],
     ["November", null],
+    ["Soft yes", null],
+    ["Verbal yes", "committed"],
+    ["No response", "intro_made"],
+    ["No", "passed"],
   ])("normalizes %j to %s", (input, expected) => {
     expect(normalizeInvestorStage(input)).toBe(expected)
   })

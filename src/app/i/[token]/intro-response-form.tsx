@@ -65,7 +65,7 @@ export function IntroResponseForm({ token, requesterFirstName }: { token: string
       <div className="flex flex-col gap-2 sm:flex-row">
         <Button
           type="button"
-          className="min-h-11 flex-1 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] border-0 hover:opacity-90"
+          className="min-h-11 flex-1 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white border-0 hover:opacity-90"
           onClick={() => respond(true)}
           disabled={busy !== null}
         >

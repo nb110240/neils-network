@@ -30,12 +30,17 @@ export function investorStageLabel(stage: string | null | undefined): string | n
 // Every alternative is word-bounded so "Passive" or "Deadline Q3" don't
 // read as passed. Ambiguous words ("closed", "signed", "lead") are left out:
 // a wrong stage is worse than none, since stages feed the shared snapshot.
-const STAGE_PATTERNS: Array<[RegExp, InvestorStage]> = [
+// A null stage means "recognized, but deliberately not mapped".
+const STAGE_PATTERNS: Array<[RegExp, InvestorStage | null]> = [
   // Negations first: "Not contacted" must not match "contacted".
   [/\b(not (yet )?(contacted|reached out|emailed)|uncontacted|to contact)\b/, "researching"],
+  // Silence after outreach is not a pass.
+  [/\bno (response|reply|answer)( yet)?\b/, "intro_made"],
   [/\b(pass|passed|declined?|no|not a fit|dead|lost|rejected)\b/, "passed"],
+  // Interest that isn't a commitment ("soft yes", "maybe") stays unmapped.
+  [/\b(soft (yes|commit(ment)?)|maybe|interested)\b/, null],
   // A term sheet or verbal yes is a commitment in the template's terms.
-  [/\b(committed|commit|invested|wired|yes|term ?sheet|ts|verbal)\b/, "committed"],
+  [/\b(committed|commit|invested|wired|hard (yes|commit)|term ?sheet|ts|verbal( yes)?)\b/, "committed"],
   [/\b(due diligence|diligence|dd|data room)\b/, "diligence"],
   [/\b(partner (meeting|mtg|call|pitch)|ic|investment committee|second meeting|2nd meeting|follow[- ]?up meeting)\b/, "partner_meeting"],
   [/\b(intro(duction)? requested|requested (an )?intro|asked for (an )?intro|warm intro pending|awaiting intro)\b/, "intro_requested"],

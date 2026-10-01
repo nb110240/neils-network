@@ -9,7 +9,7 @@ export async function GET() {
     if (authFailed(auth)) return auth.error
     const { user } = auth
 
-    const { plan, source, proCreditUntil } = await getPlanDetails(user.id)
+    const { plan, source, proCreditUntil, hasBillingAccount } = await getPlanDetails(user.id)
 
     const serviceSupabase = await createServiceClient()
     const { count } = await serviceSupabase
@@ -21,6 +21,7 @@ export async function GET() {
     return NextResponse.json({
       plan,
       planSource: source,
+      hasBillingAccount,
       proCreditUntil: proCreditUntil?.toISOString() ?? null,
       contactCount: count || 0,
     })

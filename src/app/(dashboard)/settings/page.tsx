@@ -60,6 +60,7 @@ export default function SettingsPage() {
   const [plan, setPlan] = useState<string>("free")
   const [planSource, setPlanSource] = useState<"subscription" | "credit" | null>(null)
   const [proCreditUntil, setProCreditUntil] = useState<string | null>(null)
+  const [hasBillingAccount, setHasBillingAccount] = useState(false)
   const [contactCount, setContactCount] = useState(0)
   const [featureRequest, setFeatureRequest] = useState("")
   const [isFeatureLoading, setIsFeatureLoading] = useState(false)
@@ -97,6 +98,7 @@ export default function SettingsPage() {
           setPlan(data.plan)
           setPlanSource(data.planSource ?? null)
           setProCreditUntil(data.proCreditUntil ?? null)
+          setHasBillingAccount(Boolean(data.hasBillingAccount))
           setContactCount(data.contactCount)
         }
         } finally {
@@ -372,7 +374,7 @@ export default function SettingsPage() {
                 </p>
               )}
             </div>
-            {isPaidPlan && !isCreditPro ? (
+            {(isPaidPlan && !isCreditPro) || hasBillingAccount ? (
               <Button
                 variant="outline"
                 size="sm"

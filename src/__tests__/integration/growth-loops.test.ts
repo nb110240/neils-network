@@ -48,6 +48,7 @@ const h = vi.hoisted(() => ({
   user: null as ReturnType<typeof makeClient> | null,
   service: null as ReturnType<typeof makeClient> | null,
   rateLimitOk: true,
+  plan: "pro" as "free" | "pro",
   sendIntroResponseEmail: vi.fn(async () => undefined),
   revalidatePath: vi.fn(),
 }))
@@ -66,12 +67,16 @@ vi.mock("@/lib/email", async (importOriginal) => ({
   sendIntroResponseEmail: h.sendIntroResponseEmail,
 }))
 vi.mock("@vercel/analytics/server", () => ({ track: vi.fn() }))
+vi.mock("@/lib/subscription", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/subscription")>()),
+  getUserPlan: vi.fn(async () => h.plan),
+}))
 
 import { GET as referralLanding } from "@/app/r/[code]/route"
 import { GET as authCallback } from "@/app/auth/callback/route"
 import { GET as getReferrals } from "@/app/api/referrals/route"
 import { GET as getSnapshot, POST as saveSnapshot, DELETE as deleteSnapshot } from "@/app/api/raise-snapshot/route"
-import { POST as shareIntro } from "@/app/api/intro-requests/[id]/share/route"
+import { POST as shareIntro, DELETE as unshareIntro } from "@/app/api/intro-requests/[id]/share/route"
 import { POST as respondIntro } from "@/app/api/intro/[token]/route"
 import { getPlanDetails } from "@/lib/subscription"
 import { PUT as updateContact } from "@/app/api/contacts/[id]/route"
@@ -85,6 +90,7 @@ const json = (body: unknown, headers: Record<string, string> = {}) =>
 
 beforeEach(() => {
   h.rateLimitOk = true
+  h.plan = "pro"
   h.sendIntroResponseEmail.mockClear()
   h.revalidatePath.mockClear()
   process.env.NEXT_PUBLIC_APP_URL = "https://savvo.app"
@@ -202,7 +208,18 @@ describe("plan resolution with referral credit", () => {
         pro_credits: [{ data: { pro_until: "2020-01-01T00:00:00Z" }, error: null }],
       },
     })
-    expect(await getPlanDetails(USER.id)).toEqual({ plan: "free", source: null, proCreditUntil: null })
+    expect(await getPlanDetails(USER.id)).toEqual({ plan: "free", source: null, proCreditUntil: null, hasBillingAccount: false })
+  })
+
+  it("flags a past_due Stripe subscription so credit users can still reach billing", async () => {
+    const future = new Date(Date.now() + 86_400_000).toISOString()
+    h.service = makeClient({
+      tables: {
+        subscriptions: [{ data: { plan: "pro", status: "past_due", stripe_subscription_id: "sub_1", current_period_end: null }, error: null }],
+        pro_credits: [{ data: { pro_until: future }, error: null }],
+      },
+    })
+    expect(await getPlanDetails(USER.id)).toMatchObject({ plan: "pro", source: "credit", hasBillingAccount: true })
   })
 
   it("prefers the paid subscription as the source", async () => {
@@ -320,6 +337,22 @@ describe("POST /api/intro-requests/[id]/share", () => {
     const res = await shareIntro(new Request("https://savvo.app", { method: "POST" }), params({ id: REQUEST_ID }))
     expect((await res.json()).url).toBe(`https://savvo.app/i/${TOKEN}`)
     expect(h.user.calls.some((c) => c.method === "update")).toBe(false)
+  })
+
+  it("is Pro-gated like creating an intro request", async () => {
+    h.plan = "free"
+    h.user = makeClient({ user: USER })
+    expect((await shareIntro(new Request("https://savvo.app", { method: "POST" }), params({ id: REQUEST_ID }))).status).toBe(403)
+  })
+
+  it("turns a link off by clearing its token", async () => {
+    h.user = makeClient({
+      user: USER,
+      tables: { intro_requests: [{ data: { id: REQUEST_ID, share_token: null }, error: null }] },
+    })
+    const res = await unshareIntro(new Request("https://savvo.app", { method: "DELETE" }), params({ id: REQUEST_ID }))
+    expect(res.status).toBe(200)
+    expect(h.user.calls).toContainEqual({ table: "intro_requests", method: "update", args: [{ share_token: null }] })
   })
 
   it("needs a connector and an owned request", async () => {

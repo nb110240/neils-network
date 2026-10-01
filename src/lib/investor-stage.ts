@@ -27,17 +27,22 @@ export function investorStageLabel(stage: string | null | undefined): string | n
 // "Pass", "TS") mapped onto a stage. Order matters: more specific phrases
 // are checked before generic ones. Unknown text returns null rather than
 // guessing, so imports never invent pipeline progress.
+// Every alternative is word-bounded so "Passive" or "Deadline Q3" don't
+// read as passed. Ambiguous words ("closed", "signed", "lead") are left out:
+// a wrong stage is worse than none, since stages feed the shared snapshot.
 const STAGE_PATTERNS: Array<[RegExp, InvestorStage]> = [
-  [/\b(pass(ed)?|declined?|no\b|not a fit|dead|lost|rejected)/, "passed"],
+  // Negations first: "Not contacted" must not match "contacted".
+  [/\b(not (yet )?(contacted|reached out|emailed)|uncontacted|to contact)\b/, "researching"],
+  [/\b(pass|passed|declined?|no|not a fit|dead|lost|rejected)\b/, "passed"],
   // A term sheet or verbal yes is a commitment in the template's terms.
-  [/\b(committed|commit|closed|invested|wired|signed|yes|term ?sheet|ts|verbal)\b/, "committed"],
+  [/\b(committed|commit|invested|wired|yes|term ?sheet|ts|verbal)\b/, "committed"],
   [/\b(due diligence|diligence|dd|data room)\b/, "diligence"],
-  [/\b(partner|ic\b|investment committee|second meeting|2nd meeting|follow[- ]?up meeting)/, "partner_meeting"],
-  [/\b(first|1st|intro(ductory)?) (meeting|mtg|call|chat)|\bmet\b|\bmeeting\b|\bpitched\b/, "first_meeting"],
-  [/\b(intro(duction)? requested|requested intro|asked for intro|warm intro pending|awaiting intro)/, "intro_requested"],
+  [/\b(partner (meeting|mtg|call|pitch)|ic|investment committee|second meeting|2nd meeting|follow[- ]?up meeting)\b/, "partner_meeting"],
+  [/\b(intro(duction)? requested|requested (an )?intro|asked for (an )?intro|warm intro pending|awaiting intro)\b/, "intro_requested"],
+  [/\b((first|1st|intro(ductory)?) (meeting|mtg|call|chat)|met|meeting|pitched)\b/, "first_meeting"],
   // Intro sent, or cold outreach out and awaiting a reply.
-  [/\b(intro(duction)? (made|sent|done)|introduced|contacted|reached out|emailed|messaged|outreach|cold email)/, "intro_made"],
-  [/\b(research(ing)?|target|to contact|prospect|identified|backlog|not contacted|lead)/, "researching"],
+  [/\b(intro(duction)? (made|sent|done)|introduced|contacted|reached out|emailed|messaged|outreach|cold email(ed)?)\b/, "intro_made"],
+  [/\b(research|researching|target|prospect|identified|backlog)\b/, "researching"],
 ]
 
 export function normalizeInvestorStage(value: string | null | undefined): InvestorStage | null {

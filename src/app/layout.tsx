@@ -2,8 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { Suspense } from "react"
 import { DM_Sans, DM_Serif_Display, Geist_Mono } from "next/font/google"
 import { ToastProvider } from "@/components/ui/toast"
-import { Analytics } from "@vercel/analytics/next"
-import { SpeedInsights } from "@vercel/speed-insights/next"
+import { VercelAnalytics } from "@/components/vercel-analytics"
 import { ServiceWorkerRegistrar } from "@/components/sw-registrar"
 import { PostHogProvider } from "@/components/posthog-provider"
 import { NativeBootstrap } from "@/components/native-bootstrap"
@@ -181,8 +180,7 @@ export default function RootLayout({
           <PostHogProvider />
         </Suspense>
         <ToastProvider>{children}</ToastProvider>
-        <Analytics />
-        <SpeedInsights />
+        <VercelAnalytics />
         <ServiceWorkerRegistrar />
         <NativeBootstrap />
       </body>

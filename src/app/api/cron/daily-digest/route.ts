@@ -52,7 +52,16 @@ export async function GET(request: Request) {
       .in("plan", [...DAILY_DIGEST_PLANS])
       .eq("status", "active")
 
-    const dailyDigestUserIds = new Set((dailyDigestUsers || []).map((u) => u.user_id))
+    // Referral Pro credit also unlocks daily digests (getUserPlan treats it as Pro).
+    const { data: creditUsers } = await supabase
+      .from("pro_credits")
+      .select("user_id")
+      .gt("pro_until", new Date().toISOString())
+
+    const dailyDigestUserIds = new Set([
+      ...(dailyDigestUsers || []).map((u) => u.user_id),
+      ...(creditUsers || []).map((u) => u.user_id),
+    ])
 
     // Enumerate users from auth (paginated) rather than from a contacts
     // select: PostgREST caps unpaginated selects at 1,000 rows, so once the

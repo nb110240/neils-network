@@ -13,6 +13,17 @@ export async function POST(request: Request) {
     const billing = body.billing === "yearly" ? "yearly" : "monthly"
     const priceId = billing === "yearly" ? STRIPE_PRICE_YEARLY : STRIPE_PRICE_MONTHLY
 
+    const sub = await getUserSubscription(user.id)
+
+    // A live Stripe subscription (including past_due) must be managed in the
+    // billing portal; a second checkout would bill the customer twice.
+    if (sub?.stripe_subscription_id && (sub.status === "active" || sub.status === "past_due")) {
+      return NextResponse.json(
+        { error: "You already have a subscription. Manage it from Settings." },
+        { status: 409 }
+      )
+    }
+
     const stripe = getStripe()
 
     // Validate the price exists and is active in Stripe
@@ -20,8 +31,6 @@ export async function POST(request: Request) {
     if (!price || !price.active) {
       return errorResponse("Invalid or inactive price configuration")
     }
-
-    const sub = await getUserSubscription(user.id)
 
     // If user already has a Stripe customer, reuse it
     let customerId = sub?.stripe_customer_id

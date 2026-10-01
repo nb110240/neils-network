@@ -186,6 +186,21 @@ export default function IntrosPage() {
 
   // Copies the ask plus a one-click link the connector can answer on, no
   // account needed. Creating the link marks a draft as asked.
+  const turnOffLink = async (request: IntroRequest) => {
+    if (!window.confirm("Turn off this link? Anyone who has it will see a not-found page.")) return
+    setBusyId(request.id)
+    try {
+      const response = await fetch(`/api/intro-requests/${request.id}/share`, { method: "DELETE" })
+      const body = await response.json()
+      if (!response.ok) throw new Error(body.error || "Could not turn off the link")
+      setRequests((current) => current.map((item) => item.id === request.id ? body.request : item))
+    } catch (error) {
+      addToast({ title: "Could not turn off the link", description: error instanceof Error ? error.message : "Please try again", variant: "destructive" })
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   const copyAskWithLink = async (request: IntroRequest) => {
     setBusyId(request.id)
     try {
@@ -319,6 +334,9 @@ export default function IntrosPage() {
                       <div className="mt-3 flex flex-wrap gap-2">
                         {request.connector_contact_id && !request.connector_responded_at && ["draft", "requested"].includes(request.status) && (
                           <Button size="sm" className="min-h-11" onClick={() => copyAskWithLink(request)} disabled={busyId === request.id}><Link2 className="mr-2 h-4 w-4" /> {copiedId === `${request.id}:link` ? "Copied" : "Copy ask with link"}</Button>
+                        )}
+                        {request.share_token && !request.connector_responded_at && (
+                          <Button size="sm" variant="ghost" className="min-h-11" onClick={() => turnOffLink(request)} disabled={busyId === request.id}>Turn off link</Button>
                         )}
                         <Button size="sm" variant="outline" className="min-h-11" onClick={() => copyDraft(request)}><Copy className="mr-2 h-4 w-4" /> {copiedId === request.id ? "Copied" : "Copy ask"}</Button>
                         <Button size="sm" variant="outline" className="min-h-11" onClick={() => updateRequest(request, { draft_message: request.draft_message })} disabled={busyId === request.id}>Save edit</Button>

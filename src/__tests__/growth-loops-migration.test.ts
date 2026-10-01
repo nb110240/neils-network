@@ -29,13 +29,21 @@ describe("growth loops migration", () => {
     expect(definers.sort()).toEqual([
       "claim_referral",
       "delete_user_account",
+      "get_user_plan",
       "grant_referral_reward",
       "intro_request_for_token",
+      "merge_owned_contacts",
       "raise_snapshot_summary",
       "respond_to_intro_request",
       "reward_referral_on_first_contact",
+      "undo_owned_contact_merge",
     ])
-    for (const name of definers.filter((n) => n !== "reward_referral_on_first_contact")) {
+    // Trigger-only, existing-grant (get_user_plan is called from the contact
+    // limit trigger), and user-facing merge RPCs are checked separately.
+    const serviceOnly = definers.filter((n) => ![
+      "reward_referral_on_first_contact", "get_user_plan", "merge_owned_contacts", "undo_owned_contact_merge",
+    ].includes(n))
+    for (const name of serviceOnly) {
       expect(migration).toMatch(new RegExp(`REVOKE ALL ON FUNCTION public\\.${name}\\([^)]*\\) FROM anon`))
       expect(migration).toMatch(new RegExp(`REVOKE ALL ON FUNCTION public\\.${name}\\([^)]*\\) FROM authenticated`))
       expect(migration).toMatch(new RegExp(`GRANT EXECUTE ON FUNCTION public\\.${name}\\([^)]*\\) TO service_role`))
@@ -62,12 +70,14 @@ describe("growth loops migration", () => {
     expect(respond).toContain("left(trim(COALESCE(p_note, '')), 1000)")
   })
 
-  it("rewards each referral once, caps at 12, and stacks after paid time", () => {
+  it("rewards each referral once, caps at 12 durably, and stacks after paid time", () => {
     const grant = fn("grant_referral_reward")
     expect(grant).toContain("status = 'signed_up'")
     expect(grant).toContain("FOR UPDATE")
-    expect(grant).toContain("pg_advisory_xact_lock")
-    expect(grant).toContain("rewarded_count >= 12")
+    // Durable counter: deleting referred accounts must not reset the cap.
+    expect(grant).toContain("SET rewards_granted = rewards_granted + 1")
+    expect(grant).toContain("rewards_granted < 12")
+    expect(grant).not.toMatch(/count\(\*\)[\s\S]*FROM public\.referrals/)
     expect(grant).toContain("GREATEST(now(), COALESCE(paid_until, now()), COALESCE(credit_until, now())) + interval '30 days'")
   })
 
@@ -100,5 +110,21 @@ describe("growth loops migration", () => {
   it("constrains stages to the app's list", async () => {
     const { INVESTOR_STAGES } = await import("@/lib/investor-stage")
     for (const stage of INVESTOR_STAGES) expect(migration).toContain(`'${stage.value}'`)
+  })
+
+  it("counts referral credit as Pro in the DB contact-limit check", () => {
+    const plan = fn("get_user_plan")
+    expect(plan).toContain("FROM public.pro_credits WHERE user_id = uid AND pro_until > now()")
+  })
+
+  it("keeps the raise stage through merge and undo", () => {
+    expect(fn("merge_owned_contacts")).toContain("investor_stage = COALESCE(keep_row.investor_stage, remove_row.investor_stage)")
+    expect(fn("undo_owned_contact_merge")).toContain("investor_stage = log_row.kept_before->>'investor_stage'")
+    // Copied verbatim otherwise: same ownership checks as the original.
+    expect(fn("merge_owned_contacts")).toContain("created_by = auth.uid()")
+  })
+
+  it("hides an archived connector on the public intro page", () => {
+    expect(fn("intro_request_for_token")).toContain("CASE WHEN connector.archived_at IS NULL THEN connector.name END")
   })
 })

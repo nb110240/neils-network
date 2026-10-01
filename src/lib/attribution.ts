@@ -1,3 +1,5 @@
+import { redactShareTokens } from "@/lib/redact-url"
+
 const STORAGE_KEY = "savvo-first-touch"
 export const ATTRIBUTION_COOKIE = "savvo_first_touch"
 
@@ -75,7 +77,7 @@ export function parseAttribution(
     content: cleanValue(url.searchParams.get("utm_content")),
     // Keep the useful campaign parameters, but never persist unrelated query
     // values that could contain an email address, auth code, or other PII.
-    landing_path: cleanPath(`${url.pathname}${query ? `?${query}` : ""}`),
+    landing_path: redactShareTokens(cleanPath(`${url.pathname}${query ? `?${query}` : ""}`)),
     captured_at: Number.isNaN(Date.parse(capturedAt))
       ? new Date().toISOString()
       : capturedAt,

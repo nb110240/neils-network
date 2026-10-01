@@ -29,7 +29,15 @@ export function guessImportField(header: string): string {
   }
   // Pipeline status ("Status", "Stage", "Pipeline Stage"), but not
   // "Stage Focus" (the investor's preferred round, e.g. Seed).
-  if (h === "status" || h === "stage" || h.includes("pipeline") || h.includes("deal stage") || h.includes("raise stage")) {
+  if (
+    h === "status" ||
+    h === "stage" ||
+    h === "pipeline" ||
+    h.includes("pipeline stage") ||
+    h.includes("pipeline status") ||
+    h.includes("deal stage") ||
+    h.includes("raise stage")
+  ) {
     return "investor_stage"
   }
   if (h.includes("name") && !h.includes("company")) return "name"

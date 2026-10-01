@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation"
 import posthog from "posthog-js"
 import { track as trackVercel } from "@vercel/analytics"
 import { createClient } from "@/lib/supabase/client"
+import { redactShareTokens } from "@/lib/redact-url"
 import {
   attributionEventProperties,
   attributionFromUserMetadata,
@@ -49,6 +50,15 @@ export function PostHogProvider() {
         capture_pageleave: true,
         person_profiles: "identified_only",
         respect_dnt: true,
+        // Strip share-link tokens from every event's URL properties.
+        before_send: (event) => {
+          if (!event) return event
+          for (const key of ["$current_url", "$pathname", "$referrer", "$initial_current_url", "$initial_pathname", "path"]) {
+            const value = event.properties?.[key]
+            if (typeof value === "string") event.properties[key] = redactShareTokens(value)
+          }
+          return event
+        },
       })
       initialized.current = true
     }
@@ -157,7 +167,7 @@ export function PostHogProvider() {
 
     if (POSTHOG_KEY && initialized.current) {
       posthog.register(attributionEventProperties(attribution.firstTouch))
-      posthog.capture("$pageview", { $current_url: url, path: pathname })
+      posthog.capture("$pageview", { $current_url: redactShareTokens(url), path: redactShareTokens(pathname) })
     }
 
     const arrivalEvents = campaignArrivalEvents(attribution.currentTouch)

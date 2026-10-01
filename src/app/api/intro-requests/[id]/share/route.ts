@@ -5,10 +5,12 @@ import {
   authFailed,
   badRequestResponse,
   errorResponse,
+  forbiddenResponse,
   isValidUUID,
   notFoundResponse,
 } from "@/lib/api-utils"
 import { createShareToken, introLinkUrl } from "@/lib/share-token"
+import { getUserPlan } from "@/lib/subscription"
 
 // Issues (or returns the existing) link the connector opens to accept or
 // decline. Sharing a draft marks it as asked, matching "Mark asked".
@@ -19,6 +21,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     const auth = await authenticateRequest()
     if (authFailed(auth)) return auth.error
     const { user, supabase } = auth
+    if ((await getUserPlan(user.id)) === "free") return forbiddenResponse("Warm intro tracking is a Pro feature")
 
     const { data: existing, error: readError } = await supabase
       .from("intro_requests")
@@ -66,5 +69,33 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   } catch (error) {
     console.error("Intro request share error:", error)
     return errorResponse("Could not create a link for this introduction")
+  }
+}
+
+// Turns the link off: the old URL stops working immediately. Sharing again
+// issues a new token.
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params
+    if (!isValidUUID(id)) return badRequestResponse("Invalid introduction ID")
+    const auth = await authenticateRequest()
+    if (authFailed(auth)) return auth.error
+    const { user, supabase } = auth
+
+    const { data: updated, error } = await supabase
+      .from("intro_requests")
+      .update({ share_token: null })
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .select("*")
+      .maybeSingle()
+    if (error) return errorResponse("Could not turn off this link")
+    if (!updated) return notFoundResponse("Introduction not found")
+
+    revalidatePath("/intros")
+    return NextResponse.json({ request: updated })
+  } catch (error) {
+    console.error("Intro request unshare error:", error)
+    return errorResponse("Could not turn off this link")
   }
 }

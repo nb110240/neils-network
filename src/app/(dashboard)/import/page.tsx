@@ -307,7 +307,7 @@ function ImportPageInner() {
                 Cancel
               </Button>
               <Button
-                className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+                className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 border-0"
                 onClick={handleGoogleImportContacts}
                 disabled={isGoogleImporting}
               >
@@ -428,7 +428,7 @@ function ImportPageInner() {
                   Back
                 </Button>
                 <Button
-                  className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+                  className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 border-0"
                   onClick={handleImport}
                   disabled={!hasNameMapping || totalRows === 0 || (isPro === false && totalRows > FREE_CSV_LIMIT)}
                 >
@@ -485,7 +485,7 @@ function ImportPageInner() {
                 Import More
               </Button>
               <Button
-                className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+                className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 border-0"
                 onClick={() => router.push("/contacts")}
               >
                 View Contacts

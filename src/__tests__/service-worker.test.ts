@@ -19,7 +19,7 @@ function loadServiceWorker() {
     keys: vi.fn(async () => []),
     delete: vi.fn(),
   }
-  const fetchMock = vi.fn(async () => new Response("ok", { status: 200 }))
+  const fetchMock = vi.fn(async (): Promise<Response> => new Response("ok", { status: 200 }))
   const source = readFileSync(join(process.cwd(), "public/sw.js"), "utf8")
   new Function("self", "caches", "fetch", source)(scope, caches, fetchMock)
 
@@ -28,7 +28,7 @@ function loadServiceWorker() {
     listeners.fetch({ request: new Request(url), respondWith })
     return respondWith
   }
-  return { dispatchFetch, cachePut }
+  return { dispatchFetch, cachePut, fetchMock, caches }
 }
 
 describe("service worker caching", () => {
@@ -49,5 +49,14 @@ describe("service worker caching", () => {
 
   it("still serves same-origin pages network-first for offline support", () => {
     expect(sw.dispatchFetch("https://savvo.app/dashboard")).toHaveBeenCalledOnce()
+  })
+
+  it("answers an offline miss with a network error, never undefined", async () => {
+    sw.fetchMock.mockRejectedValueOnce(new TypeError("offline"))
+    sw.caches.match.mockResolvedValueOnce(undefined)
+    const respondWith = sw.dispatchFetch("https://savvo.app/contacts")
+    const response = await respondWith.mock.calls[0][0]
+    expect(response).toBeInstanceOf(Response)
+    expect(response.type).toBe("error")
   })
 })

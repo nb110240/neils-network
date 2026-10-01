@@ -18,6 +18,7 @@ import {
   Mail,
   Crown,
 } from "lucide-react"
+import { trackContactsCreated } from "@/components/posthog-provider"
 
 const FREE_CSV_LIMIT = PLAN_LIMITS.free.maxContacts
 
@@ -92,6 +93,7 @@ function ImportPageInner() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || data.message)
+      trackContactsCreated("google_import", data.imported || 0)
       setGoogleImportedCount(data.imported)
       setStep("done")
     } catch (error) {
@@ -157,6 +159,7 @@ function ImportPageInner() {
 
       if (!res.ok) throw new Error(data.error || "Failed to import contacts")
 
+      trackContactsCreated("csv_import", data.imported || 0)
       setImportedCount(data.imported)
       setStep("done")
     } catch (error) {

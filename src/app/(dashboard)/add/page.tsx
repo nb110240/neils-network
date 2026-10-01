@@ -19,7 +19,7 @@ import { Loader2, Plus, Linkedin, Crown, ScanLine, Check, Edit2, ArrowUpRight } 
 import Link from "next/link"
 import { type NetworkingGoal, GOAL_CONFIGS } from "@/lib/personalization"
 import { Celebration, useFirstContactCelebration } from "@/components/celebration"
-import { captureEvent } from "@/components/posthog-provider"
+import { trackContactsCreated } from "@/components/posthog-provider"
 
 const DEFAULT_PLACEHOLDER = `Example: Met John Doe at the AI Summit. He's VP of Engineering at Acme Corp. We talked about their platform and he mentioned they're hiring. Should follow up next week.`
 
@@ -102,9 +102,8 @@ export default function AddContactPage() {
 
       // Check if this was the user's first contact — celebrate!
       const isFirstEver = localStorage.getItem("savvo-first-contact-celebrated") !== "true"
-      captureEvent("contact_created", { method: "natural_language", first: isFirstEver })
+      trackContactsCreated("natural_language", 1, { first: isFirstEver })
       if (isFirstEver) {
-        captureEvent("first_contact_created")
         triggerIfFirst(1)
         // Let confetti play before navigating
         setTimeout(() => router.push(`/contact/${data.contact.id}`), 1800)
@@ -155,6 +154,7 @@ export default function AddContactPage() {
         throw new Error(data.error || data.message || "Failed to import from LinkedIn")
       }
 
+      trackContactsCreated("linkedin")
       setLinkedinSuccess({
         id: data.contact.id,
         name: data.contact.name || "Contact",

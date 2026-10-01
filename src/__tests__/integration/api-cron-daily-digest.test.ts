@@ -56,6 +56,8 @@ function makeContacts(userId: string, count: number) {
 function digestSupabase(opts: {
   pages: Array<ReturnType<typeof makeUser>[]>
   contactsByUser: Record<string, ReturnType<typeof makeContacts>>
+  creditUserIds?: string[]
+  dailyUserIds?: string[]
 }) {
   const listUsers = vi.fn(async ({ page }: { page: number }) => ({
     data: { users: opts.pages[page - 1] ?? [] },
@@ -64,7 +66,7 @@ function digestSupabase(opts: {
   const from = vi.fn((table: string) => {
     let ownerId: string | null = null
     const builder: Record<string, unknown> = {}
-    for (const m of ["select", "insert", "in", "is", "gte", "order"]) {
+    for (const m of ["select", "insert", "in", "is", "gt", "gte", "order"]) {
       builder[m] = vi.fn(() => builder)
     }
     builder.eq = vi.fn((col: string, value: string) => {
@@ -73,9 +75,15 @@ function digestSupabase(opts: {
     })
     const resolveData = () => {
       if (table === "contacts") return opts.contactsByUser[ownerId ?? ""] ?? []
+      if (table === "pro_credits") return (opts.creditUserIds ?? []).map((user_id) => ({ user_id }))
       return []
     }
-    builder.single = vi.fn(async () => ({ data: null, error: null }))
+    builder.single = vi.fn(async () => ({
+      data: table === "user_preferences" && opts.dailyUserIds?.includes(ownerId ?? "")
+        ? { digest_frequency: "daily" }
+        : null,
+      error: null,
+    }))
     builder.then = (resolve: (v: unknown) => void) =>
       Promise.resolve({ data: resolveData(), error: null }).then(resolve)
     return builder
@@ -148,5 +156,21 @@ describe("GET /api/cron/daily-digest", () => {
     expect(res.status).toBe(200)
     expect(h.sendDigestEmail).toHaveBeenCalledTimes(2)
     expect((await res.json()).sent).toBe(1)
+  })
+
+  it("sends mid-week daily digests to users with referral Pro credit", async () => {
+    vi.setSystemTime(new Date("2026-10-07T14:00:00Z")) // Wednesday
+    h.supabase = digestSupabase({
+      pages: [[makeUser("credit"), makeUser("free")]],
+      contactsByUser: { credit: makeContacts("credit", 5), free: makeContacts("free", 5) },
+      creditUserIds: ["credit"],
+      dailyUserIds: ["credit", "free"],
+    })
+    const res = await GET(
+      buildRequest({ url: URL, headers: { authorization: "Bearer test-cron-secret" } })
+    )
+    expect(res.status).toBe(200)
+    expect(h.sendDigestEmail).toHaveBeenCalledTimes(1)
+    expect(h.sendDigestEmail).toHaveBeenCalledWith("credit@example.com", "credit", expect.any(Array), expect.objectContaining({ isPro: true }))
   })
 })

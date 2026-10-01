@@ -10,7 +10,7 @@ const h = vi.hoisted(() => ({
   supabase: null as ReturnType<typeof import("../helpers/mock-supabase").createMockSupabase> | null,
   rateLimitSuccess: true,
   priceActive: true,
-  subscription: null as { stripe_customer_id?: string } | null,
+  subscription: null as { stripe_customer_id?: string; stripe_subscription_id?: string; status?: string } | null,
   stripeError: null as Error | null,
 }))
 
@@ -98,6 +98,20 @@ describe("POST /api/stripe/checkout", () => {
   it("reuses an existing Stripe customer when one exists", async () => {
     h.supabase = createMockSupabase({ authUser: { id: "u1", email: "u1@test.com" } })
     h.subscription = { stripe_customer_id: "cus_existing" }
+    const res = await POST(postRequest("http://localhost/api/stripe/checkout", {}))
+    expect(res.status).toBe(200)
+  })
+
+  it.each(["active", "past_due"])("refuses a second checkout while a %s Stripe subscription exists", async (status) => {
+    h.supabase = createMockSupabase({ authUser: { id: "u1", email: "u1@test.com" } })
+    h.subscription = { stripe_customer_id: "cus_existing", stripe_subscription_id: "sub_1", status }
+    const res = await POST(postRequest("http://localhost/api/stripe/checkout", {}))
+    expect(res.status).toBe(409)
+  })
+
+  it("allows checkout again after the subscription was canceled", async () => {
+    h.supabase = createMockSupabase({ authUser: { id: "u1", email: "u1@test.com" } })
+    h.subscription = { stripe_customer_id: "cus_existing", stripe_subscription_id: "sub_1", status: "canceled" }
     const res = await POST(postRequest("http://localhost/api/stripe/checkout", {}))
     expect(res.status).toBe(200)
   })

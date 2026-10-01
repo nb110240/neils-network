@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Check,
   Copy,
+  Link2,
   Loader2,
   Network,
   RefreshCw,
@@ -21,6 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/toast"
+import { captureEvent } from "@/components/posthog-provider"
 import type { IntroPathConfidence, IntroRequest, IntroRequestStatus } from "@/lib/types"
 
 interface ContactOption {
@@ -182,6 +184,46 @@ export default function IntrosPage() {
     window.setTimeout(() => setCopiedId(null), 2000)
   }
 
+  // Copies the ask plus a one-click link the connector can answer on, no
+  // account needed. Creating the link marks a draft as asked.
+  const turnOffLink = async (request: IntroRequest) => {
+    if (!window.confirm("Turn off this link? Anyone who has it will see a not-found page.")) return
+    setBusyId(request.id)
+    try {
+      const response = await fetch(`/api/intro-requests/${request.id}/share`, { method: "DELETE" })
+      const body = await response.json()
+      if (!response.ok) throw new Error(body.error || "Could not turn off the link")
+      setRequests((current) => current.map((item) => item.id === request.id ? body.request : item))
+    } catch (error) {
+      addToast({ title: "Could not turn off the link", description: error instanceof Error ? error.message : "Please try again", variant: "destructive" })
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const copyAskWithLink = async (request: IntroRequest) => {
+    setBusyId(request.id)
+    try {
+      const response = await fetch(`/api/intro-requests/${request.id}/share`, { method: "POST" })
+      const body = await response.json()
+      if (!response.ok) throw new Error(body.error || "Could not create a link")
+      setRequests((current) => current.map((item) => item.id === request.id ? { ...item, ...body.request } : item))
+      captureEvent("intro_link_copied")
+      try {
+        await navigator.clipboard.writeText(`${request.draft_message}\n\nYou can answer with one click here: ${body.url}`)
+        setCopiedId(`${request.id}:link`)
+        window.setTimeout(() => setCopiedId(null), 2000)
+      } catch {
+        // Safari blocks clipboard writes after an await; the link exists, so show it.
+        addToast({ title: "Link ready", description: body.url })
+      }
+    } catch (error) {
+      addToast({ title: "Could not copy the link", description: error instanceof Error ? error.message : "Please try again", variant: "destructive" })
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <div className="animate-fade-in">
@@ -290,12 +332,26 @@ export default function IntrosPage() {
                         className="border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
                       />
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <Button size="sm" className="min-h-11" onClick={() => copyDraft(request)}><Copy className="mr-2 h-4 w-4" /> {copiedId === request.id ? "Copied" : "Copy ask"}</Button>
+                        {request.connector_contact_id && !request.connector_responded_at && ["draft", "requested"].includes(request.status) && (
+                          <Button size="sm" className="min-h-11" onClick={() => copyAskWithLink(request)} disabled={busyId === request.id}><Link2 className="mr-2 h-4 w-4" /> {copiedId === `${request.id}:link` ? "Copied" : "Copy ask with link"}</Button>
+                        )}
+                        {request.share_token && !request.connector_responded_at && (
+                          <Button size="sm" variant="ghost" className="min-h-11" onClick={() => turnOffLink(request)} disabled={busyId === request.id}>Turn off link</Button>
+                        )}
+                        <Button size="sm" variant="outline" className="min-h-11" onClick={() => copyDraft(request)}><Copy className="mr-2 h-4 w-4" /> {copiedId === request.id ? "Copied" : "Copy ask"}</Button>
                         <Button size="sm" variant="outline" className="min-h-11" onClick={() => updateRequest(request, { draft_message: request.draft_message })} disabled={busyId === request.id}>Save edit</Button>
                         {request.status === "draft" && <Button size="sm" variant="outline" className="min-h-11" onClick={() => updateRequest(request, { status: "requested", draft_message: request.draft_message })}>Mark asked</Button>}
                         <Button size="sm" variant="ghost" className="min-h-11 text-red-700 dark:text-red-300" onClick={() => deleteRequest(request)}><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
                       </div>
                     </div>
+                    {request.connector_responded_at && (
+                      <div className="rounded-xl border border-stone-200 p-3 text-sm dark:border-stone-700">
+                        <p className="font-medium text-stone-900 dark:text-stone-100">
+                          {connector?.name || "Your connector"} {request.status === "declined" ? "can't make this intro right now" : "said yes"}
+                        </p>
+                        {request.connector_note && <p className="mt-1 whitespace-pre-wrap text-stone-700 dark:text-stone-300">{request.connector_note}</p>}
+                      </div>
+                    )}
                     {request.next_follow_up_at && (
                       <p className="text-xs font-medium text-amber-800 dark:text-amber-300">Follow up by {new Date(request.next_follow_up_at).toLocaleDateString()}</p>
                     )}

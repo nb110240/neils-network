@@ -16,6 +16,9 @@ describe("CSV import column guessing", () => {
   it("skips spreadsheet-only fields Savvo does not store", () => {
     expect(guessImportField("Check Size Range")).toBe("skip")
     expect(guessImportField("Stage Focus")).toBe("skip")
-    expect(guessImportField("Status")).toBe("skip")
+  })
+
+  it("imports the template's Status column as the raise stage", () => {
+    expect(guessImportField("Status")).toBe("investor_stage")
   })
 })

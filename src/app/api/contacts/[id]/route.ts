@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache"
 import { authenticateRequest, authFailed, badRequestResponse, notFoundResponse, errorResponse } from "@/lib/api-utils"
 import { calculateHealthScore, computeNextDueDate } from "@/lib/health"
 import { z } from "zod/v4"
+import { INVESTOR_STAGE_VALUES } from "@/lib/investor-stage"
 
 // Transform empty strings to null so Zod validators (like .email()) don't reject them
 // Also accept null directly (for clearing fields)
@@ -26,6 +27,7 @@ const UpdateContactSchema = z.object({
   cadence_days: z.number().int().min(1).max(365).nullable().optional(),
   scheduled_follow_up: emptyToNull.pipe(z.string().nullable()).optional(),
   snoozed_until: emptyToNull.pipe(z.string().nullable()).optional(),
+  investor_stage: z.enum(INVESTOR_STAGE_VALUES).nullable().optional(),
 })
 
 export async function GET(

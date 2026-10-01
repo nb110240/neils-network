@@ -173,10 +173,10 @@ export default function InvestorTrackerTemplatePage() {
               built in, and every Next Step Date still depends on a manual review.
             </p>
             <p className="text-stone-700 dark:text-stone-300 max-w-2xl mx-auto leading-relaxed mb-8">
-              Savvo imports this exact CSV. It maps the supported contact, context, and follow-up columns, and leaves
-              spreadsheet-only fields such as Check Size Range, Stage Focus, and Status skipped. Every imported investor
-              gets a health score, reminders when the relationship goes cold, and searchable notes. CSV import is included
-              with Pro when you are ready to bring the sheet over.
+              Savvo imports this exact CSV. It maps the contact, context, and follow-up columns, and brings Status over
+              as each investor&apos;s raise stage, so your pipeline arrives intact. Every imported investor gets a health
+              score, reminders when the relationship goes cold, and searchable notes. The free plan imports up to 50
+              investors.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link

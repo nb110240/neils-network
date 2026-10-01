@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation"
 import posthog from "posthog-js"
 import { track as trackVercel } from "@vercel/analytics"
 import { createClient } from "@/lib/supabase/client"
+import { redactShareTokens } from "@/lib/redact-url"
 import {
   attributionEventProperties,
   attributionFromUserMetadata,
@@ -20,6 +21,17 @@ import {
 
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY
 const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com"
+
+// Autocapture nests element text in arrays/objects ($elements), so redact
+// share tokens at any depth, not just top-level strings.
+export function redactAnalyticsValue(value: unknown): unknown {
+  if (typeof value === "string") return redactShareTokens(value)
+  if (Array.isArray(value)) return value.map(redactAnalyticsValue)
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, redactAnalyticsValue(v)]))
+  }
+  return value
+}
 
 /**
  * Mounts client-side, initializes PostHog, listens for auth state
@@ -49,6 +61,22 @@ export function PostHogProvider() {
         capture_pageleave: true,
         person_profiles: "identified_only",
         respect_dnt: true,
+        // Feature flags are unused; skipping the /flags request also keeps
+        // initial-URL person properties (which can hold a share token) from
+        // being sent outside before_send.
+        advanced_disable_flags: true,
+        // Strip share-link tokens from every string property, including
+        // session-entry URLs and $set/$set_once person properties.
+        before_send: (event) => {
+          if (!event) return event
+          for (const bag of [event.properties, event.$set, event.$set_once]) {
+            if (!bag) continue
+            for (const [key, value] of Object.entries(bag)) {
+              bag[key] = redactAnalyticsValue(value)
+            }
+          }
+          return event
+        },
       })
       initialized.current = true
     }
@@ -157,7 +185,7 @@ export function PostHogProvider() {
 
     if (POSTHOG_KEY && initialized.current) {
       posthog.register(attributionEventProperties(attribution.firstTouch))
-      posthog.capture("$pageview", { $current_url: url, path: pathname })
+      posthog.capture("$pageview", { $current_url: redactShareTokens(url), path: redactShareTokens(pathname) })
     }
 
     const arrivalEvents = campaignArrivalEvents(attribution.currentTouch)

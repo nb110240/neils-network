@@ -127,6 +127,12 @@ Generated from CEO Review on 2026-03-19. Updated 2026-10-01 (shipped log backfil
 - [ ] Service worker still caches same-origin authenticated pages (`/dashboard`, `/contacts`), so offline fallback can show a previous user's data on a shared device. Clear caches on logout. (S)
 - [ ] `/add` saves a nameless contact (and fires activation) when AI extraction fails. Fall back to a name prompt instead. (S)
 - [ ] LinkedIn import rejects country subdomains (`uk.linkedin.com/in/...`) and uses `.single()` for the duplicate check, which errors (and allows a duplicate) when two rows match. (S)
+- [ ] ~34 copper-gradient CTAs render near-black text in dark mode (default Button `--primary-foreground` is `#1c1917`). Add a `copper` Button variant with `text-white` and use it everywhere; find with `grep -rn "from-\[var(--copper)\] to-\[var(--copper-light)\]" src | grep -v text-white`. (S)
+
+### Growth loops follow-ups (PR #12)
+- [ ] Referral claims run only in `/auth/callback`. Native iOS sign-in (in-app code exchange) and any environment with email autoconfirm never claim; `referral_code` is already in user metadata, so add a claim on first authenticated load. (S)
+- [ ] Sentry replays/breadcrumbs may record `/i/<token>` and `/s/<token>` URLs; add the same redaction in Sentry `beforeSend`/`beforeBreadcrumb`. (S)
+- [ ] Owners can write `share_token`, `connector_note`, `connector_responded_at` on their own intro requests via the existing UPDATE policy. Only affects their own row; tighten with column grants if it matters. (S)
 
 ### Product improvements
 - [ ] **Raise Autopilot in the digest** — due/overdue commitments, pending reviews, intro follow-ups ("You promised Sarah the deck by Friday"). (M)

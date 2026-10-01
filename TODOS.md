@@ -1,6 +1,6 @@
 # Savvo — TODOs
 
-Generated from CEO Review on 2026-03-19. Updated 2026-03-25.
+Generated from CEO Review on 2026-03-19. Updated 2026-10-01 (shipped log backfilled from git history through 2026-07-21).
 
 ## Completed (v0.1 — shipped 2026-03-19)
 
@@ -79,6 +79,31 @@ Generated from CEO Review on 2026-03-19. Updated 2026-03-25.
 - ~~Hybrid search (Azure AI Search-style)~~ — parallel vector + keyword with Reciprocal Rank Fusion, recency/exact-match/health boosting, faceted filters (company + health status)
 - ~~Branded email verification page~~ — /auth/verify with Savvo branding
 - ~~Improved signup confirmation~~ — "Can't find it?" help box with spam/sender/timing tips
+
+## Completed (v0.4 — April 2026)
+
+- ~~Scheduling + cadence~~ — one-off follow-up dates, per-contact cadence, propagated into reach-out and digest
+- ~~Dedup gold standard~~ — `namesAgree` safety check, unique active email per user, in-memory dedup for bulk imports, merge undo, LinkedIn duplicate 409
+- ~~Account security~~ — TOTP 2FA (Supabase MFA), 24h idle logout across tabs, security.txt, GDPR data export
+- ~~Product polish~~ — contacts sort dropdown, Pro upgrade dialog, PostHog analytics, PWA install prompt + /install guide, public /changelog, humanized error toasts
+
+## Completed (v0.5 — May–June 2026)
+
+- ~~Runtime hardening~~ — boot-time env validation (`lib/env.ts`), import embedding jobs in `after()`, handler-invocation integration tests for all mutating routes, dependency CVE patches
+- ~~Activation~~ — single-action welcome screen, new-user nudge emails, signup CRO + inline validation, landing repositioned to investor-CRM wedge, loading skeletons on 12 pages
+- ~~iOS app~~ — Capacitor wrapper, RevenueCat IAP (signed attribute, fail-closed), native Google sign-in, universal links, safe-area
+- ~~Performance~~ — static homepage, parallelized dashboard/contacts/search queries, embedding vectors no longer shipped on reads
+
+## Completed (v0.6 — July 2026)
+
+- ~~SEO + distribution pages~~ — og image, per-page metadata, `/vs/{airtable,streak,attio,notion}`, `/templates/investor-tracker`, `/blog` (3 posts) + RSS, sitemap route
+- ~~Critical login fix~~ — Turnstile captcha token on all captcha-gated auth calls (email login was failing in prod)
+- ~~E2E persona fixes~~ — dark mode persistence, MFA QR render, digest plan gating, archive undo refresh, merged notes visible, draft button rendered, CSV count off-by-one
+- ~~Account deletion hardening~~ — residual data removed; migration `20260715200000`
+- ~~PeerPush attribution funnel~~ — durable first-touch UTM attribution (`lib/attribution.ts`) carried through signup
+- ~~Raise Autopilot core loop~~ — meeting capture (manual, Granola, forwarded email) → AI review proposal → human approval in `/inbox` → atomic apply; commitments; `/moves` ranked next actions; migration `20260717120000`
+- ~~Intro requests~~ — intro paths + `intro_requests` table (copy-to-clipboard; hosted double-opt-in still open)
+- ~~Merge fix~~ — active-email ordering in contact merges; migration `20260720120000`
 
 ## In Progress
 

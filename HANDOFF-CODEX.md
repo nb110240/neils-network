@@ -1,5 +1,7 @@
 # HANDOFF: Distribution batch + E2E fixes (for Codex)
 
+> **Status (2026-10-01): historical.** This branch shipped via PR #8 on 2026-07-15. Kept for context on the E2E findings; bugs #11 and #12 below were deferred and are tracked in TODOS.md.
+
 Written 2026-07-15 by Claude Code mid-task at the user's request. Branch: `growth/distribution-batch` (branched off main at 649d6fc, which is deployed to prod). **Nothing on this branch is committed.** Working tree state: `git status` shows 15 modified + 8 untracked paths; `npx tsc --noEmit` PASSES and `npx vitest run` is 554/554 GREEN as of this handoff.
 
 ## Context: what this branch is

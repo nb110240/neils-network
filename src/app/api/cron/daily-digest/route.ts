@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import type { User } from "@supabase/supabase-js"
 import { createServiceClient } from "@/lib/supabase/server"
 import { calculateHealthScore } from "@/lib/health"
 import { sendDigestEmail, sendNewUserNudgeEmail } from "@/lib/email"
@@ -6,6 +7,22 @@ import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
 import { safeCompare } from "@/lib/api-utils"
 import { log } from "@/lib/logger"
 import { DAILY_DIGEST_PLANS } from "@/lib/types"
+
+const DIGEST_CONCURRENCY = 10
+const USERS_PER_PAGE = 1000
+
+type ServiceClient = Awaited<ReturnType<typeof createServiceClient>>
+type DigestUser = User
+
+async function listAllUsers(supabase: ServiceClient): Promise<DigestUser[]> {
+  const all: DigestUser[] = []
+  for (let page = 1; ; page++) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: USERS_PER_PAGE })
+    if (error) throw error
+    all.push(...data.users)
+    if (data.users.length < USERS_PER_PAGE) return all
+  }
+}
 
 export async function GET(request: Request) {
   // Verify cron secret to prevent unauthorized access (timing-safe)
@@ -37,17 +54,14 @@ export async function GET(request: Request) {
 
     const dailyDigestUserIds = new Set((dailyDigestUsers || []).map((u) => u.user_id))
 
-    // Get ALL users who have contacts (free users get weekly digest)
-    const { data: allUserRows } = await supabase
-      .from("contacts")
-      .select("created_by")
-      .is("archived_at", null)
+    // Enumerate users from auth (paginated) rather than from a contacts
+    // select: PostgREST caps unpaginated selects at 1,000 rows, so once the
+    // contacts table outgrew that, users outside the window silently stopped
+    // getting digests. Users with no contacts are skipped below.
+    const users = await listAllUsers(supabase)
 
-    // Deduplicate user IDs
-    const allUserIds = [...new Set((allUserRows || []).map((r) => r.created_by))]
-
-    if (allUserIds.length === 0) {
-      return NextResponse.json({ message: "No users with contacts", sent: 0 })
+    if (users.length === 0) {
+      return NextResponse.json({ message: "No users", sent: 0 })
     }
 
     let emailsSent = 0
@@ -58,7 +72,8 @@ export async function GET(request: Request) {
     // New users get a Mon/Wed/Fri nudge — more touchpoints during the habit window
     const isNudgeDay = day === 1 || day === 3 || day === 5
 
-    for (const user_id of allUserIds) {
+    const processUser = async (user: DigestUser): Promise<"sent" | "nudged" | "skipped" | "none"> => {
+      const user_id = user.id
       const canUseDaily = dailyDigestUserIds.has(user_id)
 
       // Check notification preferences
@@ -73,16 +88,14 @@ export async function GET(request: Request) {
 
       // Skip users who opted out entirely
       if (frequency === "never") {
-        skipped++
-        continue
+        return "skipped"
       }
 
-      // Get user email
-      const { data: { user } } = await supabase.auth.admin.getUserById(user_id)
-      if (!user?.email) continue
+      if (!user.email) return "none"
+      const email = user.email
 
       const userName =
-        user.user_metadata?.full_name || user.email.split("@")[0]
+        user.user_metadata?.full_name || email.split("@")[0]
 
       // Get user's contacts with scheduling fields for richer context
       const { data: contacts } = await supabase
@@ -91,7 +104,7 @@ export async function GET(request: Request) {
         .eq("created_by", user_id)
         .is("archived_at", null)
 
-      if (!contacts || contacts.length === 0) continue
+      if (!contacts || contacts.length === 0) return "none"
 
       // New-user nudge path: users with 1-4 contacts can't get a useful
       // digest yet, but they still need a recurring reason to come back.
@@ -103,23 +116,22 @@ export async function GET(request: Request) {
           (Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24)
         )
         const isNewAccount = accountAgeDays <= 21
-        if (isNewAccount ? !isNudgeDay : !isMonday) continue
+        if (isNewAccount ? !isNudgeDay : !isMonday) return "none"
 
-        await sendNewUserNudgeEmail(user.email, userName, contacts)
-        nudgesSent++
-        continue
+        await sendNewUserNudgeEmail(email, userName, contacts)
+        return "nudged"
       }
 
       // Full digest path (5+ contacts) — apply frequency-based cadence
 
       // Weekly users only get emails on Mondays
       if (frequency === "weekly" && !isMonday) {
-        continue
+        return "none"
       }
 
       // Free users can only have weekly frequency — downgrade to weekly silently
       if (!canUseDaily && frequency === "daily" && !isMonday) {
-        continue
+        return "none"
       }
 
       // Get recent activities for context (last 30 days)
@@ -179,7 +191,7 @@ export async function GET(request: Request) {
           return { ...c, health, adjustedScore, timesShown, lastActivity }
         })
 
-      if (eligible.length === 0) continue
+      if (eligible.length === 0) return "none"
 
       // Pick 3 contacts with a mix:
       // - 2 from lowest adjusted score (most in need of attention, varied)
@@ -209,7 +221,7 @@ export async function GET(request: Request) {
         if (next) picks.push(next)
       }
 
-      if (picks.length === 0) continue
+      if (picks.length === 0) return "none"
 
       // Compute network stats for the email
       const healthBreakdown = contacts.reduce(
@@ -224,7 +236,7 @@ export async function GET(request: Request) {
       const followUpCount = contacts.filter((c) => c.follow_up_needed).length
 
       // Send email
-      await sendDigestEmail(user.email, userName, picks, {
+      await sendDigestEmail(email, userName, picks, {
         totalContacts: contacts.length,
         healthBreakdown,
         followUpCount,
@@ -240,15 +252,34 @@ export async function GET(request: Request) {
         })
       }
 
-      emailsSent++
+      return "sent"
+    }
+
+    // Bounded concurrency keeps the run inside the function timeout as the
+    // user count grows without hammering Resend or Postgres.
+    for (let i = 0; i < users.length; i += DIGEST_CONCURRENCY) {
+      const batch = users.slice(i, i + DIGEST_CONCURRENCY)
+      const results = await Promise.allSettled(batch.map(processUser))
+      for (const [index, r] of results.entries()) {
+        if (r.status === "rejected") {
+          log("error", "Digest failed for user", {
+            action: "cron.daily_digest",
+            route: "/api/cron/daily-digest",
+            userId: batch[index].id,
+            error: String(r.reason),
+          })
+        } else if (r.value === "sent") emailsSent++
+        else if (r.value === "nudged") nudgesSent++
+        else if (r.value === "skipped") skipped++
+      }
     }
 
     log("info", "Daily digest completed", {
       action: "cron.daily_digest",
       route: "/api/cron/daily-digest",
-      userCount: allUserIds.length,
+      userCount: users.length,
       paidUsers: dailyDigestUserIds.size,
-      freeUsers: allUserIds.length - dailyDigestUserIds.size,
+      freeUsers: users.length - dailyDigestUserIds.size,
       emailsSent,
       nudgesSent,
       skipped,

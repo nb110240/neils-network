@@ -73,8 +73,14 @@ function perTableSupabase(opts: {
       Promise.resolve(result).then(resolve)
     return builder
   }
+  const builders: Array<{ table: string; builder: Record<string, ReturnType<typeof vi.fn>> }> = []
   return {
-    from: vi.fn((table: string) => makeBuilder(opts.tables[table] ?? [])),
+    builders,
+    from: vi.fn((table: string) => {
+      const builder = makeBuilder(opts.tables[table] ?? [])
+      builders.push({ table, builder: builder as Record<string, ReturnType<typeof vi.fn>> })
+      return builder
+    }),
     rpc: vi.fn(async () => ({ data: null, error: null })),
     auth: {
       getUser: vi.fn(async () => ({ data: { user: opts.authUser } })),
@@ -247,6 +253,50 @@ describe("/api/calendar/sync", () => {
         rawText: "Jane agreed to send the partnership deck by Friday.",
         existingContact: expect.objectContaining({ email: "jane@acme.com" }),
       }))
+    })
+
+    it("bumps last_contact_date for matched contacts whose date is null", async () => {
+      // Regression: .lt("last_contact_date", date) never matches NULL, so
+      // imported contacts with no last-contact date were never warmed by a
+      // real meeting and kept showing as going cold.
+      const client = perTableSupabase({
+        authUser: { id: "u1", email: "u1@x.com" },
+        tables: {
+          integrations: {
+            id: "int1",
+            access_token: "ya29.token",
+            token_expires_at: new Date(Date.now() + 3_600_000).toISOString(),
+          },
+          contacts: [{ id: "contact-1", email: "jane@acme.com", name: "Jane", last_contact_date: null }],
+          contact_activities: [],
+          after_call_reviews: [],
+        },
+      })
+      h.supabase = client
+      vi.stubGlobal("fetch", vi.fn(async () => ({
+        ok: true,
+        json: async () => ({
+          items: [{
+            id: "evt-null-date",
+            summary: "Coffee",
+            start: { dateTime: "2026-05-01T10:00:00Z" },
+            attendees: [{ email: "u1@x.com" }, { email: "jane@acme.com", displayName: "Jane" }],
+          }],
+        }),
+        text: async () => "",
+      })))
+
+      const res = await POST()
+      expect(res.status).toBe(200)
+      const updates = client.builders.filter(
+        ({ table, builder }) =>
+          table === "contacts" &&
+          builder.update.mock.calls.some(([patch]) => patch?.last_contact_date === "2026-05-01")
+      )
+      expect(updates).toHaveLength(1)
+      const { builder } = updates[0]
+      expect(builder.lt).not.toHaveBeenCalled()
+      expect(builder.or).toHaveBeenCalledWith("last_contact_date.is.null,last_contact_date.lt.2026-05-01")
     })
 
     it("filters existing reviews before capping the next five unseen events", async () => {

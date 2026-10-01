@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 import { createServiceClient } from "@/lib/supabase/server"
 import { createClient } from "@/lib/supabase/server"
 import { getUserPlan } from "@/lib/subscription"
@@ -7,6 +8,13 @@ import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 import { analyzeInteraction } from "@/lib/action-extraction"
 import { hashMeetingContent, htmlToPlainText } from "@/lib/meeting-content"
+
+// Matches contacts whose last_contact_date is before `date` OR unset.
+// A bare .lt() skips NULL (NULL < x is never true), which left imported
+// contacts with no date permanently "going cold" after a real meeting.
+function olderThan(date: string): string {
+  return `last_contact_date.is.null,last_contact_date.lt.${date}`
+}
 
 interface CalendarReviewCandidate {
   contactId: string
@@ -49,6 +57,9 @@ export async function POST() {
     }
 
     const result = await syncCalendarForUser(user.id, user.email || "")
+    revalidatePath("/dashboard")
+    revalidatePath("/reach-out")
+    revalidatePath("/contacts")
     return NextResponse.json(result)
   } catch (error) {
     console.error("Calendar sync error:", error)
@@ -322,7 +333,7 @@ async function syncCalendarForUser(userId: string, userEmail: string) {
           .update({ last_contact_date: eventDate })
           .eq("id", matchedContactId)
           .eq("created_by", userId)
-          .lt("last_contact_date", eventDate)
+          .or(olderThan(eventDate))
 
         // Create a meeting activity on the contact's timeline. The unique
         // index on (contact_id, source, source_event_id) lets us upsert
@@ -420,7 +431,7 @@ async function syncCalendarForUser(userId: string, userEmail: string) {
           .update({ last_contact_date: eventDate })
           .eq("id", existing.id)
           .eq("created_by", userId)
-          .lt("last_contact_date", eventDate)
+          .or(olderThan(eventDate))
         await supabase.from("contact_activities").upsert(
           {
             contact_id: existing.id,

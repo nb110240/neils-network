@@ -52,8 +52,10 @@ self.addEventListener("fetch", (event) => {
         }
         return response
       })
-      .catch(() => {
-        return caches.match(event.request)
+      .catch(async () => {
+        // respondWith() must get a Response: fall back to a network error
+        // when nothing is cached, rather than undefined.
+        return (await caches.match(event.request)) || Response.error()
       })
   )
 })

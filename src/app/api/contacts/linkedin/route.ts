@@ -3,6 +3,7 @@ import { authenticateRequest, authFailed, badRequestResponse, forbiddenResponse,
 import { checkContactLimit, getUserPlan } from "@/lib/subscription"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 import { findDuplicates, findStrongMatch } from "@/lib/dedup"
+import { nameFromLinkedInSlug } from "@/lib/linkedin"
 
 export async function POST(request: Request) {
   try {
@@ -40,7 +41,8 @@ export async function POST(request: Request) {
       return badRequestResponse("Please enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/johndoe)")
     }
 
-    const linkedinRegex = /^https?:\/\/(www\.)?linkedin\.com\/in\/[\w-]+$/i
+    // Slugs for accented names are percent-encoded (/in/jos%C3%A9-garc%C3%ADa).
+    const linkedinRegex = /^https?:\/\/(www\.)?linkedin\.com\/in\/(?:[\w-]|%[0-9a-f]{2})+$/i
     if (!linkedinRegex.test(cleanUrl)) {
       return badRequestResponse("Please enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/johndoe)")
     }
@@ -51,7 +53,8 @@ export async function POST(request: Request) {
       .select("id")
       .eq("created_by", user.id)
       .is("archived_at", null)
-      .ilike("website", `%${cleanUrl.replace(/\/$/, "")}%`)
+      // Escape LIKE wildcards: slugs can contain "_" and "%XX" escapes.
+      .ilike("website", `%${cleanUrl.replace(/\/$/, "").replace(/[\\%_]/g, "\\$&")}%`)
       .single()
 
     if (existing) {
@@ -63,11 +66,7 @@ export async function POST(request: Request) {
 
     // Extract name from LinkedIn URL slug
     const slug = cleanUrl.replace(/\/$/, "").split("/").pop() || ""
-    const nameParts = slug
-      .replace(/-\d+$/, "") // remove trailing numbers like -123
-      .split("-")
-      .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
-    const extractedName = nameParts.join(" ")
+    const extractedName = nameFromLinkedInSlug(slug)
 
     // If user provided additional context, use AI to extract more info
     let name = extractedName || null

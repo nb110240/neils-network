@@ -105,6 +105,49 @@ Generated from CEO Review on 2026-03-19. Updated 2026-10-01 (shipped log backfil
 - ~~Intro requests~~ — intro paths + `intro_requests` table (copy-to-clipboard; hosted double-opt-in still open)
 - ~~Merge fix~~ — active-email ordering in contact merges; migration `20260720120000`
 
+## Next Up (audit 2026-10-01)
+
+### Bugs (confirmed in code)
+- [ ] **Digest skips users** — `api/cron/daily-digest/route.ts:41` builds the user list from an unpaginated `contacts` select (Supabase caps at 1,000 rows); users outside that window get no digest. Zero-contact users are never emailed. Loop is serial per user (timeout risk). List users from subscriptions/auth and batch. (S)
+- [ ] **Calendar sync ignores null last_contact_date** — `api/calendar/sync/route.ts:325,423` use `.lt(...)`; NULL never matches, so imported contacts never warm up after a meeting. Use `.or("last_contact_date.is.null,last_contact_date.lt.<date>")`. (S)
+- [ ] **Follow-up lists disagree (handoff #11)** — Next Moves (`lib/next-moves.ts:184`), Follow-ups Pending (`dashboard/page.tsx:207`) and Reach Out (`dashboard/page.tsx:148`, `reach-out/page.tsx:83`) use three different rules; cooling tier added only when <5 on dashboard. Extract one shared ranking function. (M)
+- [ ] **Walkthrough step 3 skipped (handoff #12)** — targets reach-out card, which renders nothing for new (healthy) contacts. Rebuild for the capture-first flow or remove. (S)
+- [ ] **CSV import is O(rows x contacts)** — `api/import/csv/route.ts:239` calls `findDuplicates()` per row, which selects `*` incl. embeddings (`lib/dedup.ts:202`). Reuse `existingContacts`, drop the embedding column. (S)
+- [ ] **Capture/inbox 500-contact cap** — `capture/page.tsx:22`, `inbox/page.tsx:22`; `/capture?contact=<id>` silently drops contacts outside the first 500. Fetch preselected contact separately; searchable picker. (S)
+- [ ] **Quality-gate gaps** — missing `revalidatePath` in `api/contacts` POST, `contacts/linkedin`, `import/google` POST, `calendar/sync`, `duplicates/dismiss`; missing `archived_at` filter in `api/events/active/route.ts:26`. (S)
+- [ ] **Dead personalization** — nothing writes `user_metadata.networking_goal` since the goal picker was removed, but header/walkthrough/add page read it; welcome/checklist/next-moves hardcode fundraising copy. (S)
+- [ ] **Free import mismatch** — UI checks `totalRows > 5` pre-dedupe and ignores remaining lifetime allowance; dashboard hides Import for free users while onboarding promotes "Import five". (S)
+- [ ] `lib/env.ts` comment claims OAuth state falls back to `CRON_SECRET`; `lib/calendar-oauth-state.ts` throws instead. (S)
+
+### Product improvements
+- [ ] **Raise Autopilot in the digest** — due/overdue commitments, pending reviews, intro follow-ups ("You promised Sarah the deck by Friday"). (M)
+- [ ] **Zero-contact nudge emails** — 2-email "paste your last meeting notes" sequence. (S)
+- [ ] **One action list** — make Next Moves the single prioritized dashboard list (also fixes #11). (M)
+- [ ] Dashboard commitments/reviews/intro queries: filter to open statuses like `/moves` does (`dashboard/page.tsx:59-73`). (S)
+- [ ] Scheduled Granola sync (cron, like calendar). (S)
+- [ ] "Going Cold" caption says 90+ days but cadence makes it earlier (`dashboard/page.tsx:369`). (S)
+- [ ] Remove dead code: `registerPushNotifications` (`lib/native/capacitor.ts:102`), `components/empty-state.tsx`, `components/onboarding-banner.tsx`. (S)
+
+### Growth levers in code
+- [ ] **Template → signup → import funnel** — free CSV import cap (5) blocks the free 30-row investor template; allow up to the 50-contact limit, add "upload your filled tracker" on `/templates/investor-tracker`. (S)
+- [ ] **Fire `first_contact_created` on every path** — only `add/page.tsx:107` today; add import, capture, Granola, inbox approve. (S)
+- [ ] **Generic `campaign_arrival` event** — `posthog-provider.tsx:163` only tracks PeerPush; add `pro_upgraded` with attribution from the Stripe webhook. (S)
+- [ ] Remove expired promo branch in `pricing/page.tsx:105`; align ICP/outreach docs to $8. (S)
+- [ ] Referral program (`/r/[code]` reusing first-touch attribution, credit in `auth/callback`, Stripe coupon). (M)
+- [ ] Shareable "raise snapshot" public link with Savvo footer. (M)
+- [ ] Hosted double-opt-in intro page (intro_requests already exist; copy-only today; consider 1–2/mo for free). (L)
+
+### Distribution (30-day plan, owner: founder)
+Every asset is written; none has been posted. Bottleneck is outbound time, not product.
+1. Days 1–30: ~15/day hand-sourced founders actively raising (raise announcements, accelerator demo-day lists, Luma pitch events). Sequence 1 from `OUTREACH-SEQUENCES.md`, trimmed to 3 emails, raise angle; offer "I'll import your investor spreadsheet for you" (concierge onboarding + interview). Per-link UTMs.
+2. Day 1: post `TWITTER-THREAD.md`, rewritten around the raise story; weekly build-in-public from `/changelog`.
+3. Days 2–7: F5Bot-driven helpful replies (playbook §3), max 1–2/sub/week.
+4. Week 1: accelerator program managers / community builders (Sequence 3): offer the investor template to the whole cohort.
+5. Week 1: GSC + Bing + free directories (playbook §2, §4), each with its own UTM.
+6. Week 3: Product Hunt only after 20+ real users; then r/startups posts.
+7. Ongoing: one fundraising-intent blog post per week linking the template.
+Track weekly: touches sent, signups by `first_touch_source`, activation <24h (>50%), week-2 return, user conversations, third-party mentions.
+
 ## In Progress
 
 ### Email Deliverability (manual — Supabase dashboard)

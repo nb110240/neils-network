@@ -2,8 +2,7 @@ import { NextResponse } from "next/server"
 import { authenticateRequest, authFailed, errorResponse } from "@/lib/api-utils"
 import { parseBody } from "@/lib/request"
 import { z } from "zod/v4"
-import { Resend } from "resend"
-import { escapeHtml, emailLayout } from "@/lib/email"
+import { escapeHtml, emailLayout, sendEmail } from "@/lib/email"
 
 const SupportSchema = z.object({
   subject: z.string().min(1, "Please select a topic").max(200),
@@ -22,8 +21,6 @@ export async function POST(request: Request) {
 
     const resendKey = process.env.RESEND_API_KEY
     if (resendKey) {
-      const resend = new Resend(resendKey)
-
       const body = `
         <p style="font-size:16px;font-weight:600;color:#1c1917;margin:0 0 16px">New Support Message</p>
         <div style="padding:16px;border:1px solid #e7e5e4;border-radius:12px;background:white;margin-bottom:16px">
@@ -36,7 +33,7 @@ export async function POST(request: Request) {
         <div style="padding:16px;background:white;border:1px solid #e7e5e4;border-radius:12px;font-size:14px;line-height:1.6;white-space:pre-wrap">${escapeHtml(message)}</div>
       `
 
-      await resend.emails.send({
+      await sendEmail({
         from: process.env.RESEND_FROM_EMAIL || "Savvo <support@savvo.app>",
         to: "neilbajaj72@gmail.com",
         subject: `[Savvo Support] ${subject}`,

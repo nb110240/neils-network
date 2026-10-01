@@ -1,16 +1,6 @@
 import { NextResponse } from "next/server"
-import { Resend } from "resend"
-import { escapeHtml, emailLayout } from "@/lib/email"
+import { escapeHtml, emailLayout, sendEmail } from "@/lib/email"
 import { safeCompare } from "@/lib/api-utils"
-
-let _resend: Resend | null = null
-
-function getResend(): Resend {
-  if (!_resend) {
-    _resend = new Resend(process.env.RESEND_API_KEY)
-  }
-  return _resend
-}
 
 export async function POST(request: Request) {
   try {
@@ -73,7 +63,7 @@ export async function POST(request: Request) {
       </div>
     `
 
-    await getResend().emails.send({
+    await sendEmail({
       from: process.env.RESEND_FROM_EMAIL || "Savvo <hello@savvo.app>",
       to: email,
       subject: "Welcome to Savvo",

@@ -14,7 +14,8 @@ const features = [
   { name: "Health scores", free: true, pro: true, team: true },
   { name: "Natural language input", free: true, pro: true, team: true },
   { name: "Semantic search", free: "5/month", pro: "Unlimited", team: "Unlimited" },
-  { name: "Import (CSV & Gmail)", free: false, pro: true, team: true },
+  { name: "CSV import", free: "Up to 50", pro: "Unlimited", team: "Unlimited" },
+  { name: "Google Contacts import", free: false, pro: true, team: true },
   { name: "Google Calendar sync", free: false, pro: true, team: true },
   { name: "Digest emails", free: "Weekly", pro: "Daily", team: "Daily" },
   { name: "Shared contact graph", free: false, pro: false, team: true },
@@ -102,18 +103,9 @@ export default function PricingPage() {
     }
   }
 
-  // Launch promo until June 1, 2026: $5/mo (was $8), $50/yr (was $75)
-  const isLaunchPromo = new Date() < new Date("2026-06-01")
-  const price = billing === "monthly"
-    ? (isLaunchPromo ? 5 : 8)
-    : (isLaunchPromo ? 50 : 75)
-  const originalPrice = isLaunchPromo
-    ? (billing === "monthly" ? 8 : 75)
-    : null
-  const perMonth = billing === "monthly" ? price : Math.round((price / 12) * 100) / 100
-  const monthlyEquivalent = isLaunchPromo ? 5 : 8
-  const yearlySavings = Math.round((1 - (isLaunchPromo ? 50 : 75) / ((isLaunchPromo ? 5 : 8) * 12)) * 100)
-  const savings = billing === "yearly" ? yearlySavings : 0
+  const price = billing === "monthly" ? 8 : 75
+  const perMonth = Math.round((75 / 12) * 100) / 100
+  const yearlySavings = Math.round((1 - 75 / (8 * 12)) * 100)
 
   return (
     <main className="min-h-screen bg-background">
@@ -207,27 +199,14 @@ export default function PricingPage() {
             <CardHeader className="text-center pb-2">
               <h2 className="text-xl font-normal leading-none tracking-tight">Pro</h2>
               <div className="mt-2">
-                {isLaunchPromo && billing === "monthly" && (
-                  <span className="text-xl text-muted-foreground line-through mr-2">${originalPrice}</span>
-                )}
                 <span className="text-4xl font-normal">${price}</span>
                 <span className="text-muted-foreground">
                   /{billing === "monthly" ? "month" : "year"}
                 </span>
               </div>
-              {isLaunchPromo && (
-                <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium mt-1">
-                  Simple monthly pricing
-                </p>
-              )}
-              {billing === "yearly" && !isLaunchPromo && (
+              {billing === "yearly" && (
                 <p className="text-sm text-muted-foreground mt-1">
                   ${perMonth}/mo &middot; Save ${96 - 75}/year
-                </p>
-              )}
-              {billing === "yearly" && isLaunchPromo && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  ${perMonth}/mo
                 </p>
               )}
             </CardHeader>

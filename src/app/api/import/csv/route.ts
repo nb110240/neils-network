@@ -6,7 +6,7 @@ import { getUserPlan } from "@/lib/subscription"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 import Papa from "papaparse"
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { findDuplicates, findStrongMatchInMemory } from "@/lib/dedup"
+import { findDuplicatesInMemory, findStrongMatchInMemory } from "@/lib/dedup"
 import { IMPORT_FIELD_VALUES } from "@/lib/import-mapping"
 import { createServiceClient } from "@/lib/supabase/server"
 
@@ -237,22 +237,20 @@ export async function POST(request: Request) {
       reason: string
     }[] = []
 
-    // We need to check against contacts that existed BEFORE this import.
-    // The newly imported contacts have IDs in `data`, so we exclude them.
-    const importedIds = new Set(data.map((c: { id: string }) => c.id))
-
+    // Check against contacts that existed BEFORE this import, reusing the
+    // list preloaded for dedup. It never contains this batch's rows, so
+    // self- and in-batch matches can't occur.
     for (const imported of data) {
-      const matches = await findDuplicates(supabase, user.id, {
-        name: imported.name,
-        email: imported.email,
-        phone: imported.phone,
-        company: imported.company,
-      })
+      const matches = findDuplicatesInMemory(
+        {
+          name: imported.name,
+          email: imported.email,
+          phone: imported.phone,
+          company: imported.company,
+        },
+        existingContacts
+      )
       for (const match of matches) {
-        // Skip matches against other contacts from this same import batch
-        if (importedIds.has(match.contact.id) && match.contact.id !== imported.id) continue
-        // Skip self-match
-        if (match.contact.id === imported.id) continue
         if (match.score >= 0.6) {
           duplicateSummary.push({
             imported_contact: { id: imported.id, name: imported.name },

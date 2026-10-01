@@ -60,6 +60,8 @@ function importSupabase(opts: {
   insertError?: { message: string; code?: string } | null
   priorImportCount?: number
   allowance?: { allowed: boolean; remaining: number; used?: number }
+  existing?: Record<string, unknown>[]
+  selectCalls?: Array<string | undefined>
 }) {
   function contactsBuilder() {
     let insertedRows: unknown[] | null = null
@@ -71,7 +73,8 @@ function importSupabase(opts: {
     ]) {
       builder[m] = vi.fn(() => builder)
     }
-    builder.select = vi.fn((_columns?: string, options?: { count?: string; head?: boolean }) => {
+    builder.select = vi.fn((columns?: string, options?: { count?: string; head?: boolean }) => {
+      if (insertedRows === null) opts.selectCalls?.push(columns)
       countQuery = options?.count === "exact" && options?.head === true
       return builder
     })
@@ -87,7 +90,7 @@ function importSupabase(opts: {
       const result =
         insertedRows !== null
           ? { data: opts.insertError ? null : insertedRows, error: opts.insertError ?? null }
-          : { data: [], error: null, ...(countQuery ? { count: opts.priorImportCount || 0 } : {}) }
+          : { data: opts.existing ?? [], error: null, ...(countQuery ? { count: opts.priorImportCount || 0 } : {}) }
       return Promise.resolve(result).then(resolve)
     }
     return builder
@@ -150,6 +153,34 @@ describe("/api/import/csv", () => {
       h.supabase = importSupabase({ authUser: null })
       const res = await POST(csvFormRequest({}))
       expect(res.status).toBe(401)
+    })
+
+    it("reports near-duplicates from one preloaded contact read, not one per row", async () => {
+      // Regression: the post-insert duplicate scan re-read every contact
+      // (select *, embeddings included) once per imported row, which times
+      // out on large imports.
+      const selectCalls: Array<string | undefined> = []
+      h.supabase = importSupabase({
+        authUser: { id: "u1", email: "u1@x.com" },
+        existing: [{ id: "existing-1", name: "Jane Doe", email: null, phone: null, company: "Acme", website: null }],
+        selectCalls,
+      })
+      const res = await POST(csvFormRequest({
+        csv: "name,email,company\nJane Doe,jane@acme.com,Acme\nBob Lee,bob@x.com,X\nAmy Wu,amy@y.com,Y",
+        mapping: { name: "name", email: "email", company: "company" },
+      }))
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json.imported).toBe(3)
+      expect(json.duplicates).toEqual([
+        expect.objectContaining({
+          imported_contact: expect.objectContaining({ name: "Jane Doe" }),
+          existing_contact: { id: "existing-1", name: "Jane Doe" },
+          reason: "Same name and company",
+        }),
+      ])
+      expect(selectCalls).not.toContain("*")
+      expect(selectCalls).toHaveLength(1)
     })
 
     it("lets a free user import up to five onboarding contacts", async () => {

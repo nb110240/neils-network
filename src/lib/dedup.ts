@@ -222,6 +222,26 @@ export async function findDuplicates(
 }
 
 /**
+ * findDuplicates against a pre-fetched contact list. Bulk paths (CSV
+ * import) preload contacts once; calling findDuplicates per row re-reads
+ * every contact, embeddings included, for each imported row.
+ */
+export function findDuplicatesInMemory<T extends ScorableFields & { id: string }>(
+  fields: ScorableFields,
+  contacts: T[]
+): Array<{ contact: T; score: number; reason: string }> {
+  const matches: Array<{ contact: T; score: number; reason: string }> = []
+  for (const contact of contacts) {
+    const score = scorePair(fields, contact)
+    if (score && score.score >= 0.5) {
+      matches.push({ contact, score: score.score, reason: score.reason })
+    }
+  }
+  matches.sort((a, b) => b.score - a.score)
+  return matches
+}
+
+/**
  * Find an existing contact that strongly matches the given fields.
  * Returns the contact ID if a strong match is found (score >= threshold), null otherwise.
  *

@@ -10,6 +10,7 @@ import { findDuplicatesInMemory, findStrongMatchInMemory } from "@/lib/dedup"
 import { IMPORT_FIELD_VALUES } from "@/lib/import-mapping"
 import { createServiceClient } from "@/lib/supabase/server"
 import { PLAN_LIMITS } from "@/lib/types"
+import { normalizeInvestorStage } from "@/lib/investor-stage"
 
 // Free accounts can CSV-import up to their whole contact allowance, so a
 // founder who fills in the free investor template can bring it all in.
@@ -123,6 +124,7 @@ export async function POST(request: Request) {
           next_steps: (contact.next_steps as string) || null,
           last_contact_date: lastContactDate,
           scheduled_follow_up: scheduledFollowUp,
+          investor_stage: normalizeInvestorStage(contact.investor_stage as string | undefined),
           raw_note: rawNote,
           source: "csv_import",
           created_by: user.id,

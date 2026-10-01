@@ -14,12 +14,45 @@ export async function getUserSubscription(userId: string): Promise<Subscription 
   return data
 }
 
+function paidPlan(sub: Subscription | null): PlanType | null {
+  if (!sub) return null
+  if (sub.status !== "active") return null
+  if (sub.current_period_end && new Date(sub.current_period_end) < new Date()) return null
+  return sub.plan === "free" ? null : (sub.plan as PlanType)
+}
+
+/** Pro time earned through referrals, independent of billing. */
+export async function getProCreditUntil(userId: string): Promise<Date | null> {
+  const supabase = await createServiceClient()
+  const { data } = await supabase
+    .from("pro_credits")
+    .select("pro_until")
+    .eq("user_id", userId)
+    .maybeSingle()
+  return data?.pro_until ? new Date(data.pro_until) : null
+}
+
+export interface PlanDetails {
+  plan: PlanType
+  /** "subscription" = Stripe/RevenueCat; "credit" = referral Pro credit. */
+  source: "subscription" | "credit" | null
+  proCreditUntil: Date | null
+}
+
+export async function getPlanDetails(userId: string): Promise<PlanDetails> {
+  const [sub, creditUntil] = await Promise.all([
+    getUserSubscription(userId),
+    getProCreditUntil(userId),
+  ])
+  const activeCredit = creditUntil && creditUntil > new Date() ? creditUntil : null
+  const paid = paidPlan(sub)
+  if (paid) return { plan: paid, source: "subscription", proCreditUntil: activeCredit }
+  if (activeCredit) return { plan: "pro", source: "credit", proCreditUntil: activeCredit }
+  return { plan: "free", source: null, proCreditUntil: null }
+}
+
 export async function getUserPlan(userId: string): Promise<PlanType> {
-  const sub = await getUserSubscription(userId)
-  if (!sub) return "free"
-  if (sub.status !== "active") return "free"
-  if (sub.current_period_end && new Date(sub.current_period_end) < new Date()) return "free"
-  return sub.plan as PlanType
+  return (await getPlanDetails(userId)).plan
 }
 
 export function getPlanLimits(plan: PlanType) {

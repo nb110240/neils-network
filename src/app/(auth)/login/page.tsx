@@ -17,6 +17,7 @@ import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/toast"
 import { Turnstile } from "@/components/turnstile"
 import { captureEvent } from "@/components/posthog-provider"
+import { readReferralCodeFromDocument } from "@/lib/referrals"
 import {
   attributionUserMetadata,
   getFirstTouchAttribution,
@@ -134,9 +135,11 @@ function LoginPageInner() {
 
     try {
       if (isSignUp) {
-        const firstTouchMetadata = attributionUserMetadata(
-          getFirstTouchAttribution()
-        )
+        const referralCode = readReferralCodeFromDocument()
+        const firstTouchMetadata = {
+          ...attributionUserMetadata(getFirstTouchAttribution()),
+          ...(referralCode ? { referral_code: referralCode } : {}),
+        }
         const { error } = await supabase.auth.signUp({
           email,
           password,

@@ -1,3 +1,5 @@
+import type { InvestorStage } from "@/lib/investor-stage"
+
 export interface Contact {
   id: string
   name: string | null
@@ -19,6 +21,8 @@ export interface Contact {
   scheduled_follow_up: string | null
   snoozed_until: string | null
   next_due_date: string | null
+  /** Pipeline stage when this contact is an investor in the user's raise. */
+  investor_stage?: InvestorStage | null
   created_at: string
   updated_at: string
   archived_at: string | null
@@ -118,6 +122,10 @@ export interface IntroRequest {
   introduced_at: string | null
   meeting_booked_at: string | null
   closed_at: string | null
+  /** Token for the public /i/<token> page the connector answers on. */
+  share_token?: string | null
+  connector_note?: string | null
+  connector_responded_at?: string | null
   created_at: string
   updated_at: string
 }

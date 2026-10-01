@@ -28,6 +28,7 @@ const contactKeys: Record<keyof Contact, true> = {
   scheduled_follow_up: true,
   snoozed_until: true,
   next_due_date: true,
+  investor_stage: true,
   created_at: true,
   updated_at: true,
   archived_at: true,

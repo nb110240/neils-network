@@ -271,6 +271,50 @@ export async function sendNewUserNudgeEmail(
   })
 }
 
+/**
+ * Tells the founder that a connector answered their hosted intro link.
+ */
+export async function sendIntroResponseEmail(
+  to: string,
+  details: {
+    accepted: boolean
+    connectorName: string | null
+    targetName: string | null
+    note: string | null
+  }
+) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://savvo.app"
+  const connector = escapeHtml(details.connectorName || "Your connector")
+  const target = escapeHtml(details.targetName || "your target")
+  const headline = details.accepted
+    ? `${connector} will introduce you to ${target}.`
+    : `${connector} can't make the intro to ${target} right now.`
+  const nextStep = details.accepted
+    ? "Reply fast when the intro lands, and suggest two times."
+    : "No harm done. Look for another path in Savvo."
+  const note = details.note
+    ? `<div style="padding:12px 16px;border:1px solid #e7e5e4;border-radius:10px;margin:0 0 20px;white-space:pre-wrap;color:#44403c">${escapeHtml(details.note)}</div>`
+    : ""
+
+  await sendEmail({
+    from: process.env.RESEND_FROM_EMAIL || "Savvo <hello@savvo.app>",
+    to,
+    subject: details.accepted
+      ? `${details.connectorName || "Your connector"} said yes to your intro`
+      : `${details.connectorName || "Your connector"} replied to your intro request`,
+    html: emailLayout({
+      subtitle: "Warm introductions",
+      appUrl,
+      body: `
+        <p style="font-size:16px;color:#1c1917;margin:0 0 12px">${headline}</p>
+        ${note}
+        <p style="color:#44403c;margin:0 0 20px">${nextStep}</p>
+        <a href="${appUrl}/intros" style="display:inline-block;padding:10px 28px;background:#c2410c;color:white;text-decoration:none;border-radius:8px;font-size:14px;font-weight:500">Open introductions</a>
+      `,
+    }),
+  })
+}
+
 export function escapeHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")

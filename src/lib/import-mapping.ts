@@ -10,6 +10,7 @@ export const IMPORT_FIELDS = [
   { value: "next_steps", label: "Next Steps" },
   { value: "last_contact_date", label: "Last Contact Date" },
   { value: "scheduled_follow_up", label: "Follow-Up Date" },
+  { value: "investor_stage", label: "Raise Stage" },
   { value: "notes", label: "Notes" },
 ] as const
 
@@ -25,6 +26,11 @@ export function guessImportField(header: string): string {
     (h.includes("date") || h.includes("due"))
   ) {
     return "scheduled_follow_up"
+  }
+  // Pipeline status ("Status", "Stage", "Pipeline Stage"), but not
+  // "Stage Focus" (the investor's preferred round, e.g. Seed).
+  if (h === "status" || h === "stage" || h.includes("pipeline") || h.includes("deal stage") || h.includes("raise stage")) {
+    return "investor_stage"
   }
   if (h.includes("name") && !h.includes("company")) return "name"
   if (h.includes("email") || h.includes("e-mail")) return "email"

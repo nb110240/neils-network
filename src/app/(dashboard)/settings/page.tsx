@@ -40,6 +40,8 @@ import { DataExportButton } from "@/components/data-export-button"
 import { MfaSettings } from "@/components/mfa-settings"
 import { InboundNotesAddress } from "@/components/inbound-notes-address"
 import { GranolaIntegration } from "@/components/granola-integration"
+import { ReferralCard } from "@/components/referral-card"
+import { RaiseSnapshotCard } from "@/components/raise-snapshot-card"
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -56,6 +58,8 @@ export default function SettingsPage() {
   const [isAccountLoading, setIsAccountLoading] = useState(true)
   const [isPlanDataLoading, setIsPlanDataLoading] = useState(true)
   const [plan, setPlan] = useState<string>("free")
+  const [planSource, setPlanSource] = useState<"subscription" | "credit" | null>(null)
+  const [proCreditUntil, setProCreditUntil] = useState<string | null>(null)
   const [contactCount, setContactCount] = useState(0)
   const [featureRequest, setFeatureRequest] = useState("")
   const [isFeatureLoading, setIsFeatureLoading] = useState(false)
@@ -64,6 +68,11 @@ export default function SettingsPage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
   const isPaidPlan = plan === "pro" || plan === "team"
+  // Pro earned through referrals has no Stripe customer to manage.
+  const isCreditPro = isPaidPlan && planSource === "credit"
+  const creditUntilLabel = proCreditUntil
+    ? new Date(proCreditUntil).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : null
   const planName = plan === "team" ? "Team" : plan === "pro" ? "Pro" : "Free"
 
   useEffect(() => {
@@ -86,6 +95,8 @@ export default function SettingsPage() {
         if (res.ok) {
           const data = await res.json()
           setPlan(data.plan)
+          setPlanSource(data.planSource ?? null)
+          setProCreditUntil(data.proCreditUntil ?? null)
           setContactCount(data.contactCount)
         }
         } finally {
@@ -341,7 +352,7 @@ export default function SettingsPage() {
                 </span>
                 {isPaidPlan && (
                   <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[var(--copper)] text-white">
-                    Active
+                    {isCreditPro ? "Referral credit" : "Active"}
                   </span>
                 )}
               </div>
@@ -350,13 +361,18 @@ export default function SettingsPage() {
                   ? `${contactCount} contacts in your network`
                   : `${contactCount}/50 contacts \u00B7 Upgrade for unlimited`}
               </p>
+              {isCreditPro && creditUntilLabel && (
+                <p className="text-sm text-stone-700 dark:text-stone-300 mt-1">
+                  Pro until {creditUntilLabel}, earned by inviting founders.
+                </p>
+              )}
               {isPaidPlan && (
                 <p className="text-xs text-muted-foreground mt-1">
                   Unlimited contacts \u00B7 CSV &amp; Gmail import \u00B7 Calendar sync \u00B7 Daily digest \u00B7 AI drafts &amp; prep
                 </p>
               )}
             </div>
-            {isPaidPlan ? (
+            {isPaidPlan && !isCreditPro ? (
               <Button
                 variant="outline"
                 size="sm"
@@ -372,13 +388,17 @@ export default function SettingsPage() {
                 asChild
                 className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
               >
-                <Link href="/pricing">Upgrade to Pro</Link>
+                <Link href="/pricing">{isCreditPro ? "Keep Pro" : "Upgrade to Pro"}</Link>
               </Button>
             )}
             </div>
           )}
         </CardContent>
       </Card>
+
+      <RaiseSnapshotCard />
+
+      <ReferralCard />
 
       <InboundNotesAddress accountEmail={email} isPaidPlan={isPaidPlan} />
       <GranolaIntegration isPaidPlan={isPaidPlan} />

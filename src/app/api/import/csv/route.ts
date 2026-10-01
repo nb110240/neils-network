@@ -284,6 +284,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       imported: data.length,
+      skipped: skippedDupes,
       ...(duplicateSummary.length > 0 ? { duplicates: duplicateSummary } : {}),
     })
   } catch (error) {

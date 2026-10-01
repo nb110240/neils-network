@@ -47,6 +47,8 @@ function ImportPageInner() {
   const [mapping, setMapping] = useState<Record<string, string>>({})
   const [file, setFile] = useState<File | null>(null)
   const [importedCount, setImportedCount] = useState(0)
+  const [skippedCount, setSkippedCount] = useState(0)
+  const [possibleDuplicateCount, setPossibleDuplicateCount] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [isPro, setIsPro] = useState<boolean | null>(null)
 
@@ -161,6 +163,10 @@ function ImportPageInner() {
 
       trackContactsCreated("csv_import", data.imported || 0)
       setImportedCount(data.imported)
+      setSkippedCount(data.skipped || 0)
+      setPossibleDuplicateCount(
+        new Set((data.duplicates || []).map((d: { imported_contact: { id: string } }) => d.imported_contact.id)).size
+      )
       setStep("done")
     } catch (error) {
       addToast({
@@ -456,15 +462,28 @@ function ImportPageInner() {
               <Check className="h-7 w-7 text-emerald-600" />
             </div>
             <p className="text-xl font-normal">
-              {importedCount || googleImportedCount} contacts imported!
+              {(() => {
+                const n = importedCount || googleImportedCount
+                return `${n} ${n === 1 ? "contact" : "contacts"} imported`
+              })()}
             </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Embeddings are being generated in the background for semantic search
-            </p>
+            {skippedCount > 0 && (
+              <p className="text-sm text-stone-700 dark:text-stone-300 mt-1">
+                {skippedCount} already in your network {skippedCount === 1 ? "was" : "were"} skipped.
+              </p>
+            )}
+            {possibleDuplicateCount > 0 && (
+              <p className="text-sm text-amber-800 dark:text-amber-300 mt-1">
+                {possibleDuplicateCount} may match people you already have.{" "}
+                <Link href="/settings#duplicates" className="underline underline-offset-2">
+                  Review duplicates
+                </Link>
+              </p>
+            )}
             <div className="flex gap-3 mt-6">
-              {isPro && <Button variant="outline" onClick={() => { setStep("upload"); setFile(null); setMode("choose"); setImportedCount(0); setGoogleImportedCount(0) }}>
+              <Button variant="outline" onClick={() => { setStep("upload"); setFile(null); setMode("choose"); setImportedCount(0); setGoogleImportedCount(0); setSkippedCount(0); setPossibleDuplicateCount(0) }}>
                 Import More
-              </Button>}
+              </Button>
               <Button
                 className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
                 onClick={() => router.push("/contacts")}

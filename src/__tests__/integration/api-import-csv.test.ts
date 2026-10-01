@@ -183,6 +183,20 @@ describe("/api/import/csv", () => {
       expect(selectCalls).toHaveLength(1)
     })
 
+    it("reports rows skipped as exact duplicates alongside the imported count", async () => {
+      h.supabase = importSupabase({
+        authUser: { id: "u1", email: "u1@x.com" },
+        existing: [{ id: "existing-1", name: "Jane Doe", email: "jane@acme.com", phone: null, company: null, website: null }],
+      })
+      const res = await POST(csvFormRequest({
+        csv: "name,email\nJane Doe,jane@acme.com\nBob Lee,bob@x.com",
+      }))
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json.imported).toBe(1)
+      expect(json.skipped).toBe(1)
+    })
+
     it("lets a free user import a full 30-row investor tracker", async () => {
       // Regression: free import was capped at five, so founders who filled
       // the free 30-row template hit a paywall on their first import.

@@ -71,7 +71,7 @@ export function OnboardingChecklist({
             </Button>
             <div className="flex gap-1">
               <Button variant="ghost" size="sm" className="min-h-11" asChild>
-                <Link href="/import"><Upload className="mr-2 h-4 w-4" />Import five</Link>
+                <Link href="/import"><Upload className="mr-2 h-4 w-4" />Import a CSV</Link>
               </Button>
               <Button variant="ghost" size="sm" className="min-h-11" asChild>
                 <Link href={plan === "free" ? "/pricing" : "/settings"}><CalendarDays className="mr-2 h-4 w-4" />Calendar</Link>

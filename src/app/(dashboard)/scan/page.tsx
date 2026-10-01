@@ -17,6 +17,7 @@ import {
   ScanLine,
   Info,
 } from "lucide-react"
+import { trackContactsCreated } from "@/components/posthog-provider"
 
 export default function ScanPage() {
   const router = useRouter()
@@ -134,6 +135,7 @@ export default function ScanPage() {
 
       if (!res.ok) throw new Error(data.error || "Failed to import")
 
+      trackContactsCreated("qr_scan")
       setImportedContact({ id: data.contact.id, name: data.contact.name })
       addToast({
         title: "Contact added",

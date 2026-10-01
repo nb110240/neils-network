@@ -322,3 +322,28 @@ describe("sendNewUserNudgeEmail", () => {
     expect(html).toContain("&lt;script&gt;")
   })
 })
+
+describe("sendEmail", () => {
+  beforeEach(() => {
+    process.env.RESEND_API_KEY = "test-key"
+    mockSend.mockClear()
+  })
+
+  it("throws when Resend reports an error instead of resolving as sent", async () => {
+    // Regression: the SDK returns { error } rather than throwing, so failed
+    // digests were counted as sent and their contacts hidden for 14 days.
+    mockSend.mockResolvedValueOnce({ data: null, error: { message: "domain not verified", name: "validation_error" } })
+    const { sendEmail } = await import("@/lib/email")
+    await expect(
+      sendEmail({ from: "a@savvo.app", to: "b@example.com", subject: "x", html: "<p>x</p>" })
+    ).rejects.toThrow("domain not verified")
+  })
+
+  it("resolves when Resend accepts the message", async () => {
+    mockSend.mockResolvedValueOnce({ data: { id: "email-1" }, error: null })
+    const { sendEmail } = await import("@/lib/email")
+    await expect(
+      sendEmail({ from: "a@savvo.app", to: "b@example.com", subject: "x", html: "<p>x</p>" })
+    ).resolves.toBeUndefined()
+  })
+})

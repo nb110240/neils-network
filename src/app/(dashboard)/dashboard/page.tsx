@@ -383,17 +383,13 @@ export default async function DashboardPage() {
                 <ArrowRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
               </Link>
             </Button>
-            {planLimits.canImport && (
-              <>
-                <Button variant="outline" size="sm" className="w-full justify-between group" asChild>
-                  <Link href="/import">
-                    Import Contacts
-                    <ArrowRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                  </Link>
-                </Button>
-                <StartEventButton />
-              </>
-            )}
+            <Button variant="outline" size="sm" className="w-full justify-between group" asChild>
+              <Link href="/import">
+                Import Contacts
+                <ArrowRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+              </Link>
+            </Button>
+            {planLimits.canImport && <StartEventButton />}
           </CardContent>
         </Card>
       </div>

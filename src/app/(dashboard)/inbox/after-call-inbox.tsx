@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { captureEvent } from "@/components/posthog-provider"
+import { captureEvent, trackContactsCreated } from "@/components/posthog-provider"
 import type { AfterCallReview, ProposedCommitment, ProposedContactPatch } from "@/lib/types"
 
 interface ContactOption {
@@ -105,6 +105,7 @@ function ReviewCard({
         created_contact: !review.contact_id && !contactId,
         source: review.source,
       })
+      if (!review.contact_id && !contactId) trackContactsCreated("meeting_review")
       onApproved({ id: review.id, contactId: data.result?.contact_id || null, followUp: followUp.trim() || null })
       router.refresh()
     } catch (requestError) {

@@ -9,6 +9,7 @@ import {
   attributionEventProperties,
   attributionFromUserMetadata,
   captureFirstTouchAttribution,
+  campaignArrivalEvents,
   clearFirstTouchAttribution,
   getFirstTouchAttribution,
   persistFirstTouchAttribution,
@@ -159,14 +160,13 @@ export function PostHogProvider() {
       posthog.capture("$pageview", { $current_url: url, path: pathname })
     }
 
-    if (
-      attribution.currentTouch?.source.toLowerCase() === "peerpush" &&
-      lastCampaignArrival.current !== url
-    ) {
-      captureEvent("peerpush_arrival", {
+    const arrivalEvents = campaignArrivalEvents(attribution.currentTouch)
+    if (arrivalEvents.length > 0 && lastCampaignArrival.current !== url) {
+      const properties = {
         ...attributionEventProperties(attribution.currentTouch, "current_touch_"),
         first_touch_was_new: attribution.isNew,
-      })
+      }
+      for (const event of arrivalEvents) captureEvent(event, properties)
       lastCampaignArrival.current = url
     }
   }, [pathname, searchParams])
@@ -207,4 +207,34 @@ export function captureEvent(
   } catch {
     /* analytics must never break the app */
   }
+}
+
+const FIRST_CONTACT_TRACKED_KEY = "savvo-first-contact-tracked"
+// Set by the first-contact confetti; users who saw it already activated.
+const FIRST_CONTACT_CELEBRATED_KEY = "savvo-first-contact-celebrated"
+
+/**
+ * Records contact creation from any path (add, LinkedIn, scan, CSV/Google
+ * import, inbox approval) and fires `first_contact_created` once per
+ * browser, so activation is counted however the user brings people in.
+ */
+export function trackContactsCreated(
+  method: string,
+  count = 1,
+  properties?: Record<string, unknown>
+) {
+  if (count < 1) return
+  captureEvent("contact_created", { method, count, ...properties })
+  try {
+    if (
+      localStorage.getItem(FIRST_CONTACT_TRACKED_KEY) === "true" ||
+      localStorage.getItem(FIRST_CONTACT_CELEBRATED_KEY) === "true"
+    ) {
+      return
+    }
+    localStorage.setItem(FIRST_CONTACT_TRACKED_KEY, "true")
+  } catch {
+    return
+  }
+  captureEvent("first_contact_created", { method, count })
 }

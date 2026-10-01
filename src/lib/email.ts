@@ -9,6 +9,21 @@ function getResend(): Resend {
   return _resend
 }
 
+type SendPayload = Parameters<Resend["emails"]["send"]>[0]
+
+/**
+ * Sends via Resend and throws on failure. The SDK reports API errors as
+ * `{ error }` instead of throwing, so a bare `await emails.send()` treats a
+ * rejected send as delivered (the digest then logged it and hid those
+ * contacts for 14 days).
+ */
+export async function sendEmail(payload: SendPayload): Promise<void> {
+  const result = await getResend().emails.send(payload)
+  if (result?.error) {
+    throw new Error(`Resend send failed: ${result.error.message}`)
+  }
+}
+
 interface DigestContact {
   name: string | null
   company: string | null
@@ -172,7 +187,7 @@ export async function sendDigestEmail(
     ${upgradeCta}
   `
 
-  await getResend().emails.send({
+  await sendEmail({
     from: process.env.RESEND_FROM_EMAIL || "Savvo <digest@savvo.app>",
     to,
     subject: subjectLine,
@@ -244,7 +259,7 @@ export async function sendNewUserNudgeEmail(
       ? "You've started your network on Savvo. Add a few more"
       : "Who else have you met recently?"
 
-  await getResend().emails.send({
+  await sendEmail({
     from: process.env.RESEND_FROM_EMAIL || "Savvo <digest@savvo.app>",
     to,
     subject,

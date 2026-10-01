@@ -53,3 +53,20 @@ describe("LinkedIn URL handling", () => {
     expect(cleanLinkedInUrl("https://linkedin.com/company/google").valid).toBe(false)
   })
 })
+
+// Real-world slugs from "Share Profile" URLs.
+describe("nameFromLinkedInSlug", () => {
+  it.each([
+    // Regression: hex ID suffixes leaked into the name ("Priya Raman 4b7a1b2c3").
+    ["priya-raman-4b7a1b2c3", "Priya Raman"],
+    ["john-doe-123", "John Doe"],
+    ["jane-smith", "Jane Smith"],
+    ["mary-jane-watson-a1b2c3d4", "Mary Jane Watson"],
+    ["jos%C3%A9-garc%C3%ADa-12ab34cd", "José García"],
+    ["elonmusk", "Elonmusk"],
+    ["bad%E0%A4escape-1a2b", "Bad%E0%A4escape"],
+  ])("%s → %s", async (slug, expected) => {
+    const { nameFromLinkedInSlug } = await import("@/lib/linkedin")
+    expect(nameFromLinkedInSlug(slug)).toBe(expected)
+  })
+})

@@ -1,4 +1,6 @@
-const CACHE_NAME = "savvo-v2"
+// v3: purges v2 caches, which stored cross-origin Supabase responses
+// (auth and REST payloads with user data).
+const CACHE_NAME = "savvo-v3"
 const OFFLINE_QUEUE_KEY = "savvo-offline-queue"
 
 // Cache essential pages on install
@@ -35,6 +37,9 @@ self.addEventListener("fetch", (event) => {
 
   // Skip other non-GET requests
   if (event.request.method !== "GET") return
+  // Only same-origin pages are cached. Cross-origin calls (Supabase auth and
+  // REST, analytics) carry user data and must never land in Cache Storage.
+  if (url.origin !== self.location.origin) return
   if (url.pathname.startsWith("/api/")) return
 
   // Network-first for pages
@@ -47,8 +52,10 @@ self.addEventListener("fetch", (event) => {
         }
         return response
       })
-      .catch(() => {
-        return caches.match(event.request)
+      .catch(async () => {
+        // respondWith() must get a Response: fall back to a network error
+        // when nothing is cached, rather than undefined.
+        return (await caches.match(event.request)) || Response.error()
       })
   )
 })

@@ -278,3 +278,18 @@ export function resolveAuthenticatedAttribution(
     shouldClearBrowser: browserFirstTouch !== null,
   }
 }
+
+/**
+ * Analytics events to fire when a visitor lands with UTM parameters.
+ * `campaign_arrival` fires for every source so outbound, directory and
+ * launch traffic can be compared; `peerpush_arrival` is kept for the
+ * existing PeerPush funnel.
+ */
+export function campaignArrivalEvents(
+  currentTouch: FirstTouchAttribution | null | undefined
+): string[] {
+  if (!currentTouch) return []
+  const events = ["campaign_arrival"]
+  if (currentTouch.source.toLowerCase() === "peerpush") events.push("peerpush_arrival")
+  return events
+}

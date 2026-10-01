@@ -60,6 +60,8 @@ function importSupabase(opts: {
   insertError?: { message: string; code?: string } | null
   priorImportCount?: number
   allowance?: { allowed: boolean; remaining: number; used?: number }
+  existing?: Record<string, unknown>[]
+  selectCalls?: Array<string | undefined>
 }) {
   function contactsBuilder() {
     let insertedRows: unknown[] | null = null
@@ -71,7 +73,8 @@ function importSupabase(opts: {
     ]) {
       builder[m] = vi.fn(() => builder)
     }
-    builder.select = vi.fn((_columns?: string, options?: { count?: string; head?: boolean }) => {
+    builder.select = vi.fn((columns?: string, options?: { count?: string; head?: boolean }) => {
+      if (insertedRows === null) opts.selectCalls?.push(columns)
       countQuery = options?.count === "exact" && options?.head === true
       return builder
     })
@@ -87,7 +90,7 @@ function importSupabase(opts: {
       const result =
         insertedRows !== null
           ? { data: opts.insertError ? null : insertedRows, error: opts.insertError ?? null }
-          : { data: [], error: null, ...(countQuery ? { count: opts.priorImportCount || 0 } : {}) }
+          : { data: opts.existing ?? [], error: null, ...(countQuery ? { count: opts.priorImportCount || 0 } : {}) }
       return Promise.resolve(result).then(resolve)
     }
     return builder
@@ -152,15 +155,79 @@ describe("/api/import/csv", () => {
       expect(res.status).toBe(401)
     })
 
-    it("lets a free user import up to five onboarding contacts", async () => {
-      h.supabase = importSupabase({ authUser: { id: "u1" } })
-      h.plan = "free"
-      const res = await POST(csvFormRequest({ csv: "name\nOne\nTwo\nThree\nFour\nFive", mapping: { name: "name" } }))
+    it("reports near-duplicates from one preloaded contact read, not one per row", async () => {
+      // Regression: the post-insert duplicate scan re-read every contact
+      // (select *, embeddings included) once per imported row, which times
+      // out on large imports.
+      const selectCalls: Array<string | undefined> = []
+      h.supabase = importSupabase({
+        authUser: { id: "u1", email: "u1@x.com" },
+        existing: [{ id: "existing-1", name: "Jane Doe", email: null, phone: null, company: "Acme", website: null }],
+        selectCalls,
+      })
+      const res = await POST(csvFormRequest({
+        csv: "name,email,company\nJane Doe,jane@acme.com,Acme\nBob Lee,bob@x.com,X\nAmy Wu,amy@y.com,Y",
+        mapping: { name: "name", email: "email", company: "company" },
+      }))
       expect(res.status).toBe(200)
-      expect((await res.json()).imported).toBe(5)
+      const json = await res.json()
+      expect(json.imported).toBe(3)
+      expect(json.duplicates).toEqual([
+        expect.objectContaining({
+          imported_contact: expect.objectContaining({ name: "Jane Doe" }),
+          existing_contact: { id: "existing-1", name: "Jane Doe" },
+          reason: "Same name and company",
+        }),
+      ])
+      expect(selectCalls).not.toContain("*")
+      expect(selectCalls).toHaveLength(1)
     })
 
-    it("rejects a free CSV that exceeds the remaining five-contact allowance", async () => {
+    it("reports rows skipped as exact duplicates alongside the imported count", async () => {
+      h.supabase = importSupabase({
+        authUser: { id: "u1", email: "u1@x.com" },
+        existing: [{ id: "existing-1", name: "Jane Doe", email: "jane@acme.com", phone: null, company: null, website: null }],
+      })
+      const res = await POST(csvFormRequest({
+        csv: "name,email\nJane Doe,jane@acme.com\nBob Lee,bob@x.com",
+      }))
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json.imported).toBe(1)
+      expect(json.skipped).toBe(1)
+    })
+
+    it("lets a free user import a full 30-row investor tracker", async () => {
+      // Regression: free import was capped at five, so founders who filled
+      // the free 30-row template hit a paywall on their first import.
+      const client = importSupabase({ authUser: { id: "u1" }, allowance: { allowed: true, remaining: 20, used: 30 } })
+      h.supabase = client
+      h.plan = "free"
+      const rows = Array.from({ length: 30 }, (_, i) => `Investor ${i}`).join("\n")
+      const res = await POST(csvFormRequest({ csv: `name\n${rows}`, mapping: { name: "name" } }))
+      expect(res.status).toBe(200)
+      expect((await res.json()).imported).toBe(30)
+      expect(client.rpc).toHaveBeenCalledWith("reserve_free_csv_contacts", {
+        target_user_id: "u1",
+        requested_count: 30,
+        limit_count: 50,
+      })
+    })
+
+    it("tells a free user how much room is left before the contact limit", async () => {
+      const existing = Array.from({ length: 48 }, (_, i) => ({
+        id: `e${i}`, name: `Existing ${i}`, email: null, phone: null, company: null, website: null,
+      }))
+      const client = importSupabase({ authUser: { id: "u1" }, existing })
+      h.supabase = client
+      h.plan = "free"
+      const res = await POST(csvFormRequest({ csv: "name\nOne\nTwo\nThree", mapping: { name: "name" } }))
+      expect(res.status).toBe(400)
+      expect((await res.json()).error).toContain("room for 2 more contacts")
+      expect(client.rpc).not.toHaveBeenCalled()
+    })
+
+    it("rejects a free CSV that exceeds the remaining import allowance", async () => {
       h.supabase = importSupabase({ authUser: { id: "u1" }, allowance: { allowed: false, remaining: 3, used: 2 } })
       h.plan = "free"
       const res = await POST(csvFormRequest({ csv: "name\nOne\nTwo\nThree\nFour", mapping: { name: "name" } }))
@@ -168,8 +235,8 @@ describe("/api/import/csv", () => {
       expect((await res.json()).error).toContain("room for 3 more contacts")
     })
 
-    it("requires Pro after the free five-contact allowance is used", async () => {
-      h.supabase = importSupabase({ authUser: { id: "u1" }, allowance: { allowed: false, remaining: 0, used: 5 } })
+    it("requires Pro after the free import allowance is used", async () => {
+      h.supabase = importSupabase({ authUser: { id: "u1" }, allowance: { allowed: false, remaining: 0, used: 50 } })
       h.plan = "free"
       const res = await POST(csvFormRequest({}))
       expect(res.status).toBe(403)

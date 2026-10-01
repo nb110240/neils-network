@@ -165,6 +165,37 @@ describe("POST /api/contacts/linkedin", () => {
     expect(json.contact.id).toBe("new-contact")
   })
 
+  it.each([
+    // Regression: iOS "Share Profile" links end in a hex ID that leaked into the name.
+    [
+      "https://www.linkedin.com/in/priya-raman-4b7a1b2c3?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=ios_app",
+      "Priya Raman",
+      "%https://www.linkedin.com/in/priya-raman-4b7a1b2c3%",
+    ],
+    // Accented names arrive percent-encoded and used to be rejected outright.
+    [
+      "https://www.linkedin.com/in/jos%C3%A9-garc%C3%ADa-12ab34cd/",
+      "José García",
+      "%https://www.linkedin.com/in/jos\\%C3\\%A9-garc\\%C3\\%ADa-12ab34cd%",
+    ],
+  ])("derives a clean name from a real share URL: %s", async (url, expectedName, expectedPattern) => {
+    h.supabase = withIlike(createMockSupabase({ authUser: { id: "u1" } }))
+    const qb = h.supabase._queryBuilder
+    qb.single = vi
+      .fn()
+      .mockResolvedValueOnce({ data: null, error: null })
+      .mockResolvedValue({ data: { id: "new-contact" }, error: null })
+    Object.defineProperty(qb, "then", {
+      value: (resolve: (v: { data: unknown[]; error: null }) => void) =>
+        Promise.resolve({ data: [], error: null }).then(resolve),
+      configurable: true,
+    })
+    const res = await POST(postRequest(URL, { url }))
+    expect(res.status).toBe(200)
+    expect(qb.insert).toHaveBeenCalledWith(expect.objectContaining({ name: expectedName }))
+    expect((qb as unknown as { ilike: ReturnType<typeof vi.fn> }).ilike).toHaveBeenCalledWith("website", expectedPattern)
+  })
+
   it("returns 500 when the request body is invalid JSON", async () => {
     h.supabase = createMockSupabase({ authUser: { id: "u1" } })
     const req = new Request(URL, {

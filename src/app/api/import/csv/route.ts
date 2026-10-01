@@ -6,9 +6,14 @@ import { getUserPlan } from "@/lib/subscription"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 import Papa from "papaparse"
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { findDuplicates, findStrongMatchInMemory } from "@/lib/dedup"
+import { findDuplicatesInMemory, findStrongMatchInMemory } from "@/lib/dedup"
 import { IMPORT_FIELD_VALUES } from "@/lib/import-mapping"
 import { createServiceClient } from "@/lib/supabase/server"
+import { PLAN_LIMITS } from "@/lib/types"
+
+// Free accounts can CSV-import up to their whole contact allowance, so a
+// founder who fills in the free investor template can bring it all in.
+const FREE_CSV_LIMIT = PLAN_LIMITS.free.maxContacts
 
 function normalizeIsoDate(value: string | undefined): string | null {
   if (!value) return null
@@ -180,20 +185,30 @@ export async function POST(request: Request) {
     }
 
     if (isFreeOnboardingImport) {
+      // The DB trigger caps free accounts at maxContacts; check up front so
+      // the user gets an actionable message instead of a failed insert.
+      const capacity = Math.max(0, FREE_CSV_LIMIT - existingContacts.length)
+      if (capacity === 0) {
+        return forbiddenResponse(`Your free plan holds ${FREE_CSV_LIMIT} contacts and it's full. Upgrade for unlimited contacts.`)
+      }
+      if (deduped.length > capacity) {
+        return badRequestResponse(`Your free plan has room for ${capacity} more contact${capacity === 1 ? "" : "s"}. Trim this CSV or upgrade for unlimited contacts.`)
+      }
+
       allowanceService = await createServiceClient()
       allowanceUserId = user.id
       const { data: reservation, error: reservationError } = await allowanceService.rpc(
         "reserve_free_csv_contacts",
-        { target_user_id: user.id, requested_count: deduped.length, limit_count: 5 }
+        { target_user_id: user.id, requested_count: deduped.length, limit_count: FREE_CSV_LIMIT }
       )
       if (reservationError) return errorResponse("Could not verify your onboarding import allowance")
       const allowance = reservation as { allowed?: boolean; remaining?: number } | null
       if (!allowance?.allowed && (allowance?.remaining || 0) === 0) {
-        return forbiddenResponse("Your five free CSV imports are already used. Upgrade for unlimited importing.")
+        return forbiddenResponse(`Your ${FREE_CSV_LIMIT} free CSV imports are already used. Upgrade for unlimited importing.`)
       }
       if (!allowance?.allowed) {
         const remaining = Math.max(0, allowance?.remaining || 0)
-        return badRequestResponse(`Your free onboarding import has room for ${remaining} more contact${remaining === 1 ? "" : "s"}. Trim this CSV or upgrade for unlimited importing.`)
+        return badRequestResponse(`Your free CSV import has room for ${remaining} more contact${remaining === 1 ? "" : "s"}. Trim this CSV or upgrade for unlimited importing.`)
       }
       reservedContactCount = deduped.length
     }
@@ -237,22 +252,20 @@ export async function POST(request: Request) {
       reason: string
     }[] = []
 
-    // We need to check against contacts that existed BEFORE this import.
-    // The newly imported contacts have IDs in `data`, so we exclude them.
-    const importedIds = new Set(data.map((c: { id: string }) => c.id))
-
+    // Check against contacts that existed BEFORE this import, reusing the
+    // list preloaded for dedup. It never contains this batch's rows, so
+    // self- and in-batch matches can't occur.
     for (const imported of data) {
-      const matches = await findDuplicates(supabase, user.id, {
-        name: imported.name,
-        email: imported.email,
-        phone: imported.phone,
-        company: imported.company,
-      })
+      const matches = findDuplicatesInMemory(
+        {
+          name: imported.name,
+          email: imported.email,
+          phone: imported.phone,
+          company: imported.company,
+        },
+        existingContacts
+      )
       for (const match of matches) {
-        // Skip matches against other contacts from this same import batch
-        if (importedIds.has(match.contact.id) && match.contact.id !== imported.id) continue
-        // Skip self-match
-        if (match.contact.id === imported.id) continue
         if (match.score >= 0.6) {
           duplicateSummary.push({
             imported_contact: { id: imported.id, name: imported.name },
@@ -271,6 +284,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       imported: data.length,
+      skipped: skippedDupes,
       ...(duplicateSummary.length > 0 ? { duplicates: duplicateSummary } : {}),
     })
   } catch (error) {

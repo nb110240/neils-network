@@ -151,11 +151,21 @@ describe("first-touch acquisition flow", () => {
       "utf8"
     )
 
-    expect(provider).toContain('captureEvent("peerpush_arrival"')
+    expect(provider).toContain("campaignArrivalEvents(attribution.currentTouch)")
     expect(provider).toContain('captureEvent("returning_active_user"')
+    expect(provider).toContain('captureEvent("first_contact_created"')
     expect(login).toContain("attributionUserMetadata")
     expect(callback).toContain("if (isNewUser)")
     expect(callback).toContain('track("signup_completed"')
-    expect(addContact).toContain('captureEvent("first_contact_created")')
+    expect(addContact).toContain('trackContactsCreated("natural_language"')
+    expect(addContact).toContain('trackContactsCreated("linkedin")')
+    for (const [path, call] of [
+      ["src/app/(dashboard)/import/page.tsx", 'trackContactsCreated("csv_import"'],
+      ["src/app/(dashboard)/import/page.tsx", 'trackContactsCreated("google_import"'],
+      ["src/app/(dashboard)/scan/page.tsx", 'trackContactsCreated("qr_scan")'],
+      ["src/app/(dashboard)/inbox/after-call-inbox.tsx", 'trackContactsCreated("meeting_review")'],
+    ]) {
+      expect(readFileSync(join(process.cwd(), path), "utf8")).toContain(call)
+    }
   })
 })

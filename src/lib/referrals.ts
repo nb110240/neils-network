@@ -15,8 +15,14 @@ export function isValidReferralCode(code: string | null | undefined): code is st
 export function readReferralCodeFromDocument(): string | null {
   if (typeof document === "undefined") return null
   const match = document.cookie.match(new RegExp(`(?:^|; )${REFERRAL_COOKIE}=([^;]*)`))
-  const code = match ? decodeURIComponent(match[1]) : null
-  return isValidReferralCode(code) ? code : null
+  if (!match) return null
+  try {
+    const code = decodeURIComponent(match[1])
+    return isValidReferralCode(code) ? code : null
+  } catch {
+    // A malformed escape must not block signup; continue without a referral.
+    return null
+  }
 }
 
 export function referralUrl(appUrl: string, code: string): string {

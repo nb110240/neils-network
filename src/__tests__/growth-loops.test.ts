@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import {
   INVESTOR_STAGES,
   normalizeInvestorStage,
@@ -131,5 +131,16 @@ describe("nested analytics redaction", () => {
     expect(redactAnalyticsValue(elements)).toEqual([
       { tag_name: "div", $el_text: "Link ready https://savvo.app/i/[token]", nth: 1 },
     ])
+  })
+})
+
+describe("readReferralCodeFromDocument", () => {
+  it("returns the code, and null (not a throw) for a malformed cookie", async () => {
+    const { readReferralCodeFromDocument } = await import("@/lib/referrals")
+    vi.stubGlobal("document", { cookie: "a=1; savvo_ref=abcd2345" })
+    expect(readReferralCodeFromDocument()).toBe("abcd2345")
+    vi.stubGlobal("document", { cookie: "savvo_ref=%E0%A4%A" })
+    expect(readReferralCodeFromDocument()).toBeNull()
+    vi.unstubAllGlobals()
   })
 })

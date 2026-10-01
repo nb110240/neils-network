@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/toast"
 import { IMPORT_FIELDS, guessImportField } from "@/lib/import-mapping"
+import { PLAN_LIMITS } from "@/lib/types"
 import {
   ArrowLeft,
   Upload,
@@ -17,6 +18,8 @@ import {
   Mail,
   Crown,
 } from "lucide-react"
+
+const FREE_CSV_LIMIT = PLAN_LIMITS.free.maxContacts
 
 export default function ImportPage() {
   return (
@@ -46,7 +49,7 @@ function ImportPageInner() {
   const [isLoading, setIsLoading] = useState(false)
   const [isPro, setIsPro] = useState<boolean | null>(null)
 
-  // Free accounts get a durable five-contact CSV onboarding import. Google
+  // Free accounts can CSV-import up to their contact allowance. Google
   // and unlimited bulk imports remain Pro and are still server-enforced.
   useEffect(() => {
     async function checkPlan() {
@@ -218,8 +221,8 @@ function ImportPageInner() {
         <Card className="border-[var(--copper)]/20 bg-[var(--copper)]/5 shadow-refined animate-fade-in">
           <CardContent className="flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-medium">Your first five CSV contacts are free</p>
-              <p className="mt-1 text-sm text-stone-700 dark:text-stone-300">Upload a CSV with up to five contacts. Unlimited CSV and Google Contacts import are included with Pro.</p>
+              <p className="font-medium">Import up to {FREE_CSV_LIMIT} contacts free</p>
+              <p className="mt-1 text-sm text-stone-700 dark:text-stone-300">Bring in your investor tracker or any CSV. Unlimited contacts and Google Contacts import are included with Pro.</p>
             </div>
             <Button asChild variant="outline" size="sm" className="shrink-0">
               <Link href="/pricing"><Crown className="mr-2 h-4 w-4" /> See Pro</Link>
@@ -399,9 +402,9 @@ function ImportPageInner() {
                 </p>
               )}
 
-              {isPro === false && totalRows > 5 && (
+              {isPro === false && totalRows > FREE_CSV_LIMIT && (
                 <p className="text-sm text-amber-800 dark:text-amber-300">
-                  Free onboarding supports up to five CSV contacts. Trim this file to five rows or upgrade for unlimited importing.
+                  The free plan holds up to {FREE_CSV_LIMIT} contacts. Trim this file or upgrade for unlimited contacts.
                 </p>
               )}
 
@@ -418,7 +421,7 @@ function ImportPageInner() {
                 <Button
                   className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
                   onClick={handleImport}
-                  disabled={!hasNameMapping || totalRows === 0 || (isPro === false && totalRows > 5)}
+                  disabled={!hasNameMapping || totalRows === 0 || (isPro === false && totalRows > FREE_CSV_LIMIT)}
                 >
                   <Upload className="mr-2 h-4 w-4" />
                   Import {totalRows} {totalRows === 1 ? "Contact" : "Contacts"}

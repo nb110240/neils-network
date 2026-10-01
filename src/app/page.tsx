@@ -94,10 +94,10 @@ function MarketingPage() {
         <div className="max-w-5xl mx-auto">
           <p className="text-sm font-semibold uppercase tracking-widest text-[var(--copper-text)] mb-2">How it works</p>
           <h2 className="text-3xl tracking-tight mb-3">A real next action in under 10 minutes</h2>
-          <p className="text-muted-foreground mb-10 max-w-lg">Use context you already have. Paste one note, import five contacts, or connect your calendar.</p>
+          <p className="text-muted-foreground mb-10 max-w-lg">Use context you already have. Paste one note, import your spreadsheet, or connect your calendar.</p>
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { num: "01", title: "Bring one real interaction", desc: "Paste a meeting note, import your first five contacts, or connect Calendar or Granola.", example: '"Maya asked about churn. I promised to send cohorts Friday. She will introduce her fintech partner."' },
+              { num: "01", title: "Bring one real interaction", desc: "Paste a meeting note, import your investor spreadsheet, or connect Calendar or Granola.", example: '"Maya asked about churn. I promised to send cohorts Friday. She will introduce her fintech partner."' },
               { num: "02", title: "Approve what matters", desc: "Savvo proposes contact updates, commitments, and a follow-up. Edit or reject anything before it reaches your CRM." },
               { num: "03", title: "Work your Next 3 Moves", desc: "Overdue promises, reviews, warm intros, and waiting-on-them actions are ranked in one explainable list." },
             ].map((step) => (
@@ -353,7 +353,7 @@ function MarketingPage() {
               { title: "Calendar & Granola", desc: "Bring in event descriptions, summaries, and transcripts without building another recorder." },
               { title: "Sourced Investor Research", desc: "Separate your CRM facts from current public research with time stamps and clickable citations." },
               { title: "Warm Intro Pipeline", desc: "Find evidence-backed connectors, prepare the ask, and track it through meeting booked." },
-              { title: "First Five Import", desc: "Import five CSV contacts free, or use Pro for unlimited CSV and Google Contacts import." },
+              { title: "Free CSV Import", desc: "Import up to 50 contacts from any spreadsheet free, or use Pro for unlimited CSV and Google Contacts import." },
               { title: "Private by Default", desc: "Nothing changes and nothing sends until you explicitly approve or copy it." },
             ].map((f) => (
               <div key={f.title} className="p-5 rounded-xl border hover:border-[var(--copper)]/30 hover:shadow-refined transition-all">
@@ -377,7 +377,7 @@ function MarketingPage() {
               <div className="text-3xl font-normal mb-1">$0 <span className="text-base text-muted-foreground font-normal">/month</span></div>
               <p className="text-sm text-muted-foreground mb-4">For getting started</p>
               <ul className="space-y-2 text-sm mb-6">
-                {["50 contacts", "3 AI meeting reviews", "First 5 CSV contacts", "Next 3 Moves", "5 smart searches / month", "Weekly digest emails"].map((f) => (
+                {["50 contacts", "3 AI meeting reviews", "CSV import (up to 50)", "Next 3 Moves", "5 smart searches / month", "Weekly digest emails"].map((f) => (
                   <li key={f} className="flex items-center gap-2"><span className="text-emerald-500 font-bold">&#10003;</span> {f}</li>
                 ))}
                 {["Unlimited import", "Google Calendar sync", "Granola ingestion", "Daily digest emails"].map((f) => (

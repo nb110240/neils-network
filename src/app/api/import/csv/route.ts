@@ -9,6 +9,11 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { findDuplicatesInMemory, findStrongMatchInMemory } from "@/lib/dedup"
 import { IMPORT_FIELD_VALUES } from "@/lib/import-mapping"
 import { createServiceClient } from "@/lib/supabase/server"
+import { PLAN_LIMITS } from "@/lib/types"
+
+// Free accounts can CSV-import up to their whole contact allowance, so a
+// founder who fills in the free investor template can bring it all in.
+const FREE_CSV_LIMIT = PLAN_LIMITS.free.maxContacts
 
 function normalizeIsoDate(value: string | undefined): string | null {
   if (!value) return null
@@ -180,20 +185,30 @@ export async function POST(request: Request) {
     }
 
     if (isFreeOnboardingImport) {
+      // The DB trigger caps free accounts at maxContacts; check up front so
+      // the user gets an actionable message instead of a failed insert.
+      const capacity = Math.max(0, FREE_CSV_LIMIT - existingContacts.length)
+      if (capacity === 0) {
+        return forbiddenResponse(`Your free plan holds ${FREE_CSV_LIMIT} contacts and it's full. Upgrade for unlimited contacts.`)
+      }
+      if (deduped.length > capacity) {
+        return badRequestResponse(`Your free plan has room for ${capacity} more contact${capacity === 1 ? "" : "s"}. Trim this CSV or upgrade for unlimited contacts.`)
+      }
+
       allowanceService = await createServiceClient()
       allowanceUserId = user.id
       const { data: reservation, error: reservationError } = await allowanceService.rpc(
         "reserve_free_csv_contacts",
-        { target_user_id: user.id, requested_count: deduped.length, limit_count: 5 }
+        { target_user_id: user.id, requested_count: deduped.length, limit_count: FREE_CSV_LIMIT }
       )
       if (reservationError) return errorResponse("Could not verify your onboarding import allowance")
       const allowance = reservation as { allowed?: boolean; remaining?: number } | null
       if (!allowance?.allowed && (allowance?.remaining || 0) === 0) {
-        return forbiddenResponse("Your five free CSV imports are already used. Upgrade for unlimited importing.")
+        return forbiddenResponse(`Your ${FREE_CSV_LIMIT} free CSV imports are already used. Upgrade for unlimited importing.`)
       }
       if (!allowance?.allowed) {
         const remaining = Math.max(0, allowance?.remaining || 0)
-        return badRequestResponse(`Your free onboarding import has room for ${remaining} more contact${remaining === 1 ? "" : "s"}. Trim this CSV or upgrade for unlimited importing.`)
+        return badRequestResponse(`Your free CSV import has room for ${remaining} more contact${remaining === 1 ? "" : "s"}. Trim this CSV or upgrade for unlimited importing.`)
       }
       reservedContactCount = deduped.length
     }

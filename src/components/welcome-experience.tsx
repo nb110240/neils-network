@@ -79,7 +79,7 @@ export function WelcomeExperience({
             </Button>
             <Button variant="ghost" size="sm" asChild className="min-h-11 px-3 text-muted-foreground hover:text-[var(--copper-text)]">
               <Link href="/import">
-                <Upload className="mr-2 h-4 w-4" /> Import five
+                <Upload className="mr-2 h-4 w-4" /> Import a CSV
               </Link>
             </Button>
             <Button variant="ghost" size="sm" asChild className="min-h-11 px-3 text-muted-foreground hover:text-[var(--copper-text)]">

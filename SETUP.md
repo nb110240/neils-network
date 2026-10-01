@@ -52,7 +52,13 @@ Open http://localhost:3001. Set `NEXT_PUBLIC_APP_URL=http://localhost:3001` in `
 
 1. Create a project and copy the URL, anon key, and service-role key (Settings → API).
 2. Run `supabase-schema.sql` in the SQL Editor (it enables `pgvector`).
-3. Apply the SQL files in `supabase/migrations/`. Unprefixed files are legacy history; timestamped files (`YYYYMMDDHHMMSS_*.sql`) are applied in order. Read [supabase/README.md](supabase/README.md) before writing a new migration: migrations are forward-only and applied manually in the SQL Editor.
+3. Apply `supabase/migrations/` in this order. The unprefixed legacy files depend on each other, so alphabetical order fails (`contact_scheduling.sql` needs `archived_at` from `soft_delete_and_embedding_status.sql`):
+   1. `events`, `tags`, `contact_activities`, `activity_source`, `integrations`, `search_usage`, `user_preferences`, `teams`, `indexes`
+   2. `soft_delete_and_embedding_status` (also raises the free contact limit from the base schema's 25 to 50)
+   3. `contact_scheduling`, `duplicate_management`, `unique_active_email`
+   4. Every timestamped file (`YYYYMMDDHHMMSS_*.sql`) in timestamp order
+
+   Read [supabase/README.md](supabase/README.md) before writing a new migration: migrations are forward-only and applied manually in the SQL Editor.
 4. Authentication:
    - Add `http://localhost:3001` and your production domain to Site URL / Redirect URLs.
    - Google provider: create OAuth credentials in Google Cloud and add `https://<project>.supabase.co/auth/v1/callback` as a redirect URI.
@@ -126,4 +132,5 @@ iOS: see [ios/DEPLOY-IOS.md](ios/DEPLOY-IOS.md).
 | Boot log says "Missing required environment variable" | Set it in `.env.local` or Vercel project settings |
 | Search returns nothing for new contacts | Embedding failed; check the contact's embedding status or re-embed |
 | `next dev` page loads but nothing is clickable | Dev CSP problem; `next.config.ts` adds `unsafe-eval` only when `NODE_ENV=development` |
+| Local Supabase calls blocked by CSP | In development the CSP allows `NEXT_PUBLIC_SUPABASE_URL`'s origin; restart `next dev` after changing it |
 | Crons do nothing | `CRON_SECRET` missing or different from the Vercel value |

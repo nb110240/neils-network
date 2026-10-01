@@ -1,6 +1,18 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
+// In development only, allow the configured Supabase origin so a local
+// stack (http://localhost:54321) works. Production keeps *.supabase.co only.
+function devSupabaseOrigin(): string {
+  if (process.env.NODE_ENV !== "development") return ""
+  try {
+    const origin = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || "").origin
+    return origin.endsWith(".supabase.co") ? "" : ` ${origin}`
+  } catch {
+    return ""
+  }
+}
+
 const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
   poweredByHeader: false,
@@ -48,7 +60,7 @@ const nextConfig: NextConfig = {
             // Refresh) evaluates strings, and without it React never hydrates,
             // so every page renders but nothing is clickable. Production CSP
             // stays eval-free.
-            value: `default-src 'self'; script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""} https://js.stripe.com https://va.vercel-scripts.com https://challenges.cloudflare.com https://us-assets.i.posthog.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co https://api.openai.com https://api.stripe.com https://*.sentry.io https://*.googleapis.com https://*.upstash.io https://va.vercel-scripts.com https://challenges.cloudflare.com https://us.i.posthog.com https://us-assets.i.posthog.com; frame-src https://js.stripe.com https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'`,
+            value: `default-src 'self'; script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""} https://js.stripe.com https://va.vercel-scripts.com https://challenges.cloudflare.com https://us-assets.i.posthog.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co${devSupabaseOrigin()} https://api.openai.com https://api.stripe.com https://*.sentry.io https://*.googleapis.com https://*.upstash.io https://va.vercel-scripts.com https://challenges.cloudflare.com https://us.i.posthog.com https://us-assets.i.posthog.com; frame-src https://js.stripe.com https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'`,
           },
         ],
       },

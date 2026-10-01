@@ -108,16 +108,25 @@ Generated from CEO Review on 2026-03-19. Updated 2026-10-01 (shipped log backfil
 ## Next Up (audit 2026-10-01)
 
 ### Bugs (confirmed in code)
-- [ ] **Digest skips users** — `api/cron/daily-digest/route.ts:41` builds the user list from an unpaginated `contacts` select (Supabase caps at 1,000 rows); users outside that window get no digest. Zero-contact users are never emailed. Loop is serial per user (timeout risk). List users from subscriptions/auth and batch. (S)
-- [ ] **Calendar sync ignores null last_contact_date** — `api/calendar/sync/route.ts:325,423` use `.lt(...)`; NULL never matches, so imported contacts never warm up after a meeting. Use `.or("last_contact_date.is.null,last_contact_date.lt.<date>")`. (S)
+- [x] **Digest skips users** — `api/cron/daily-digest/route.ts:41` builds the user list from an unpaginated `contacts` select (Supabase caps at 1,000 rows); users outside that window get no digest. Zero-contact users are never emailed. Loop is serial per user (timeout risk). List users from subscriptions/auth and batch. (S)
+- [x] **Calendar sync ignores null last_contact_date** — `api/calendar/sync/route.ts:325,423` use `.lt(...)`; NULL never matches, so imported contacts never warm up after a meeting. Use `.or("last_contact_date.is.null,last_contact_date.lt.<date>")`. (S)
 - [ ] **Follow-up lists disagree (handoff #11)** — Next Moves (`lib/next-moves.ts:184`), Follow-ups Pending (`dashboard/page.tsx:207`) and Reach Out (`dashboard/page.tsx:148`, `reach-out/page.tsx:83`) use three different rules; cooling tier added only when <5 on dashboard. Extract one shared ranking function. (M)
 - [ ] **Walkthrough step 3 skipped (handoff #12)** — targets reach-out card, which renders nothing for new (healthy) contacts. Rebuild for the capture-first flow or remove. (S)
-- [ ] **CSV import is O(rows x contacts)** — `api/import/csv/route.ts:239` calls `findDuplicates()` per row, which selects `*` incl. embeddings (`lib/dedup.ts:202`). Reuse `existingContacts`, drop the embedding column. (S)
+- [x] **CSV import is O(rows x contacts)** — `api/import/csv/route.ts:239` calls `findDuplicates()` per row, which selects `*` incl. embeddings (`lib/dedup.ts:202`). Reuse `existingContacts`, drop the embedding column. (S)
 - [ ] **Capture/inbox 500-contact cap** — `capture/page.tsx:22`, `inbox/page.tsx:22`; `/capture?contact=<id>` silently drops contacts outside the first 500. Fetch preselected contact separately; searchable picker. (S)
 - [ ] **Quality-gate gaps** — missing `revalidatePath` in `api/contacts` POST, `contacts/linkedin`, `import/google` POST, `calendar/sync`, `duplicates/dismiss`; missing `archived_at` filter in `api/events/active/route.ts:26`. (S)
 - [ ] **Dead personalization** — nothing writes `user_metadata.networking_goal` since the goal picker was removed, but header/walkthrough/add page read it; welcome/checklist/next-moves hardcode fundraising copy. (S)
 - [ ] **Free import mismatch** — UI checks `totalRows > 5` pre-dedupe and ignores remaining lifetime allowance; dashboard hides Import for free users while onboarding promotes "Import five". (S)
 - [ ] `lib/env.ts` comment claims OAuth state falls back to `CRON_SECRET`; `lib/calendar-oauth-state.ts` throws instead. (S)
+
+### Found in local E2E (2026-10-01)
+- [x] Resend `{ error }` responses were treated as delivered (digest logged them and hid contacts for 14 days; support form showed success). All sends now go through `sendEmail()`, which throws.
+- [x] Import page ignored the API's duplicate summary; now shows skipped exact duplicates and links possible ones to review.
+- [x] LinkedIn share URLs with hex ID suffixes put the suffix in the name ("Priya Raman 4b7a1b2c3"); percent-encoded (accented) slugs were rejected.
+- [x] Service worker cached cross-origin Supabase auth/REST responses in Cache Storage.
+- [ ] Service worker still caches same-origin authenticated pages (`/dashboard`, `/contacts`), so offline fallback can show a previous user's data on a shared device. Clear caches on logout. (S)
+- [ ] `/add` saves a nameless contact (and fires activation) when AI extraction fails. Fall back to a name prompt instead. (S)
+- [ ] LinkedIn import rejects country subdomains (`uk.linkedin.com/in/...`) and uses `.single()` for the duplicate check, which errors (and allows a duplicate) when two rows match. (S)
 
 ### Product improvements
 - [ ] **Raise Autopilot in the digest** — due/overdue commitments, pending reviews, intro follow-ups ("You promised Sarah the deck by Friday"). (M)
@@ -129,10 +138,10 @@ Generated from CEO Review on 2026-03-19. Updated 2026-10-01 (shipped log backfil
 - [ ] Remove dead code: `registerPushNotifications` (`lib/native/capacitor.ts:102`), `components/empty-state.tsx`, `components/onboarding-banner.tsx`. (S)
 
 ### Growth levers in code
-- [ ] **Template → signup → import funnel** — free CSV import cap (5) blocks the free 30-row investor template; allow up to the 50-contact limit, add "upload your filled tracker" on `/templates/investor-tracker`. (S)
-- [ ] **Fire `first_contact_created` on every path** — only `add/page.tsx:107` today; add import, capture, Granola, inbox approve. (S)
-- [ ] **Generic `campaign_arrival` event** — `posthog-provider.tsx:163` only tracks PeerPush; add `pro_upgraded` with attribution from the Stripe webhook. (S)
-- [ ] Remove expired promo branch in `pricing/page.tsx:105`; align ICP/outreach docs to $8. (S)
+- [x] **Template → signup → import funnel** — free CSV import cap (5) blocked founders importing their filled-in investor tracker; now up to the 50-contact limit. Still open: "upload your filled tracker" on `/templates/investor-tracker`. (S)
+- [x] **Fire `first_contact_created` on every path** — only `add/page.tsx:107` today; add import, capture, Granola, inbox approve. (S)
+- [x] **Generic `campaign_arrival` event** — `posthog-provider.tsx:163` only tracks PeerPush; `campaign_arrival` shipped; still open: `pro_upgraded` with attribution from the Stripe webhook. (S)
+- [x] Remove expired promo branch in `pricing/page.tsx:105`; align ICP/outreach docs to $8. (S)
 - [ ] Referral program (`/r/[code]` reusing first-touch attribution, credit in `auth/callback`, Stripe coupon). (M)
 - [ ] Shareable "raise snapshot" public link with Savvo footer. (M)
 - [ ] Hosted double-opt-in intro page (intro_requests already exist; copy-only today; consider 1–2/mo for free). (L)

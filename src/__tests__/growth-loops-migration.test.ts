@@ -128,3 +128,12 @@ describe("growth loops migration", () => {
     expect(fn("intro_request_for_token")).toContain("CASE WHEN connector.archived_at IS NULL THEN connector.name END")
   })
 })
+
+describe("undo of pre-migration merges", () => {
+  it("keeps the current stage when the merge snapshot predates investor_stage", () => {
+    const followUp = read("20261001130000_undo_merge_legacy_stage.sql")
+    expect(followUp).toContain("WHEN log_row.kept_before ? 'investor_stage' THEN log_row.kept_before->>'investor_stage'")
+    expect(followUp).toContain("ELSE investor_stage")
+    expect(followUp).toContain("GRANT EXECUTE ON FUNCTION public.undo_owned_contact_merge(uuid) TO authenticated")
+  })
+})

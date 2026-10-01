@@ -22,6 +22,17 @@ import {
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY
 const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com"
 
+// Autocapture nests element text in arrays/objects ($elements), so redact
+// share tokens at any depth, not just top-level strings.
+export function redactAnalyticsValue(value: unknown): unknown {
+  if (typeof value === "string") return redactShareTokens(value)
+  if (Array.isArray(value)) return value.map(redactAnalyticsValue)
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, redactAnalyticsValue(v)]))
+  }
+  return value
+}
+
 /**
  * Mounts client-side, initializes PostHog, listens for auth state
  * changes, and captures pageviews. Doing the user lookup here (instead
@@ -61,7 +72,7 @@ export function PostHogProvider() {
           for (const bag of [event.properties, event.$set, event.$set_once]) {
             if (!bag) continue
             for (const [key, value] of Object.entries(bag)) {
-              if (typeof value === "string") bag[key] = redactShareTokens(value)
+              bag[key] = redactAnalyticsValue(value)
             }
           }
           return event

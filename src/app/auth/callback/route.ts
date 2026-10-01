@@ -11,7 +11,14 @@ import { NextResponse } from "next/server"
 function readCookie(header: string | null, name: string): string | null {
   for (const part of (header || "").split(";")) {
     const [key, ...value] = part.trim().split("=")
-    if (key === name) return decodeURIComponent(value.join("="))
+    if (key === name) {
+      // A malformed escape must not turn sign-in into a 500.
+      try {
+        return decodeURIComponent(value.join("="))
+      } catch {
+        return null
+      }
+    }
   }
   return null
 }

@@ -36,6 +36,8 @@ const STAGE_PATTERNS: Array<[RegExp, InvestorStage | null]> = [
   [/\b(not (yet )?(contacted|reached out|emailed)|uncontacted|to contact)\b/, "researching"],
   // Silence after outreach is not a pass.
   [/\bno (response|reply|answer)( yet)?\b/, "intro_made"],
+  // Negated progress ("No meeting yet", "Not met yet") is neither a pass nor a meeting.
+  [/\b(no(t)? (yet )?(met|meeting|mtg|intro(duction)?|call)( yet)?|haven'?t met)\b/, null],
   [/\b(pass|passed|declined?|no|not a fit|dead|lost|rejected)\b/, "passed"],
   // Interest that isn't a commitment ("soft yes", "maybe") stays unmapped.
   [/\b(soft (yes|commit(ment)?)|maybe|interested)\b/, null],

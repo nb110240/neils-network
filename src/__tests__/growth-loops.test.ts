@@ -55,6 +55,10 @@ describe("investor stages", () => {
     ["Notes", null],
     ["November", null],
     ["Soft yes", null],
+    ["No meeting yet", null],
+    ["No intro yet", null],
+    ["Not met yet", null],
+    ["Haven't met", null],
     ["Verbal yes", "committed"],
     ["No response", "intro_made"],
     ["No", "passed"],
@@ -116,5 +120,16 @@ describe("share token redaction for analytics", () => {
     const { parseAttribution } = await import("@/lib/attribution")
     const touch = parseAttribution(`https://savvo.app/s/${"x".repeat(43)}?utm_source=twitter`)
     expect(touch?.landing_path).toBe("/s/[token]?utm_source=twitter")
+  })
+})
+
+describe("nested analytics redaction", () => {
+  it("redacts tokens inside autocapture element arrays", async () => {
+    const { redactAnalyticsValue } = await import("@/components/posthog-provider")
+    const token = "Zz9_-".repeat(9)
+    const elements = [{ tag_name: "div", $el_text: `Link ready https://savvo.app/i/${token}`, nth: 1 }]
+    expect(redactAnalyticsValue(elements)).toEqual([
+      { tag_name: "div", $el_text: "Link ready https://savvo.app/i/[token]", nth: 1 },
+    ])
   })
 })

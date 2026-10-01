@@ -144,6 +144,17 @@ describe("referral claim in /auth/callback", () => {
     expect(h.service.rpc).toHaveBeenCalledWith("claim_referral", { p_code: "wxyz6789", p_referred_user_id: USER.id })
   })
 
+  it("ignores a malformed referral cookie instead of failing sign-in", async () => {
+    h.user = makeClient({})
+    h.user.auth.exchangeCodeForSession.mockResolvedValue({
+      data: { user: { id: USER.id, created_at: "2020-01-01T00:00:00Z", user_metadata: {}, app_metadata: { provider: "google" } } },
+    })
+    h.service = makeClient({})
+    const res = await authCallback(callback("savvo_ref=%E0%A4%A"))
+    expect(res.headers.get("location")).toBe("https://savvo.app/dashboard")
+    expect(h.service.rpc).not.toHaveBeenCalled()
+  })
+
   it("never blocks sign-in when the claim fails", async () => {
     h.user = makeClient({})
     h.user.auth.exchangeCodeForSession.mockResolvedValue({

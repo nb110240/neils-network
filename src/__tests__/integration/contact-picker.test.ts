@@ -107,15 +107,15 @@ describe("GET /api/contacts/lookup", () => {
     const calls = client.queries[0]
     expect(calls).toContainEqual({ method: "is", args: ["archived_at", null] })
     expect(calls).toContainEqual({ method: "eq", args: ["created_by", "u1"] })
-    expect(calls).toContainEqual({ method: "or", args: ["name.ilike.%zeta%,email.ilike.%zeta%,company.ilike.%zeta%"] })
+    expect(calls).toContainEqual({ method: "or", args: ['name.ilike."%zeta%",email.ilike."%zeta%",company.ilike."%zeta%"'] })
   })
 
-  it("escapes PostgREST filter syntax", async () => {
+  it("quotes the query so commas and dots can't break the filter", async () => {
     const client = makeClient([{ data: [], error: null }])
     h.client = client
     await lookup(new Request("https://savvo.app/api/contacts/lookup?q=" + encodeURIComponent("a,b.c")))
     const or = client.queries[0].find((c) => c.method === "or")!
-    expect(or.args[0]).toBe("name.ilike.%a\\,b\\.c%,email.ilike.%a\\,b\\.c%,company.ilike.%a\\,b\\.c%")
+    expect(or.args[0]).toBe('name.ilike."%a,b.c%",email.ilike."%a,b.c%",company.ilike."%a,b.c%"')
   })
 
   it("returns nothing for a one-character query without hitting the database", async () => {

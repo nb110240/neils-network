@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { authenticateRequest, authFailed, errorResponse } from "@/lib/api-utils"
 import { PICKER_COLUMNS } from "@/lib/contact-picker"
+import { ilikeAnyFilter } from "@/lib/ilike-filter"
 
 // Lightweight name/email/company lookup for contact pickers. Pickers preload
 // the first 500 contacts; this finds the rest. Plain ILIKE, no embeddings, so
@@ -14,13 +15,12 @@ export async function GET(request: Request) {
     const q = (new URL(request.url).searchParams.get("q") || "").trim().slice(0, 100)
     if (q.length < 2) return NextResponse.json({ contacts: [] })
 
-    const pattern = `%${q.replace(/[%_\\,().*]/g, (c) => `\\${c}`)}%`
     const { data, error } = await supabase
       .from("contacts")
       .select(PICKER_COLUMNS)
       .eq("created_by", user.id)
       .is("archived_at", null)
-      .or(["name", "email", "company"].map((field) => `${field}.ilike.${pattern}`).join(","))
+      .or(ilikeAnyFilter(["name", "email", "company"], q))
       .order("name", { ascending: true })
       .limit(20)
 

@@ -1,3 +1,4 @@
+import { APPLE_BUNDLE_ID } from "./bundle-id"
 import { parseApplePrivateKey, signEs256Jwt } from "./jwt"
 
 // Server side of Sign in with Apple: turns an authorization code into a
@@ -9,15 +10,14 @@ import { parseApplePrivateKey, signEs256Jwt } from "./jwt"
 //   APPLE_SIWA_KEY_ID       Key ID of a key with "Sign in with Apple" enabled
 //   APPLE_SIWA_PRIVATE_KEY  that key's .p8 contents
 //   APPLE_SERVICES_ID       Services ID used by the web OAuth flow
-//   APPLE_BUNDLE_ID         iOS bundle id, the client_id for the native flow
-//                           (defaults to app.savvo)
+//
+// The native flow's client_id is the iOS bundle id (./bundle-id), shared with
+// the app so the two can never disagree. It is deliberately not an env var.
 
 const APPLE_AUTH_BASE = "https://appleid.apple.com"
 
-export const DEFAULT_APPLE_BUNDLE_ID = "app.savvo"
-
 export function appleBundleId(): string {
-  return process.env.APPLE_BUNDLE_ID || DEFAULT_APPLE_BUNDLE_ID
+  return APPLE_BUNDLE_ID
 }
 
 export function appleServicesId(): string | null {

@@ -99,18 +99,31 @@ export function initPushListeners(navigate: (path: string) => void): Promise<voi
   return listenersReady
 }
 
-async function saveToken(token: string, os: "ios" | "android") {
-  try {
-    const res = await fetch("/api/native/push-token", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
-      body: JSON.stringify({ token, platform: os }),
-    })
-    if (res.ok) storage()?.setItem(TOKEN_KEY, token)
-  } catch {
-    // Retried on the next launch, when registration runs again.
-  }
+// Token POSTs and DELETEs run one at a time, in call order. Otherwise a
+// sign-out DELETE still in flight could land after the next account's
+// registration POST and remove that new registration.
+let tokenMutations: Promise<void> = Promise.resolve()
+
+function enqueueTokenMutation(task: () => Promise<void>): Promise<void> {
+  const next = tokenMutations.then(task, task)
+  tokenMutations = next.catch(() => {})
+  return next
+}
+
+function saveToken(token: string, os: "ios" | "android"): Promise<void> {
+  return enqueueTokenMutation(async () => {
+    try {
+      const res = await fetch("/api/native/push-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ token, platform: os }),
+      })
+      if (res.ok) storage()?.setItem(TOKEN_KEY, token)
+    } catch {
+      // Retried on the next launch, when registration runs again.
+    }
+  })
 }
 
 /** Asks for permission (system dialog) and registers if granted. */
@@ -146,22 +159,25 @@ export async function refreshPushRegistration(): Promise<void> {
 }
 
 /** On sign-out: stop this device receiving the previous account's alerts. */
-export async function forgetPushToken(): Promise<void> {
-  const store = storage()
-  const token = store?.getItem(TOKEN_KEY)
-  if (!token) return
-  try {
-    const res = await fetch("/api/native/push-token", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
-      body: JSON.stringify({ token }),
-    })
-    if (res.ok) store?.removeItem(TOKEN_KEY)
-  } catch {
-    // Keep the token so the next sign-out or sign-in can retry; a sign-in
-    // re-registers the device to the new account either way.
-  }
+export function forgetPushToken(): Promise<void> {
+  return enqueueTokenMutation(async () => {
+    // Read the token when this runs, after any queued registration saved it.
+    const store = storage()
+    const token = store?.getItem(TOKEN_KEY)
+    if (!token) return
+    try {
+      const res = await fetch("/api/native/push-token", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ token }),
+      })
+      if (res.ok) store?.removeItem(TOKEN_KEY)
+    } catch {
+      // Keep the token so the next sign-out or sign-in can retry; a sign-in
+      // re-registers the device to the new account either way.
+    }
+  })
 }
 
 export function pushPromptDismissedRecently(now = Date.now()): boolean {

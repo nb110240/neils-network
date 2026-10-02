@@ -45,7 +45,7 @@ export async function sendPushToUser(
 
     const dead = [...ios.deadTokens, ...android.deadTokens]
     if (dead.length > 0) {
-      const { error: deleteError } = await service.from("push_tokens").delete().in("token", dead)
+      const { error: deleteError } = await service.from("push_tokens").delete().eq("user_id", userId).in("token", dead)
       if (deleteError) {
         log("error", "Failed to prune dead push tokens", { action: "push.prune", userId, error: deleteError.message })
       }

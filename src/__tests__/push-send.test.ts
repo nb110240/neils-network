@@ -3,23 +3,33 @@ import { sendPushToUser } from "@/lib/push/send"
 
 function service(opts: { prefs?: { push_enabled: boolean } | null; tokens?: Array<{ token: string; platform: string }>; deleteError?: { message: string } | null }) {
   const deleted: string[][] = []
+  const deleteFilters: Array<Record<string, unknown>> = []
   const client = {
     from: vi.fn((table: string) => {
       const builder: Record<string, unknown> = {}
       for (const m of ["select", "eq"]) builder[m] = vi.fn(() => builder)
       builder.maybeSingle = vi.fn(async () => ({ data: opts.prefs ?? null, error: null }))
-      builder.delete = vi.fn(() => ({
-        in: vi.fn(async (_col: string, values: string[]) => {
-          deleted.push(values)
-          return { error: opts.deleteError ?? null }
-        }),
-      }))
+      builder.delete = vi.fn(() => {
+        const filters: Record<string, unknown> = {}
+        const del = {
+          eq: vi.fn((col: string, value: unknown) => {
+            filters[col] = value
+            return del
+          }),
+          in: vi.fn(async (_col: string, values: string[]) => {
+            deleted.push(values)
+            deleteFilters.push(filters)
+            return { error: opts.deleteError ?? null }
+          }),
+        }
+        return del
+      })
       builder.then = (resolve: (v: unknown) => void) =>
         Promise.resolve(table === "push_tokens" ? { data: opts.tokens ?? [], error: null } : { data: null, error: null }).then(resolve)
       return builder
     }),
   }
-  return { client, deleted }
+  return { client, deleted, deleteFilters }
 }
 
 const message = { title: "t", body: "b" }
@@ -41,6 +51,16 @@ describe("sendPushToUser", () => {
     expect(fcm).toHaveBeenCalledWith(["and1", "and2"], message)
     expect(result).toEqual({ sent: 2, removed: 1 })
     expect(deleted).toEqual([["and2"]])
+  })
+
+  it("prunes dead tokens only from this user's rows", async () => {
+    // A token re-registered to another account between the read and the prune must survive.
+    const { client, deleted, deleteFilters } = service({ tokens: [{ token: "ios1", platform: "ios" }] })
+    const apns = vi.fn(async () => ({ sent: 0, failed: 1, deadTokens: ["ios1"] }))
+    const fcm = vi.fn(async () => ({ sent: 0, failed: 0, deadTokens: [] }))
+    await sendPushToUser(client as never, "u1", message, { apns, fcm })
+    expect(deleted).toEqual([["ios1"]])
+    expect(deleteFilters).toEqual([{ user_id: "u1" }])
   })
 
   it("respects the user's off switch", async () => {

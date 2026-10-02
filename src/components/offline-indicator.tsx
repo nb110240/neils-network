@@ -8,6 +8,7 @@ import {
   queueKey,
   readQueue,
   removeDelivered,
+  SYNC_LOCK_TTL_MS,
   withSyncLock,
   writeQueue,
   type QueuedContact,
@@ -39,12 +40,12 @@ export function OfflineIndicator() {
     }
   }, [])
 
-  const sendQueue = useCallback(async (queue: QueuedContact[]) => {
+  const sendQueue = useCallback(async (queue: QueuedContact[], worker: ServiceWorker | null) => {
     setIsSyncing(true)
 
     // Try sending via service worker first
-    if (navigator.serviceWorker?.controller) {
-      navigator.serviceWorker.controller.postMessage({
+    if (worker) {
+      worker.postMessage({
         type: "SYNC_OFFLINE_QUEUE",
         queue,
       })
@@ -73,8 +74,25 @@ export function OfflineIndicator() {
     // Holds the lock until finishSync runs (the service worker answers by
     // message). Another tab already syncing: its result reaches this tab too.
     await withSyncLock(() => new Promise<void>((resolve) => {
-      endSyncRef.current = resolve
-      void sendQueue(queue)
+      const worker = navigator.serviceWorker?.controller ?? null
+      let timer: ReturnType<typeof setTimeout> | undefined
+      const end = () => {
+        clearTimeout(timer)
+        if (endSyncRef.current === end) endSyncRef.current = null
+        resolve()
+      }
+      // A worker stopped mid-sync never answers: give the lock back. The
+      // worker ignores a second sync while one runs, so no note is sent
+      // twice. The page's own sync below always finishes, so it keeps the
+      // lock until it does.
+      if (worker) {
+        timer = setTimeout(() => {
+          setIsSyncing(false)
+          end()
+        }, SYNC_LOCK_TTL_MS)
+      }
+      endSyncRef.current = end
+      void sendQueue(queue, worker)
     }))
   }, [sendQueue])
 

@@ -87,8 +87,8 @@ export function isOfflineQueuedResponse(data: unknown): boolean {
 // Every open tab hears "online" at the same moment. Only one may send the
 // queue, or each note becomes a contact once per tab. The Web Locks API gives
 // one tab exclusive ownership; browsers without it fall back to a
-// localStorage lock. Either way the lock expires so a tab closed (or a
-// service worker stopped) mid-sync can't block syncing forever.
+// localStorage lock, which expires so a tab closed mid-sync can't block
+// syncing forever (the browser frees a Web Lock when its tab closes).
 export const SYNC_LOCK_KEY = "savvo-offline-sync-lock"
 export const SYNC_LOCK_TTL_MS = 60_000
 
@@ -115,9 +115,9 @@ export function tryAcquireSyncLock(
     storage.setItem(SYNC_LOCK_KEY, `${nowMs}|${token}`)
     return token
   } catch {
-    // Storage blocked: no tab can share a lock, and only browsers without
-    // Web Locks get here. Syncing from this tab beats never syncing.
-    return token
+    // Storage blocked or full: no lock can be shared, and a queue that can't
+    // be rewritten would resend its notes anyway. Wait for storage instead.
+    return null
   }
 }
 
@@ -131,20 +131,10 @@ export function releaseSyncLock(token: string, storage: Pick<Storage, "getItem" 
   }
 }
 
-function expiring(work: Promise<void>, ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    const timer = setTimeout(resolve, ms)
-    work.catch(() => {}).finally(() => {
-      clearTimeout(timer)
-      resolve()
-    })
-  })
-}
-
 /**
  * Runs `sync` only if no other tab is syncing, holding the lock until it
- * finishes (or SYNC_LOCK_TTL_MS passes). Resolves false when another tab
- * holds the lock; its result reaches this tab too.
+ * settles. Resolves false when another tab holds the lock; its result
+ * reaches this tab too.
  */
 export async function withSyncLock(
   sync: () => Promise<void>,
@@ -156,7 +146,7 @@ export async function withSyncLock(
   if (locks?.request) {
     return locks.request(SYNC_LOCK_KEY, { ifAvailable: true }, async (lock) => {
       if (!lock) return false
-      await expiring(sync(), SYNC_LOCK_TTL_MS)
+      await sync().catch(() => {})
       return true
     })
   }
@@ -164,7 +154,7 @@ export async function withSyncLock(
   const token = tryAcquireSyncLock(Date.now(), store)
   if (!token) return false
   try {
-    await expiring(sync(), SYNC_LOCK_TTL_MS)
+    await sync().catch(() => {})
     return true
   } finally {
     releaseSyncLock(token, store)

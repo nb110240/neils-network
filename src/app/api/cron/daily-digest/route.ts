@@ -7,6 +7,7 @@ import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
 import { safeCompare } from "@/lib/api-utils"
 import { log } from "@/lib/logger"
 import { DAILY_DIGEST_PLANS } from "@/lib/types"
+import { buildDigestMoves, hasDigestMoves, PROMISE_WINDOW_DAYS } from "@/lib/digest-moves"
 
 const DIGEST_CONCURRENCY = 10
 const USERS_PER_PAGE = 1000
@@ -200,7 +201,41 @@ export async function GET(request: Request) {
           return { ...c, health, adjustedScore, timesShown, lastActivity }
         })
 
-      if (eligible.length === 0) return "none"
+      // Raise Autopilot items: promises due soon, overdue asks, pending
+      // reviews and due intro follow-ups. Fetched in parallel; a failure in
+      // any of them just leaves that section out.
+      const nowIso = new Date().toISOString()
+      const promiseHorizon = new Date(Date.now() + PROMISE_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString()
+      const [{ data: commitmentRows }, { count: pendingReviews }, { data: introRows }] = await Promise.all([
+        supabase
+          .from("commitments")
+          .select("id, contact_id, direction, title, due_at")
+          .eq("user_id", user_id)
+          .eq("status", "open")
+          .lte("due_at", promiseHorizon)
+          .order("due_at", { ascending: true })
+          .limit(50),
+        supabase
+          .from("after_call_reviews")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user_id)
+          .eq("status", "pending"),
+        supabase
+          .from("intro_requests")
+          .select("id, target_contact_id, connector_contact_id, status, next_follow_up_at")
+          .eq("user_id", user_id)
+          .in("status", ["requested", "accepted", "introduced"])
+          .lte("next_follow_up_at", nowIso)
+          .limit(20),
+      ])
+      const moves = buildDigestMoves({
+        commitments: commitmentRows || [],
+        pendingReviews: pendingReviews || 0,
+        intros: introRows || [],
+        contactNames: new Map(contacts.map((c) => [c.id, c.name])),
+      })
+
+      if (eligible.length === 0 && !hasDigestMoves(moves)) return "none"
 
       // Pick 3 contacts with a mix:
       // - 2 from lowest adjusted score (most in need of attention, varied)
@@ -230,7 +265,7 @@ export async function GET(request: Request) {
         if (next) picks.push(next)
       }
 
-      if (picks.length === 0) return "none"
+      if (picks.length === 0 && !hasDigestMoves(moves)) return "none"
 
       // Compute network stats for the email
       const healthBreakdown = contacts.reduce(
@@ -251,6 +286,7 @@ export async function GET(request: Request) {
         followUpCount,
         isPro: canUseDaily,
         isWeekly: frequency === "weekly",
+        moves,
       })
 
       // Record in digest_history

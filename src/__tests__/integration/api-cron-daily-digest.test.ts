@@ -58,6 +58,8 @@ function digestSupabase(opts: {
   contactsByUser: Record<string, ReturnType<typeof makeContacts>>
   creditUserIds?: string[]
   dailyUserIds?: string[]
+  commitmentsByUser?: Record<string, unknown[]>
+  digestHistoryByUser?: Record<string, unknown[]>
 }) {
   const listUsers = vi.fn(async ({ page }: { page: number }) => ({
     data: { users: opts.pages[page - 1] ?? [] },
@@ -66,7 +68,7 @@ function digestSupabase(opts: {
   const from = vi.fn((table: string) => {
     let ownerId: string | null = null
     const builder: Record<string, unknown> = {}
-    for (const m of ["select", "insert", "in", "is", "gt", "gte", "order"]) {
+    for (const m of ["select", "insert", "in", "is", "gt", "gte", "lte", "order", "limit"]) {
       builder[m] = vi.fn(() => builder)
     }
     builder.eq = vi.fn((col: string, value: string) => {
@@ -76,6 +78,8 @@ function digestSupabase(opts: {
     const resolveData = () => {
       if (table === "contacts") return opts.contactsByUser[ownerId ?? ""] ?? []
       if (table === "pro_credits") return (opts.creditUserIds ?? []).map((user_id) => ({ user_id }))
+      if (table === "commitments") return opts.commitmentsByUser?.[ownerId ?? ""] ?? []
+      if (table === "digest_history") return opts.digestHistoryByUser?.[ownerId ?? ""] ?? []
       return []
     }
     builder.single = vi.fn(async () => ({
@@ -172,5 +176,38 @@ describe("GET /api/cron/daily-digest", () => {
     expect(res.status).toBe(200)
     expect(h.sendDigestEmail).toHaveBeenCalledTimes(1)
     expect(h.sendDigestEmail).toHaveBeenCalledWith("credit@example.com", "credit", expect.any(Array), expect.objectContaining({ isPro: true }))
+  })
+
+  it("sends a promise that's due even when every contact was recently suggested", async () => {
+    // Every contact was suggested in the last 14 days, so there are no
+    // relationship picks, but a promise due tomorrow should still send.
+    const contacts = makeContacts("founder", 5)
+    h.supabase = digestSupabase({
+      pages: [[makeUser("founder")]],
+      contactsByUser: { founder: contacts },
+      digestHistoryByUser: {
+        founder: contacts.map((c) => ({ contact_id: c.id, sent_at: "2026-10-01T14:00:00Z" })),
+      },
+      commitmentsByUser: {
+        founder: [{ id: "k1", contact_id: "founder-c0", direction: "user_owes", title: "Send the deck", due_at: "2026-10-06T17:00:00Z" }],
+      },
+    })
+    const res = await GET(buildRequest({ url: URL, headers: { authorization: "Bearer test-cron-secret" } }))
+    expect(res.status).toBe(200)
+    expect(h.sendDigestEmail).toHaveBeenCalledTimes(1)
+    const [, , picks, stats] = h.sendDigestEmail.mock.calls[0] as unknown as [string, string, unknown[], { moves: { promises: Array<{ title: string; contactName: string }> } }]
+    expect(picks).toEqual([])
+    expect(stats.moves.promises).toEqual([expect.objectContaining({ title: "Send the deck", contactName: "Contact 0" })])
+  })
+
+  it("sends nothing when there are no picks and no moves", async () => {
+    const contacts = makeContacts("quiet", 5)
+    h.supabase = digestSupabase({
+      pages: [[makeUser("quiet")]],
+      contactsByUser: { quiet: contacts },
+      digestHistoryByUser: { quiet: contacts.map((c) => ({ contact_id: c.id, sent_at: "2026-10-01T14:00:00Z" })) },
+    })
+    await GET(buildRequest({ url: URL, headers: { authorization: "Bearer test-cron-secret" } }))
+    expect(h.sendDigestEmail).not.toHaveBeenCalled()
   })
 })

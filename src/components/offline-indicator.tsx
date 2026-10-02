@@ -43,7 +43,8 @@ export function OfflineIndicator() {
           await fetch("/api/contacts", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ raw_note: item.raw_note }),
+            // Nobody is there to answer a name prompt during background sync.
+            body: JSON.stringify({ raw_note: item.raw_note, allow_unnamed: true }),
           })
         } catch {
           break

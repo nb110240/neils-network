@@ -9,6 +9,7 @@ import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 import { findDuplicates, findStrongMatch, namesAgree } from "@/lib/dedup"
 import { CONTACT_COLUMNS } from "@/lib/contact-columns"
 import { log } from "@/lib/logger"
+import { suggestNameFromNote } from "@/lib/name-from-note"
 
 export async function POST(request: Request) {
   try {
@@ -36,6 +37,30 @@ export async function POST(request: Request) {
 
     // Extract contact info via AI
     const extracted = await extractContactInfo(raw_note)
+
+    // A name typed by the user (after the prompt below) wins over extraction.
+    const providedName = typeof body.name === "string" ? body.name.trim().slice(0, 200) : ""
+    if (providedName) extracted.name = providedName
+
+    // Never save a nameless contact. When extraction fails (AI outage) or the
+    // note has no name, ask for one instead of creating "Unnamed contact",
+    // which also fired activation analytics for a contact nobody can find.
+    if (typeof extracted.name !== "string" || !extracted.name.trim()) {
+      // Notes queued offline sync in the background with nobody to ask, so
+      // keep them (best-guess name or none) rather than dropping the note.
+      if (body.allow_unnamed === true) {
+        extracted.name = suggestNameFromNote(raw_note)
+      } else {
+        return NextResponse.json(
+          {
+            error: "We couldn't find a name in that note. Add their name to save this contact.",
+            needs_name: true,
+            suggested_name: suggestNameFromNote(raw_note),
+          },
+          { status: 422 }
+        )
+      }
+    }
 
     // Check for duplicates before inserting
     let duplicates: Awaited<ReturnType<typeof findDuplicates>> = []

@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { createMockSupabase } from "../helpers/mock-supabase"
 import { postRequest, getRequest } from "../helpers/mock-request"
 import { CONTACT_COLUMNS } from "@/lib/contact-columns"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 
 // ─── Route mocks ───
 const h = vi.hoisted(() => ({
@@ -133,6 +135,56 @@ describe("POST /api/contacts", () => {
     })
     const res = await POST(postRequest(URL, { raw_note: "Met Ada at a conference" }))
     expect(res.status).toBe(500)
+  })
+})
+
+describe("POST /api/contacts without a name", () => {
+  // Regression: when AI extraction failed (all fields null), /add saved a
+  // contact with name=null and the page fired activation for it.
+  beforeEach(() => {
+    h.rateLimitSuccess = true
+    h.contactLimitAllowed = true
+    h.extracted = { name: null, email: null, company: null }
+  })
+
+  it("returns 422 asking for a name and saves nothing", async () => {
+    h.supabase = createMockSupabase({ authUser: { id: "u1" }, queryResult: { data: [], error: null } })
+    const res = await POST(postRequest(URL, { raw_note: "Priya Raman\nPartner at Lightspeed, wants the deck" }))
+    expect(res.status).toBe(422)
+    const json = await res.json()
+    expect(json.needs_name).toBe(true)
+    expect(json.error).toMatch(/name/i)
+    expect(json.suggested_name).toBe("Priya Raman")
+    expect(h.supabase._queryBuilder.insert).not.toHaveBeenCalled()
+  })
+
+  it("does not suggest a name when the first line is not one", async () => {
+    h.supabase = createMockSupabase({ authUser: { id: "u1" }, queryResult: { data: [], error: null } })
+    const res = await POST(postRequest(URL, { raw_note: "great chat at the demo day about seed rounds" }))
+    expect(res.status).toBe(422)
+    expect((await res.json()).suggested_name).toBeNull()
+  })
+
+  it("saves with the name the user typed", async () => {
+    h.supabase = createMockSupabase({ authUser: { id: "u1" }, queryResult: { data: [], error: null } })
+    const res = await POST(postRequest(URL, { raw_note: "great chat about seed rounds", name: "  Sam Lee " }))
+    expect(res.status).toBe(200)
+    expect(h.supabase._queryBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({ name: "Sam Lee" }))
+  })
+
+  it("keeps offline-queued notes (no one to prompt) with a best-guess name", async () => {
+    h.supabase = createMockSupabase({ authUser: { id: "u1" }, queryResult: { data: [], error: null } })
+    const res = await POST(postRequest(URL, { raw_note: "Met Jane Doe, partner at Acme", allow_unnamed: true }))
+    expect(res.status).toBe(200)
+    expect(h.supabase._queryBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({ name: "Jane Doe" }))
+  })
+
+  it("/add only tracks contact_created after a successful save", () => {
+    const source = readFileSync(join(process.cwd(), "src/app/(dashboard)/add/page.tsx"), "utf8")
+    const needsName = source.indexOf("payload.needs_name")
+    const track = source.indexOf('trackContactsCreated("natural_language"')
+    expect(needsName).toBeGreaterThan(-1)
+    expect(track).toBeGreaterThan(needsName)
   })
 })
 

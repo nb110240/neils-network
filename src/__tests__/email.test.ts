@@ -347,3 +347,30 @@ describe("sendEmail", () => {
     ).resolves.toBeUndefined()
   })
 })
+
+describe("sendActivationEmail", () => {
+  beforeEach(() => {
+    process.env.RESEND_API_KEY = "test-key"
+    process.env.NEXT_PUBLIC_APP_URL = "https://savvo.app"
+    mockSend.mockClear()
+  })
+
+  it("step 1 points at capture with an escaped name", async () => {
+    const { sendActivationEmail } = await import("@/lib/email")
+    await sendActivationEmail("new@example.com", "<Neil>", 1)
+    const payload = mockSend.mock.calls[0][0]
+    expect(payload.to).toBe("new@example.com")
+    expect(payload.subject).toBe("Paste notes from your last meeting")
+    expect(payload.html).toContain("https://savvo.app/capture")
+    expect(payload.html).toContain("&lt;Neil&gt;")
+  })
+
+  it("step 2 points at import and the free tracker template", async () => {
+    const { sendActivationEmail } = await import("@/lib/email")
+    await sendActivationEmail("new@example.com", "Neil", 2)
+    const payload = mockSend.mock.calls[0][0]
+    expect(payload.subject).toBe("Bring your investor list into Savvo")
+    expect(payload.html).toContain("https://savvo.app/import")
+    expect(payload.html).toContain("https://savvo.app/templates/investor-tracker")
+  })
+})

@@ -384,6 +384,44 @@ export async function sendIntroResponseEmail(
   })
 }
 
+/**
+ * Activation emails for confirmed accounts that have not added anyone yet.
+ * Step 1 (about day 1): capture one real interaction. Step 2 (about day 3):
+ * bring an existing investor list over.
+ */
+export async function sendActivationEmail(to: string, userName: string, step: 1 | 2) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://savvo.app"
+  const button = (href: string, label: string) =>
+    `<a href="${href}" style="display:inline-block;padding:10px 28px;background:#c2410c;color:white;text-decoration:none;border-radius:8px;font-size:14px;font-weight:500">${label}</a>`
+
+  const content = step === 1
+    ? {
+        subject: "Paste notes from your last meeting",
+        subtitle: "Start with one conversation",
+        body: `
+          <p style="margin:0 0 4px">Hey ${escapeHtml(userName)},</p>
+          <p style="color:#44403c;margin:0 0 16px">The fastest way to see what Savvo does: paste a few lines from your last meeting. Savvo pulls out who you met, what you promised, and when to follow up.</p>
+          <p style="color:#78716c;font-size:13px;margin:0 0 20px;padding:10px 12px;background:#fafaf9;border-radius:8px">"Coffee with Maya from Northwind. She asked for our churn cohorts. I said I'd send them Friday. She'll intro me to her fintech partner."</p>
+          <div style="margin:0 0 8px">${button(`${appUrl}/capture`, "Paste a meeting note")}</div>`,
+      }
+    : {
+        subject: "Bring your investor list into Savvo",
+        subtitle: "Import in under a minute",
+        body: `
+          <p style="margin:0 0 4px">Hey ${escapeHtml(userName)},</p>
+          <p style="color:#44403c;margin:0 0 16px">Already tracking investors in a spreadsheet? Import the CSV and Savvo keeps every conversation warm: who's going cold, what you owe, and where each investor stands.</p>
+          <div style="margin:0 0 16px">${button(`${appUrl}/import`, "Import a CSV")}</div>
+          <p style="color:#78716c;font-size:13px;margin:0">No spreadsheet yet? Start from the <a href="${appUrl}/templates/investor-tracker" style="color:#c2410c">free investor tracker template</a>.</p>`,
+      }
+
+  await sendEmail({
+    from: process.env.RESEND_FROM_EMAIL || "Savvo <hello@savvo.app>",
+    to,
+    subject: content.subject,
+    html: emailLayout({ subtitle: content.subtitle, body: content.body, appUrl }),
+  })
+}
+
 export function escapeHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")

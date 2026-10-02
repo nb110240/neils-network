@@ -2,12 +2,13 @@ import { NextResponse } from "next/server"
 import type { User } from "@supabase/supabase-js"
 import { createServiceClient } from "@/lib/supabase/server"
 import { calculateHealthScore } from "@/lib/health"
-import { sendDigestEmail, sendNewUserNudgeEmail } from "@/lib/email"
+import { sendActivationEmail, sendDigestEmail, sendNewUserNudgeEmail } from "@/lib/email"
 import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
 import { safeCompare } from "@/lib/api-utils"
 import { log } from "@/lib/logger"
 import { DAILY_DIGEST_PLANS } from "@/lib/types"
 import { buildDigestMoves, hasDigestMoves, PROMISE_WINDOW_DAYS } from "@/lib/digest-moves"
+import { activationStep } from "@/lib/activation"
 
 const DIGEST_CONCURRENCY = 10
 const USERS_PER_PAGE = 1000
@@ -114,7 +115,30 @@ export async function GET(request: Request) {
         .eq("created_by", user_id)
         .is("archived_at", null)
 
-      if (!contacts || contacts.length === 0) return "none"
+      if (!contacts || contacts.length === 0) {
+        const step = activationStep(user)
+        if (!step) return "none"
+        await sendActivationEmail(email, userName, step)
+        // Record only after a successful send. app_metadata is server-only;
+        // spread it so provider fields survive whether the API merges or
+        // replaces.
+        const { error: markError } = await supabase.auth.admin.updateUserById(user.id, {
+          app_metadata: {
+            ...user.app_metadata,
+            activation_emails_sent: step,
+            activation_email_last_at: new Date().toISOString(),
+          },
+        })
+        if (markError) {
+          log("error", "Failed to record activation email", {
+            action: "cron.daily_digest",
+            route: "/api/cron/daily-digest",
+            userId: user.id,
+            error: markError.message,
+          })
+        }
+        return "nudged"
+      }
 
       // New-user nudge path: users with 1-4 contacts can't get a useful
       // digest yet, but they still need a recurring reason to come back.

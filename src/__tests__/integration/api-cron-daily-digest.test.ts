@@ -5,6 +5,7 @@ const h = vi.hoisted(() => ({
   supabase: null as unknown,
   sendDigestEmail: vi.fn(async () => undefined),
   sendNewUserNudgeEmail: vi.fn(async () => undefined),
+  sendActivationEmail: vi.fn(async (..._args: unknown[]) => undefined),
 }))
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -19,6 +20,7 @@ vi.mock("@/lib/rate-limit", () => ({
 vi.mock("@/lib/email", () => ({
   sendDigestEmail: h.sendDigestEmail,
   sendNewUserNudgeEmail: h.sendNewUserNudgeEmail,
+  sendActivationEmail: h.sendActivationEmail,
 }))
 
 import { GET } from "@/app/api/cron/daily-digest/route"
@@ -92,7 +94,8 @@ function digestSupabase(opts: {
       Promise.resolve({ data: resolveData(), error: null }).then(resolve)
     return builder
   })
-  return { from, auth: { admin: { listUsers } } }
+  const updateUserById = vi.fn(async (..._args: unknown[]) => ({ data: {}, error: null }))
+  return { from, auth: { admin: { listUsers, updateUserById } } }
 }
 
 describe("GET /api/cron/daily-digest", () => {
@@ -102,6 +105,8 @@ describe("GET /api/cron/daily-digest", () => {
     process.env.CRON_SECRET = "test-cron-secret"
     h.sendDigestEmail.mockClear()
     h.sendNewUserNudgeEmail.mockClear()
+    h.sendActivationEmail.mockReset()
+    h.sendActivationEmail.mockResolvedValue(undefined)
     vi.useFakeTimers({ toFake: ["Date"] })
     // A Monday, so weekly-frequency users are due.
     vi.setSystemTime(new Date("2026-10-05T14:00:00Z"))
@@ -209,5 +214,50 @@ describe("GET /api/cron/daily-digest", () => {
     })
     await GET(buildRequest({ url: URL, headers: { authorization: "Bearer test-cron-secret" } }))
     expect(h.sendDigestEmail).not.toHaveBeenCalled()
+  })
+
+  it("sends the first activation email to a confirmed day-1 account with no contacts and records it", async () => {
+    const newcomer = {
+      ...makeUser("newcomer"),
+      created_at: "2026-10-04T10:00:00Z",
+      email_confirmed_at: "2026-10-04T10:05:00Z",
+      app_metadata: { provider: "email", providers: ["email"] },
+    }
+    const client = digestSupabase({ pages: [[newcomer]], contactsByUser: {} })
+    h.supabase = client
+    const res = await GET(buildRequest({ url: URL, headers: { authorization: "Bearer test-cron-secret" } }))
+    expect((await res.json()).nudges).toBe(1)
+    expect(h.sendActivationEmail).toHaveBeenCalledWith("newcomer@example.com", "newcomer", 1)
+    expect(client.auth.admin.updateUserById).toHaveBeenCalledWith("newcomer", {
+      app_metadata: expect.objectContaining({
+        provider: "email",
+        providers: ["email"],
+        activation_emails_sent: 1,
+        activation_email_last_at: expect.any(String),
+      }),
+    })
+  })
+
+  it("does not record an activation email that failed to send", async () => {
+    const newcomer = {
+      ...makeUser("newcomer"),
+      created_at: "2026-10-04T10:00:00Z",
+      email_confirmed_at: "2026-10-04T10:05:00Z",
+      app_metadata: {},
+    }
+    const client = digestSupabase({ pages: [[newcomer]], contactsByUser: {} })
+    h.supabase = client
+    h.sendActivationEmail.mockRejectedValueOnce(new Error("resend down"))
+    const res = await GET(buildRequest({ url: URL, headers: { authorization: "Bearer test-cron-secret" } }))
+    expect(res.status).toBe(200)
+    expect(client.auth.admin.updateUserById).not.toHaveBeenCalled()
+  })
+
+  it("never sends activation email to unconfirmed or long-dormant accounts", async () => {
+    const unconfirmed = { ...makeUser("pending"), created_at: "2026-10-04T10:00:00Z", app_metadata: {} }
+    const dormant = { ...makeUser("dormant"), email_confirmed_at: "2026-01-01T00:00:00Z", app_metadata: {} }
+    h.supabase = digestSupabase({ pages: [[unconfirmed, dormant]], contactsByUser: {} })
+    await GET(buildRequest({ url: URL, headers: { authorization: "Bearer test-cron-secret" } }))
+    expect(h.sendActivationEmail).not.toHaveBeenCalled()
   })
 })

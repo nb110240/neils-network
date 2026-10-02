@@ -37,6 +37,7 @@ export function createMockSupabase(overrides?: {
     or: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
+    range: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue(queryResult),
     maybeSingle: vi.fn().mockResolvedValue(queryResult),
     then: vi.fn((resolve: (value: MockQueryResult) => void) => resolve(queryResult)),

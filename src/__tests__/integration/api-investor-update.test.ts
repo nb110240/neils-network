@@ -10,7 +10,7 @@ function createTableMock(authUser: { id: string; email?: string } | null, rows: 
   const calls: Array<{ table: string; method: string; args: unknown[] }> = []
   const from = vi.fn((table: string) => {
     const builder: Record<string, unknown> = {}
-    for (const method of ["select", "eq", "is", "gte", "lte", "in", "order", "limit"]) {
+    for (const method of ["select", "eq", "is", "gte", "lte", "in", "order", "limit", "range"]) {
       builder[method] = (...args: unknown[]) => {
         calls.push({ table, method, args })
         return builder

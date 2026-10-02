@@ -26,6 +26,7 @@ import { fetchArchivedContactIds } from "@/lib/archived-contacts"
 import { buildNextMoves } from "@/lib/next-moves"
 import type { AfterCallReview, Commitment, IntroRequest } from "@/lib/types"
 import { Plus, Users, ArrowRight, ThermometerSnowflake, Crown } from "lucide-react"
+import { fetchAllRows } from "@/lib/fetch-all"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -52,12 +53,17 @@ export default async function DashboardPage() {
     archivedContactIds,
   ] = await Promise.all([
     getUserPlan(user.id),
-    supabase
-      .from("contacts")
-      .select(CONTACT_COLUMNS)
-      .eq("created_by", user.id)
-      .is("archived_at", null)
-      .order("created_at", { ascending: false }),
+    // Paged: the API returns at most 1,000 rows per request.
+    fetchAllRows((from, to) =>
+      supabase
+        .from("contacts")
+        .select(CONTACT_COLUMNS)
+        .eq("created_by", user.id)
+        .is("archived_at", null)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to)
+    ),
     // Only open work feeds the action list (same filters as /moves).
     supabase
       .from("commitments")

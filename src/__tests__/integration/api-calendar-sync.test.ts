@@ -59,7 +59,7 @@ function perTableSupabase(opts: {
     const builder: Record<string, unknown> = {}
     for (const m of [
       "select", "insert", "update", "delete", "upsert", "eq", "neq",
-      "gt", "lt", "gte", "lte", "in", "is", "or", "ilike", "order", "limit",
+      "gt", "lt", "gte", "lte", "in", "is", "or", "ilike", "order", "limit", "range",
     ]) {
       builder[m] = vi.fn(() => builder)
     }

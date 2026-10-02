@@ -9,6 +9,7 @@ import { log } from "@/lib/logger"
 import { DAILY_DIGEST_PLANS } from "@/lib/types"
 import { buildDigestMoves, hasDigestMoves, PROMISE_WINDOW_DAYS } from "@/lib/digest-moves"
 import { activationStep } from "@/lib/activation"
+import { fetchAllRows } from "@/lib/fetch-all"
 
 const DIGEST_CONCURRENCY = 10
 const USERS_PER_PAGE = 1000
@@ -109,11 +110,16 @@ export async function GET(request: Request) {
         user.user_metadata?.full_name || email.split("@")[0]
 
       // Get user's contacts with scheduling fields for richer context
-      const { data: contacts } = await supabase
-        .from("contacts")
-        .select("id, name, company, job_title, how_we_met, next_steps, last_contact_date, created_at, follow_up_needed, cadence_days, snoozed_until, next_due_date")
-        .eq("created_by", user_id)
-        .is("archived_at", null)
+      // Paged: the API returns at most 1,000 rows per request.
+      const { data: contacts } = await fetchAllRows((from, to) =>
+        supabase
+          .from("contacts")
+          .select("id, name, company, job_title, how_we_met, next_steps, last_contact_date, created_at, follow_up_needed, cadence_days, snoozed_until, next_due_date")
+          .eq("created_by", user_id)
+          .is("archived_at", null)
+          .order("id", { ascending: true })
+          .range(from, to)
+      )
 
       if (!contacts || contacts.length === 0) {
         const step = activationStep(user)

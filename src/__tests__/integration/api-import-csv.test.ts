@@ -82,7 +82,7 @@ function importSupabase(opts: {
     const builder: Record<string, unknown> = {}
     for (const m of [
       "update", "delete", "upsert", "eq", "neq", "gt", "lt",
-      "gte", "lte", "in", "is", "or", "ilike", "order", "limit",
+      "gte", "lte", "in", "is", "or", "ilike", "order", "limit", "range",
     ]) {
       builder[m] = vi.fn(() => builder)
     }

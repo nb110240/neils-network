@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { authenticateRequest, authFailed, errorResponse } from "@/lib/api-utils"
 import { scorePair } from "@/lib/dedup"
+import { fetchAllRows } from "@/lib/fetch-all"
 
 interface ContactRow {
   id: string
@@ -22,11 +23,16 @@ export async function GET() {
     if (authFailed(auth)) return auth.error
     const { user, supabase } = auth
 
-    const { data: contactsRaw } = await supabase
-      .from("contacts")
-      .select("id, name, email, phone, company, website, embedding")
-      .eq("created_by", user.id)
-      .is("archived_at", null)
+    // Paged: the API returns at most 1,000 rows per request.
+    const { data: contactsRaw } = await fetchAllRows((from, to) =>
+      supabase
+        .from("contacts")
+        .select("id, name, email, phone, company, website, embedding")
+        .eq("created_by", user.id)
+        .is("archived_at", null)
+        .order("id", { ascending: true })
+        .range(from, to)
+    )
 
     const contacts = (contactsRaw as ContactRow[] | null) ?? []
     if (contacts.length < 2) {

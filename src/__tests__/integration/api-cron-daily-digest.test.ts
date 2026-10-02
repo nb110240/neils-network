@@ -70,7 +70,7 @@ function digestSupabase(opts: {
   const from = vi.fn((table: string) => {
     let ownerId: string | null = null
     const builder: Record<string, unknown> = {}
-    for (const m of ["select", "insert", "in", "is", "gt", "gte", "lte", "order", "limit"]) {
+    for (const m of ["select", "insert", "in", "is", "gt", "gte", "lte", "order", "limit", "range"]) {
       builder[m] = vi.fn(() => builder)
     }
     builder.eq = vi.fn((col: string, value: string) => {

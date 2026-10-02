@@ -9,6 +9,7 @@ import { getUserPlan } from "@/lib/subscription"
 import { NextMoves } from "@/components/next-moves"
 import { Button } from "@/components/ui/button"
 import type { AfterCallReview, Commitment, IntroRequest } from "@/lib/types"
+import { fetchAllRows } from "@/lib/fetch-all"
 
 export default async function MovesPage() {
   const supabase = await createClient()
@@ -17,11 +18,16 @@ export default async function MovesPage() {
 
   const [plan, { data: contacts }, { data: commitments }, { data: reviews }, { data: introRequests }, archivedContactIds] = await Promise.all([
     getUserPlan(user.id),
-    supabase
-      .from("contacts")
-      .select("id, name, company, next_steps, follow_up_needed, next_due_date, snoozed_until, last_contact_date, cadence_days, created_at")
-      .eq("created_by", user.id)
-      .is("archived_at", null),
+    // Paged: the API returns at most 1,000 rows per request.
+    fetchAllRows((from, to) =>
+      supabase
+        .from("contacts")
+        .select("id, name, company, next_steps, follow_up_needed, next_due_date, snoozed_until, last_contact_date, cadence_days, created_at")
+        .eq("created_by", user.id)
+        .is("archived_at", null)
+        .order("id", { ascending: true })
+        .range(from, to)
+    ),
     supabase
       .from("commitments")
       .select("*")

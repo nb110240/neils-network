@@ -17,6 +17,7 @@ import {
   type UpdateContactRow,
   type UpdateIntroRow,
 } from "@/lib/investor-update"
+import { fetchAllRows } from "@/lib/fetch-all"
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const ROUTE = "/api/investor-update"
@@ -53,12 +54,16 @@ export async function POST(request: Request) {
 
     // Narrow selects only: no names, emails, phones, notes, or meeting content.
     const [contactsRes, activitiesRes, completedRes, openRes, introsRes] = await Promise.all([
-      supabase
-        .from("contacts")
-        .select("id, investor_stage")
-        .eq("created_by", user.id)
-        .is("archived_at", null)
-        .limit(5000),
+      // .limit(5000) never worked: the API caps every request at 1,000 rows.
+      fetchAllRows((from, to) =>
+        supabase
+          .from("contacts")
+          .select("id, investor_stage")
+          .eq("created_by", user.id)
+          .is("archived_at", null)
+          .order("id", { ascending: true })
+          .range(from, to)
+      ),
       supabase
         .from("contact_activities")
         .select("contact_id, type, occurred_at")

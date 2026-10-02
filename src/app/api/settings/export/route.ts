@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { authenticateRequest, authFailed, errorResponse } from "@/lib/api-utils"
 import { log } from "@/lib/logger"
 import { createServiceClient } from "@/lib/supabase/server"
+import { fetchAllRows } from "@/lib/fetch-all"
 
 /**
  * GDPR Art. 20 data portability: return everything a user owns as JSON,
@@ -17,14 +18,21 @@ export async function GET() {
 
     const [contacts, activities, tags, contactTags, events, preferences, integrations, usage, reviews, commitments, researchReports, introRequests] =
       await Promise.all([
-        supabase.from("contacts").select("*").eq("created_by", user.id),
-        supabase.from("contact_activities").select("*").eq("user_id", user.id),
-        supabase.from("tags").select("*").eq("created_by", user.id),
-        supabase
-          .from("contact_tags")
-          .select("*, contacts!inner(created_by)")
-          .eq("contacts.created_by", user.id),
-        supabase.from("events").select("*").eq("created_by", user.id),
+        // Every multi-row table is paged: the API returns at most 1,000 rows
+        // per request, and an export must never silently drop data.
+        fetchAllRows((from, to) => supabase.from("contacts").select("*").eq("created_by", user.id).order("id").range(from, to)),
+        fetchAllRows((from, to) => supabase.from("contact_activities").select("*").eq("user_id", user.id).order("id").range(from, to)),
+        fetchAllRows((from, to) => supabase.from("tags").select("*").eq("created_by", user.id).order("id").range(from, to)),
+        fetchAllRows((from, to) =>
+          supabase
+            .from("contact_tags")
+            .select("*, contacts!inner(created_by)")
+            .eq("contacts.created_by", user.id)
+            .order("contact_id")
+            .order("tag_id")
+            .range(from, to)
+        ),
+        fetchAllRows((from, to) => supabase.from("events").select("*").eq("created_by", user.id).order("id").range(from, to)),
         supabase.from("user_preferences").select("*").eq("user_id", user.id),
         service
           .from("integrations")
@@ -35,10 +43,10 @@ export async function GET() {
           .select("ai_reviews_used, csv_contacts_imported, created_at, updated_at")
           .eq("user_id", user.id)
           .maybeSingle(),
-        supabase.from("after_call_reviews").select("*").eq("user_id", user.id),
-        supabase.from("commitments").select("*").eq("user_id", user.id),
-        supabase.from("investor_research_reports").select("*").eq("user_id", user.id),
-        supabase.from("intro_requests").select("*").eq("user_id", user.id),
+        fetchAllRows((from, to) => supabase.from("after_call_reviews").select("*").eq("user_id", user.id).order("id").range(from, to)),
+        fetchAllRows((from, to) => supabase.from("commitments").select("*").eq("user_id", user.id).order("id").range(from, to)),
+        fetchAllRows((from, to) => supabase.from("investor_research_reports").select("*").eq("user_id", user.id).order("id").range(from, to)),
+        fetchAllRows((from, to) => supabase.from("intro_requests").select("*").eq("user_id", user.id).order("id").range(from, to)),
       ])
 
     const failedQuery = [contacts, activities, tags, contactTags, events, preferences, integrations, usage, reviews, commitments, researchReports, introRequests]

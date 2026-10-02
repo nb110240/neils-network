@@ -7,6 +7,7 @@ import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 import Papa from "papaparse"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { findDuplicatesInMemory, findStrongMatchInMemory } from "@/lib/dedup"
+import { fetchAllRows } from "@/lib/fetch-all"
 import { IMPORT_FIELD_VALUES } from "@/lib/import-mapping"
 import { createServiceClient } from "@/lib/supabase/server"
 import { PLAN_LIMITS } from "@/lib/types"
@@ -140,11 +141,16 @@ export async function POST(request: Request) {
     // Filter out contacts that already exist (dedup before insert).
     // Preload once and match in-memory — per-row DB lookups are O(rows *
     // existing_contacts) and time out on large imports.
-    const { data: existingForDedup } = await supabase
-      .from("contacts")
-      .select("id, name, email, phone, company, website")
-      .eq("created_by", user.id)
-      .is("archived_at", null)
+    // Paged: the API returns at most 1,000 rows per request.
+    const { data: existingForDedup } = await fetchAllRows((from, to) =>
+      supabase
+        .from("contacts")
+        .select("id, name, email, phone, company, website")
+        .eq("created_by", user.id)
+        .is("archived_at", null)
+        .order("id", { ascending: true })
+        .range(from, to)
+    )
 
     const existingContacts = (existingForDedup ?? []) as Array<{
       id: string

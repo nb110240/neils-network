@@ -37,8 +37,11 @@ function mockSupabase(contacts: Partial<Contact>[]) {
       select: () => ({
         eq: () => ({
           is: () => ({
-            data: fullContacts,
-            error: null,
+            order: () => ({
+              // Serve pages like the real API: inclusive range, so 1,000 rows max.
+              range: (from: number, to: number) =>
+                Promise.resolve({ data: fullContacts.slice(from, to + 1), error: null }),
+            }),
           }),
         }),
       }),
@@ -173,8 +176,12 @@ describe("findDuplicates", () => {
         select: () => ({
           eq: () => ({
             is: () => ({
-              data: null,
-              error: { message: "Something went wrong" },
+              order: () => ({
+                range: () => Promise.resolve({
+                  data: null,
+                  error: { message: "Something went wrong" },
+                }),
+              }),
             }),
           }),
         }),
@@ -184,6 +191,14 @@ describe("findDuplicates", () => {
       name: "Alice",
     })
     expect(results).toHaveLength(0)
+  })
+
+  it("finds a duplicate past the API's 1,000-row page (regression)", async () => {
+    const filler = Array.from({ length: 1500 }, (_, i) => ({ name: `Filler ${i}`, email: `filler${i}@example.com` }))
+    const supabase = mockSupabase([...filler, { name: "Late Match", email: "late@example.com" }])
+    const results = await findDuplicates(supabase, "user-1", { email: "late@example.com" })
+    expect(results).toHaveLength(1)
+    expect(results[0].contact.name).toBe("Late Match")
   })
 
   it("email match takes priority over name+company match", async () => {

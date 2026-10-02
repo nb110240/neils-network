@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { Contact } from "@/lib/types"
+import { fetchAllRows } from "@/lib/fetch-all"
 
 export interface DuplicateMatch {
   contact: Contact
@@ -199,13 +200,19 @@ export async function findDuplicates(
   userId: string,
   fields: ScorableFields
 ): Promise<DuplicateMatch[]> {
-  const { data: contacts, error } = await supabase
-    .from("contacts")
-    .select("*")
-    .eq("created_by", userId)
-    .is("archived_at", null)
+  // Paged: the API returns at most 1,000 rows per request, and a duplicate
+  // hiding past row 1,000 must still be found.
+  const { data: contacts, error } = await fetchAllRows((from, to) =>
+    supabase
+      .from("contacts")
+      .select("*")
+      .eq("created_by", userId)
+      .is("archived_at", null)
+      .order("id", { ascending: true })
+      .range(from, to)
+  )
 
-  if (error || !contacts) {
+  if (error) {
     return []
   }
 

@@ -8,6 +8,8 @@ const OFFLINE_QUEUE_KEY = "savvo-offline-queue"
 // no sign-out happened between its request and its cache write, so a fetch
 // still in flight at sign-out cannot recreate the previous user's cache.
 let cacheGeneration = 0
+// True while syncQueue is sending the offline queue.
+let syncing = false
 
 // Cache essential pages on install
 self.addEventListener("install", (event) => {
@@ -119,7 +121,13 @@ async function clearAllCaches() {
 // Sync queued contacts when back online; clear cached pages on sign-out.
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SYNC_OFFLINE_QUEUE") {
-    syncQueue(event.data.queue)
+    // One worker serves every tab: while a sync runs, a second request (a
+    // tab whose lock timed out, or a new tab) is ignored, so no note is sent
+    // twice. Its result still reaches every tab.
+    if (syncing) return
+    syncing = true
+    const done = syncQueue(event.data.queue).finally(() => { syncing = false })
+    if (event.waitUntil) event.waitUntil(done)
   }
   if (event.data?.type === "CLEAR_CACHES") {
     cacheGeneration++

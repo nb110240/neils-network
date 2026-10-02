@@ -156,6 +156,28 @@ describe("service worker offline queue", () => {
     })
   })
 
+  it("ignores a second sync request while one is running", async () => {
+    const sw = loadServiceWorker()
+    const postMessage = vi.fn()
+    sw.scope.clients.matchAll.mockResolvedValue([{ postMessage }] as never)
+    let release!: (r: Response) => void
+    sw.fetchMock.mockImplementationOnce(() => new Promise<Response>((resolve) => { release = resolve }))
+    const note = { raw_note: "coffee with Priya", queued_at: "2026-10-02T10:00:00.000Z" }
+
+    const first = sw.dispatchMessage({ type: "SYNC_OFFLINE_QUEUE", queue: [note] })
+    // A second tab (or one whose lock timed out) asks while the first runs.
+    const second = sw.dispatchMessage({ type: "SYNC_OFFLINE_QUEUE", queue: [note] })
+    expect(second).not.toHaveBeenCalled()
+    release(new Response("{}", { status: 200 }))
+    await first.mock.calls[0][0]
+    expect(sw.fetchMock).toHaveBeenCalledOnce()
+    expect(postMessage).toHaveBeenCalledWith({ type: "OFFLINE_SYNC_COMPLETE", delivered: [`${note.queued_at}|${note.raw_note}`] })
+
+    // Once it finished, a new sync runs again.
+    sw.dispatchMessage({ type: "SYNC_OFFLINE_QUEUE", queue: [note] })
+    await vi.waitFor(() => expect(sw.fetchMock).toHaveBeenCalledTimes(2))
+  })
+
   it("the page-side sync fallback also sends the confirmed name", () => {
     const source = readFileSync(join(process.cwd(), "src/components/offline-indicator.tsx"), "utf8")
     expect(source).toMatch(/raw_note: item\.raw_note, name: item\.name, allow_unnamed: true/)

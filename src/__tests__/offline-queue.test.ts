@@ -82,6 +82,11 @@ describe("offline contact queue", () => {
     expect(tryAcquireSyncLock(1_000 + SYNC_LOCK_TTL_MS + 2, storage, "tab-d")).toBe("tab-d")
   })
 
+  it("waits rather than syncs when the fallback lock can't be stored", () => {
+    const full = { ...memoryStorage(), setItem: () => { throw new Error("QuotaExceededError") } }
+    expect(tryAcquireSyncLock(1_000, full, "tab-a")).toBeNull()
+  })
+
   it("reports a queue write that storage refused", () => {
     const full = { ...memoryStorage(), setItem: () => { throw new Error("QuotaExceededError") } }
     expect(writeQueue([a], full)).toBe(false)

@@ -13,10 +13,13 @@
     "verify:raise-autopilot-schema": "node scripts/verify-raise-autopilot-schema.mjs",
     "verify:raise-autopilot-live": "node scripts/verify-raise-autopilot-live.mjs",
     "ios:sync": "cap sync ios",
-    "ios:open": "cap open ios"
+    "ios:open": "cap open ios",
+    "android:sync": "cap sync android",
+    "android:open": "cap open android"
   },
   "dependencies": {
     "@capacitor-community/apple-sign-in": "^7.1.0",
+    "@capacitor/android": "^8.3.4",
     "@capacitor/app": "^8.1.0",
     "@capacitor/browser": "^8.0.3",
     "@capacitor/core": "^8.3.4",

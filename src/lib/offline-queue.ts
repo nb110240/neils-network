@@ -6,7 +6,8 @@
 
 export const OFFLINE_QUEUE_KEY = "savvo-offline-queue"
 
-export type QueuedContact = { raw_note: string; queued_at: string }
+/** `name` is set when the person confirmed one before going offline. */
+export type QueuedContact = { raw_note: string; name?: string; queued_at: string }
 
 /** Identifies one queued note across tabs (each tab hears the same message). */
 export function queueKey(item: QueuedContact): string {

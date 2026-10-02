@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/toast"
 import { IMPORT_FIELDS, guessImportField } from "@/lib/import-mapping"
 import { PLAN_LIMITS } from "@/lib/types"
-import { clearPendingImport, readPendingImport } from "@/lib/pending-import"
+import { readPendingImport, resumePendingImport } from "@/lib/pending-import"
 import {
   ArrowLeft,
   Upload,
@@ -107,15 +107,17 @@ function ImportPageInner() {
   }
 
   // A tracker uploaded on the public template page before signup: load it
-  // straight into column mapping. Cleared immediately so the dashboard
-  // redirect (PendingImportRedirect) can't loop.
+  // straight into column mapping. Cleared once the server has parsed (or
+  // rejected) it, so a failed request keeps it for a retry while the
+  // dashboard redirect (PendingImportRedirect) still can't loop.
+  const resumedPending = useRef(false)
   useEffect(() => {
-    if (isPro === null) return
+    if (isPro === null || resumedPending.current) return
     const pending = readPendingImport()
     if (!pending) return
-    clearPendingImport()
+    resumedPending.current = true
     setMode("csv")
-    void loadCsvFile(new File([pending.text], pending.name, { type: "text/csv" }))
+    void resumePendingImport(pending, loadCsvFile)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPro])
 
@@ -125,9 +127,11 @@ function ImportPageInner() {
     await loadCsvFile(selectedFile)
   }
 
-  const loadCsvFile = async (selectedFile: File) => {
+  /** Resolves true once the server gave a final answer: parsed, or rejected as invalid (4xx). */
+  const loadCsvFile = async (selectedFile: File): Promise<boolean> => {
     setFile(selectedFile)
     setIsLoading(true)
+    let settled = false
 
     try {
       const formData = new FormData()
@@ -137,6 +141,7 @@ function ImportPageInner() {
         method: "PUT",
         body: formData,
       })
+      settled = res.status >= 400 && res.status < 500
       const data = await res.json()
 
       if (!res.ok) throw new Error(data.error || "Failed to parse CSV")
@@ -151,6 +156,7 @@ function ImportPageInner() {
       }
       setMapping(guessed)
       setStep("map")
+      settled = true
     } catch (error) {
       addToast({
         title: "Error",
@@ -160,6 +166,7 @@ function ImportPageInner() {
     } finally {
       setIsLoading(false)
     }
+    return settled
   }
 
   const handleImport = async () => {

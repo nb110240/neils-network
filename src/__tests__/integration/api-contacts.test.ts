@@ -168,6 +168,24 @@ describe("POST /api/contacts without a name", () => {
     expect(h.supabase._queryBuilder.insert).not.toHaveBeenCalled()
   })
 
+  it("merges a nameless note into an exact-email match instead of prompting", async () => {
+    // Regression: the name prompt (and the limit check before it) ran before
+    // the strong-match check, so an exact-email note never merged, even for
+    // a capped user whose merges are otherwise allowed.
+    h.contactLimitAllowed = false
+    h.extracted = { name: null, email: "ada@example.com", company: null }
+    h.supabase = createMockSupabase({
+      authUser: { id: "u1" },
+      queryResult: { data: [{ id: "c1", name: "Ada Lovelace", email: "ada@example.com" }], error: null },
+    })
+    const res = await POST(postRequest(URL, { raw_note: "follow up with ada@example.com about the deck" }))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.merged).toBe(true)
+    expect(json.contactId).toBe("c1")
+    expect(h.supabase._queryBuilder.insert).not.toHaveBeenCalled()
+  })
+
   it("does not suggest a name when the first line is not one", async () => {
     h.supabase = createMockSupabase({ authUser: { id: "u1" }, queryResult: { data: [], error: null } })
     const res = await POST(postRequest(URL, { raw_note: "great chat at the demo day about seed rounds" }))
@@ -187,6 +205,17 @@ describe("POST /api/contacts without a name", () => {
     const res = await POST(postRequest(URL, { raw_note: "Met Jane Doe, partner at Acme", allow_unnamed: true }))
     expect(res.status).toBe(200)
     expect(h.supabase._queryBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({ name: "Jane Doe" }))
+  })
+
+  it("/add drops the name prompt when the note is edited", () => {
+    // Regression: a name typed for one note was sent with the edited note
+    // and overrode the name extracted from it.
+    const source = readFileSync(join(process.cwd(), "src/app/(dashboard)/add/page.tsx"), "utf8")
+    const handler = source.match(/const handleNoteChange = \(value: string\) => \{[\s\S]*?\n  \}/)?.[0] ?? ""
+    expect(handler).toContain("setNeedsName(false)")
+    expect(handler).toContain('setContactName("")')
+    expect(source).toContain("onChange={(e) => handleNoteChange(e.target.value)}")
+    expect(source).not.toContain("onChange={(e) => setRawNote(e.target.value)}")
   })
 
   it("/add only tracks contact_created after a successful save", () => {

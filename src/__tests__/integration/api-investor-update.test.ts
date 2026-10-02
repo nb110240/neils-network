@@ -6,7 +6,11 @@ import { postRequest, buildRequest } from "../helpers/mock-request"
 // own chainable builder that resolves to that table's rows and records calls.
 type Rows = Record<string, unknown[]>
 
-function createTableMock(authUser: { id: string; email?: string } | null, rows: Rows = {}) {
+function createTableMock(
+  authUser: { id: string; email?: string } | null,
+  rows: Rows = {},
+  errors: Record<string, { message: string }> = {}
+) {
   const calls: Array<{ table: string; method: string; args: unknown[] }> = []
   const from = vi.fn((table: string) => {
     const builder: Record<string, unknown> = {}
@@ -18,7 +22,9 @@ function createTableMock(authUser: { id: string; email?: string } | null, rows: 
     }
     Object.defineProperty(builder, "then", {
       value: (resolve: (v: unknown) => void) =>
-        Promise.resolve({ data: rows[table] ?? [], error: null }).then(resolve),
+        Promise.resolve(
+          errors[table] ? { data: null, error: errors[table] } : { data: rows[table] ?? [], error: null }
+        ).then(resolve),
     })
     return builder
   })
@@ -184,6 +190,27 @@ describe("POST /api/investor-update", () => {
     expect(json.stats.meetings.count).toBe(2)
     expect(json.stats.commitments.completed).toBe(1)
     expect(json.stats.intros.in_progress).toBe(1)
+  })
+
+  it.each(["contacts", "contact_activities", "commitments", "intro_requests"])(
+    "returns 500 instead of zero counts when the %s query fails",
+    async (table) => {
+      h.supabase = createTableMock(USER, crm(), { [table]: { message: "statement timeout" } })
+      h.structured.mockResolvedValue({ draft: "TL;DR" })
+      const res = await POST(postRequest(URL, {}))
+      expect(res.status).toBe(500)
+      expect(await res.json()).toHaveProperty("error")
+      expect(h.structured).not.toHaveBeenCalled()
+    }
+  )
+
+  it("only asks for open commitments due between now and the due-soon horizon", async () => {
+    const mock = createTableMock(USER, crm())
+    h.supabase = mock
+    h.structured.mockResolvedValue({ draft: "TL;DR" })
+    await POST(postRequest(URL, {}))
+    const dueFilters = mock.calls.filter((c) => c.table === "commitments" && c.args[0] === "due_at")
+    expect(dueFilters.map((c) => c.method).sort()).toEqual(["gte", "lte"])
   })
 
   it("never selects PII columns", async () => {

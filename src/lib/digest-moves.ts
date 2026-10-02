@@ -48,7 +48,10 @@ export function buildDigestMoves(input: {
 }): DigestMoves {
   const now = input.now ?? new Date()
   const horizon = now.getTime() + PROMISE_WINDOW_DAYS * DAY_MS
-  const name = (id: string | null) => (id ? input.contactNames.get(id) : null) || null
+  // Only active contacts are in contactNames, so a missing id means archived
+  // (skip it). An active contact without a name still keeps its moves.
+  const name = (id: string | null) =>
+    id && input.contactNames.has(id) ? input.contactNames.get(id) || "Unknown" : null
 
   const toItem = (c: DigestCommitmentRow): DigestMoveItem | null => {
     const contactName = name(c.contact_id)

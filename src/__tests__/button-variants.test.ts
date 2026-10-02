@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { readFileSync, readdirSync, statSync } from "fs"
+import { existsSync, readFileSync, readdirSync, statSync } from "fs"
 import path from "path"
 import { buttonVariants } from "@/components/ui/button"
 
@@ -62,5 +62,13 @@ describe("copper gradient CTAs", () => {
         })
     }
     expect(offenders).toEqual([])
+  })
+
+  it("only allowlists files that still exist", () => {
+    // A renamed or deleted file must leave PENDING too, so the allowlist
+    // cannot silently outlive the code it excuses.
+    const root = path.resolve(__dirname, "../..")
+    const missing = [...PENDING].filter((rel) => !existsSync(path.join(root, rel)))
+    expect(missing).toEqual([])
   })
 })

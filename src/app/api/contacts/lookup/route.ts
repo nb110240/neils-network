@@ -6,6 +6,9 @@ import { ilikeAnyFilter } from "@/lib/ilike-filter"
 // Lightweight name/email/company lookup for contact pickers. Pickers preload
 // the first 500 contacts; this finds the rest. Plain ILIKE, no embeddings, so
 // it does not count against the semantic search quota.
+// Capped at 20 on purpose: this backs a typeahead, so a broad query that
+// matches more than 20 contacts is narrowed by typing more of the name,
+// email or company rather than paged through.
 export async function GET(request: Request) {
   try {
     const auth = await authenticateRequest("search")

@@ -62,6 +62,13 @@ describe("POST /api/native/apple-token", () => {
     expect(h.upserts).toEqual([expect.objectContaining({ user_id: "u1", client_id: "app.savvo", refresh_token: "r.from-apple" })])
   })
 
+  it("exchanges under the app's own bundle id, ignoring any APPLE_BUNDLE_ID env", async () => {
+    // Apple issued the code to the app's client_id; a different one fails with invalid_client.
+    process.env.APPLE_BUNDLE_ID = "com.example.other"
+    await post({ authorizationCode: "code-2" })
+    expect(h.exchange).toHaveBeenCalledWith("code-2", "app.savvo")
+  })
+
   it("stores an Android browser sign-in's refresh token under the web Services ID", async () => {
     await post({ refreshToken: "r.android" })
     expect(h.exchange).not.toHaveBeenCalled()

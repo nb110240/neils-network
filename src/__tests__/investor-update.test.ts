@@ -80,6 +80,23 @@ describe("buildInvestorUpdateStats", () => {
     expect(stats.commitments).toEqual({ completed: 1, open_due_soon: 1 })
   })
 
+  it("does not count overdue open commitments as due soon", () => {
+    const base = source()
+    const stats = buildInvestorUpdateStats(
+      {
+        ...base,
+        commitments: [
+          ...base.commitments,
+          { id: "k7", contact_id: "c2", direction: "user_owes", status: "open", due_at: daysAgo(5), completed_at: null },
+          { id: "k8", contact_id: "c1", direction: "user_owes", status: "open", due_at: daysAgo(1), completed_at: null },
+        ],
+      },
+      30,
+      NOW
+    )
+    expect(stats.commitments.open_due_soon).toBe(1)
+  })
+
   it("summarizes intro progress for live targets", () => {
     const stats = buildInvestorUpdateStats(source(), 30, NOW)
     expect(stats.intros).toEqual({ in_progress: 1, introduced: 1, meetings_booked: 1 })

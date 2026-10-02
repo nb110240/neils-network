@@ -3,6 +3,8 @@
 // template page before they have an account. The CSV waits in this
 // browser's localStorage until they sign in, then /import picks it up.
 
+import Papa from "papaparse"
+
 const KEY = "savvo-pending-import"
 export const PENDING_IMPORT_MAX_BYTES = 1_000_000
 const TTL_MS = 7 * 24 * 60 * 60 * 1000
@@ -13,10 +15,15 @@ export interface PendingImport {
   savedAt: number
 }
 
-/** Header plus at least one non-empty data row. */
+/** Parsed CSV records with blank and delimiter-only rows dropped. */
+function csvRecords(text: string): string[][] {
+  // Parse records, not lines: a quoted field can contain a newline.
+  return Papa.parse<string[]>(text, { skipEmptyLines: "greedy" }).data
+}
+
+/** Data records after the header (blank and comma-only rows ignored). */
 export function countCsvDataRows(text: string): number {
-  const lines = text.split(/\r?\n/).filter((line) => line.replace(/,/g, "").trim() !== "")
-  return Math.max(0, lines.length - 1)
+  return Math.max(0, csvRecords(text).length - 1)
 }
 
 // Example rows shipped in public/templates/investor-pipeline-tracker.csv.
@@ -24,9 +31,9 @@ const TEMPLATE_EXAMPLE_NAMES = new Set(["jane example", "sam placeholder", "ana 
 
 /** True when every data row is one of the template's example investors. */
 export function isUneditedTemplate(text: string): boolean {
-  const rows = text.split(/\r?\n/).slice(1).filter((line) => line.replace(/,/g, "").trim() !== "")
+  const rows = csvRecords(text).slice(1)
   if (rows.length === 0) return false
-  return rows.every((line) => TEMPLATE_EXAMPLE_NAMES.has(line.split(",")[0].replace(/"/g, "").trim().toLowerCase()))
+  return rows.every((row) => TEMPLATE_EXAMPLE_NAMES.has((row[0] ?? "").trim().toLowerCase()))
 }
 
 export function savePendingImport(name: string, text: string): boolean {
@@ -36,6 +43,9 @@ export function savePendingImport(name: string, text: string): boolean {
     return true
   } catch {
     // Storage blocked or full (private mode, quota): caller falls back.
+    // A failed setItem leaves any older pending file in place; drop it so
+    // the post-signup redirect can't open a file the visitor replaced.
+    clearPendingImport()
     return false
   }
 }
@@ -65,4 +75,18 @@ export function clearPendingImport() {
   } catch {
     // Nothing to clear if storage is unavailable.
   }
+}
+
+/**
+ * Hand the pending file to `load`, which resolves true once the server has
+ * answered for good (parsed it, or rejected it as invalid). Only then is the
+ * pending copy cleared, so a dropped request or server error keeps it for the
+ * next visit to /import instead of losing the visitor's upload.
+ */
+export async function resumePendingImport(
+  pending: PendingImport,
+  load: (file: File) => Promise<boolean>,
+): Promise<void> {
+  const settled = await load(new File([pending.text], pending.name, { type: "text/csv" }))
+  if (settled) clearPendingImport()
 }

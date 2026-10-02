@@ -55,8 +55,10 @@ export async function claimReferralOnce(
       method: "POST",
       credentials: "same-origin",
     })
-    // Retry on a later load only when the failure was transient.
-    if (res.status === 429 || res.status >= 500) storage?.removeItem(key)
+    // Retry on a later load only when the failure was transient. A 401 means
+    // the session cookie was not there yet (e.g. native sign-in still
+    // settling), so a later authenticated load must still be able to claim.
+    if (res.status === 401 || res.status === 429 || res.status >= 500) storage?.removeItem(key)
   } catch {
     try {
       storage?.removeItem(key)

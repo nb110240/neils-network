@@ -23,10 +23,10 @@ function loadServiceWorker() {
   const source = readFileSync(join(process.cwd(), "public/sw.js"), "utf8")
   new Function("self", "caches", "fetch", source)(scope, caches, fetchMock)
 
-  function dispatchFetch(url: string) {
+  function dispatchFetch(url: string, init?: RequestInit) {
     const respondWith = vi.fn()
     const waitUntil = vi.fn()
-    listeners.fetch({ request: new Request(url), respondWith, waitUntil })
+    listeners.fetch({ request: new Request(url, init), respondWith, waitUntil })
     return Object.assign(respondWith, { waitUntil })
   }
   function dispatchMessage(data: unknown) {
@@ -34,7 +34,7 @@ function loadServiceWorker() {
     listeners.message({ data, waitUntil })
     return waitUntil
   }
-  return { dispatchFetch, dispatchMessage, cachePut, fetchMock, caches }
+  return { dispatchFetch, dispatchMessage, cachePut, fetchMock, caches, scope }
 }
 
 function redirectedTo(url: string): Response {
@@ -99,12 +99,66 @@ describe("service worker sign-out hygiene", () => {
     expect(sw.cachePut).not.toHaveBeenCalled()
   })
 
+  it("does not cache a page whose request was in flight at sign-out", async () => {
+    // Regression: a protected page fetched just before sign-out resolved
+    // after the caches were cleared and recreated them with the previous
+    // user's page.
+    let resolveFetch: (response: Response) => void = () => {}
+    sw.fetchMock.mockReturnValueOnce(new Promise<Response>((resolve) => { resolveFetch = resolve }))
+    const respondWith = sw.dispatchFetch("https://savvo.app/contacts")
+    sw.dispatchMessage({ type: "CLEAR_CACHES" })
+    resolveFetch(new Response("previous user's contacts", { status: 200 }))
+    await respondWith.mock.calls[0][0]
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(sw.cachePut).not.toHaveBeenCalled()
+
+    // Pages fetched after sign-out (the next session) cache normally.
+    const next = sw.dispatchFetch("https://savvo.app/contacts")
+    await next.mock.calls[0][0]
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(sw.cachePut).toHaveBeenCalledOnce()
+  })
+
   it("still caches a normal signed-in page", async () => {
     const respondWith = sw.dispatchFetch("https://savvo.app/contacts")
     await respondWith.mock.calls[0][0]
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(sw.cachePut).toHaveBeenCalledOnce()
     expect(sw.caches.delete).not.toHaveBeenCalled()
+  })
+})
+
+describe("service worker offline queue", () => {
+  // Regression: a name the user confirmed at the prompt was dropped from the
+  // offline queue, so sync re-guessed it from the note.
+  it("keeps the confirmed name when queueing and syncing", async () => {
+    const sw = loadServiceWorker()
+    const postMessage = vi.fn()
+    sw.scope.clients.matchAll.mockResolvedValue([{ postMessage }] as never)
+    sw.fetchMock.mockRejectedValueOnce(new TypeError("offline"))
+    const respondWith = sw.dispatchFetch("https://savvo.app/api/contacts", {
+      method: "POST",
+      body: JSON.stringify({ raw_note: "great chat about seed rounds", name: "Sam Lee" }),
+    })
+    await respondWith.mock.calls[0][0]
+    const queued = postMessage.mock.calls[0][0]
+    expect(queued.type).toBe("OFFLINE_QUEUE_ADD")
+    expect(queued.data).toMatchObject({ raw_note: "great chat about seed rounds", name: "Sam Lee" })
+
+    sw.fetchMock.mockClear()
+    sw.dispatchMessage({ type: "SYNC_OFFLINE_QUEUE", queue: [queued.data] })
+    await vi.waitFor(() => expect(sw.fetchMock).toHaveBeenCalledOnce())
+    const init = (sw.fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1]
+    expect(JSON.parse(init.body as string)).toEqual({
+      raw_note: "great chat about seed rounds",
+      name: "Sam Lee",
+      allow_unnamed: true,
+    })
+  })
+
+  it("the page-side sync fallback also sends the confirmed name", () => {
+    const source = readFileSync(join(process.cwd(), "src/components/offline-indicator.tsx"), "utf8")
+    expect(source).toMatch(/raw_note: item\.raw_note, name: item\.name, allow_unnamed: true/)
   })
 })
 

@@ -13,6 +13,7 @@ import { captureEvent } from "@/components/posthog-provider"
 import { RaiseFunnel } from "@/components/raise-funnel"
 import { cn } from "@/lib/utils"
 import type { InvestorUpdateStats } from "@/lib/investor-update"
+import { readInvestorUpdateResponse } from "@/lib/investor-update-response"
 
 type Tone = "concise" | "detailed"
 
@@ -70,14 +71,15 @@ export default function InvestorUpdatesPage() {
           ...(asks.trim() ? { asks: asks.trim() } : {}),
         }),
       })
-      const body = await response.json()
-      if (response.status === 403) {
+      const result = await readInvestorUpdateResponse(response)
+      if (result.kind === "upgrade") {
         setIsPro(false)
         return
       }
-      if (!response.ok) throw new Error(body.error)
-      setDraft(body.draft)
-      setStats(body.stats)
+      if (result.kind === "error") throw new Error(result.message)
+      const body = result.body
+      setDraft(String(body.draft ?? ""))
+      setStats(body.stats as InvestorUpdateStats)
       setCopied(false)
       captureEvent("investor_update_drafted", { period_days: periodDays, tone, fallback: Boolean(body.fallback) })
     } catch (error) {

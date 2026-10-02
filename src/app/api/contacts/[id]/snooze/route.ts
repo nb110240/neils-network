@@ -55,6 +55,8 @@ export async function POST(
 
     revalidatePath("/dashboard")
     revalidatePath("/reach-out")
+    revalidatePath("/moves")
+    revalidatePath("/contacts")
 
     return NextResponse.json({ contact, snoozed_until: snoozedUntil })
   } catch (error) {
@@ -94,6 +96,8 @@ export async function DELETE(
 
     revalidatePath("/dashboard")
     revalidatePath("/reach-out")
+    revalidatePath("/moves")
+    revalidatePath("/contacts")
 
     return NextResponse.json({ contact })
   } catch (error) {

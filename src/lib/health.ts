@@ -3,11 +3,12 @@ import { type HealthScore, type HealthLevel } from "@/lib/types"
 export function calculateHealthScore(
   lastContactDate: string | null,
   createdAt: string,
-  cadenceDays?: number | null
+  cadenceDays?: number | null,
+  nowMs: number = Date.now()
 ): HealthScore {
   const referenceDate = lastContactDate || createdAt
   const daysSince = Math.floor(
-    (Date.now() - new Date(referenceDate).getTime()) / (1000 * 60 * 60 * 24)
+    (nowMs - new Date(referenceDate).getTime()) / (1000 * 60 * 60 * 24)
   )
 
   let score: number

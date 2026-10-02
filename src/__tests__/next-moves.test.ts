@@ -322,4 +322,22 @@ describe("buildNextMoves relationship rules (shared by dashboard, /moves, /reach
     expect(dashboard).toEqual(all.slice(0, DASHBOARD_MOVE_LIMIT))
     expect(dashboard[0].contactId).toBe(`c-${DASHBOARD_MOVE_LIMIT + 2}`)
   })
+
+  it("drops promises, asks, and intros for archived contacts", () => {
+    // Regression: archiving a contact hid them from contacts lists, but their
+    // open commitments and intro asks kept showing up as next moves.
+    const moves = buildNextMoves({
+      nowMs: NOW,
+      contacts: [contact()],
+      commitments: [
+        commitment(),
+        commitment({ id: "commitment-archived", contact_id: "contact-archived", title: "Send archived deck" }),
+        commitment({ id: "waiting-archived", contact_id: "contact-archived", direction: "contact_owes", title: "Their archived ask" }),
+      ],
+      reviews: [],
+      introRequests: [intro({ id: "intro-archived", target_contact_id: "contact-archived" })],
+      archivedContactIds: ["contact-archived"],
+    })
+    expect(moves.map((move) => move.id)).toEqual(["commitment:commitment-1"])
+  })
 })

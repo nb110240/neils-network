@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { getUserPlan } from "@/lib/subscription"
+import { fetchArchivedContactIds } from "@/lib/archived-contacts"
 import { buildNextMoves, relationshipMoves } from "@/lib/next-moves"
 import { NextMoves } from "@/components/next-moves"
 import { Button } from "@/components/ui/button"
@@ -19,7 +20,7 @@ export default async function ReachOutPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const [plan, { data: contacts }, { data: commitments }, { data: reviews }, { data: introRequests }] = await Promise.all([
+  const [plan, { data: contacts }, { data: commitments }, { data: reviews }, { data: introRequests }, archivedContactIds] = await Promise.all([
     getUserPlan(user.id),
     supabase
       .from("contacts")
@@ -41,6 +42,7 @@ export default async function ReachOutPage() {
       .select("*")
       .eq("user_id", user.id)
       .in("status", ["draft", "requested", "accepted", "introduced"]),
+    fetchArchivedContactIds(supabase, user.id),
   ])
 
   const people = relationshipMoves(buildNextMoves({
@@ -48,6 +50,7 @@ export default async function ReachOutPage() {
     commitments: (commitments || []) as Commitment[],
     reviews: (reviews || []) as AfterCallReview[],
     introRequests: (introRequests || []) as IntroRequest[],
+    archivedContactIds,
   }))
 
   return (

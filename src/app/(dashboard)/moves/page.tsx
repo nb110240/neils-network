@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic"
 import Link from "next/link"
 import { ArrowLeft, Plus } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
+import { fetchArchivedContactIds } from "@/lib/archived-contacts"
 import { buildNextMoves } from "@/lib/next-moves"
 import { getUserPlan } from "@/lib/subscription"
 import { NextMoves } from "@/components/next-moves"
@@ -14,7 +15,7 @@ export default async function MovesPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const [plan, { data: contacts }, { data: commitments }, { data: reviews }, { data: introRequests }] = await Promise.all([
+  const [plan, { data: contacts }, { data: commitments }, { data: reviews }, { data: introRequests }, archivedContactIds] = await Promise.all([
     getUserPlan(user.id),
     supabase
       .from("contacts")
@@ -36,6 +37,7 @@ export default async function MovesPage() {
       .select("*")
       .eq("user_id", user.id)
       .in("status", ["draft", "requested", "accepted", "introduced"]),
+    fetchArchivedContactIds(supabase, user.id),
   ])
 
   const moves = buildNextMoves({
@@ -43,6 +45,7 @@ export default async function MovesPage() {
     commitments: (commitments || []) as Commitment[],
     reviews: (reviews || []) as AfterCallReview[],
     introRequests: (introRequests || []) as IntroRequest[],
+    archivedContactIds,
   })
 
   return (

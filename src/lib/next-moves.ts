@@ -193,28 +193,37 @@ function commitmentScore(commitment: Commitment, nowMs: number): number {
  * Each contact gets at most one relationship move (its strongest reason), and
  * none at all when a commitment, review, or intro already covers them.
  * Snoozed contacts (snoozed_until >= today) produce no relationship move;
- * commitments carry their own snooze.
+ * commitments carry their own snooze. Commitments and intros tied to an
+ * archived contact are dropped: archiving hides the person everywhere.
  */
 export function buildNextMoves({
   commitments,
   reviews,
   contacts,
   introRequests = [],
+  archivedContactIds = [],
   nowMs = Date.now(),
 }: {
   commitments: Commitment[]
   reviews: AfterCallReview[]
   contacts: MoveContact[]
   introRequests?: IntroRequest[]
+  /**
+   * Passed explicitly rather than inferred from `contacts`, which can be
+   * truncated by the API row cap: a missing contact is not proof of archive.
+   */
+  archivedContactIds?: Iterable<string>
   nowMs?: number
 }): NextMove[] {
   const contactMap = new Map(contacts.map((contact) => [contact.id, contact]))
+  const archived = new Set(archivedContactIds)
   const today = todayKey(nowMs)
   const moves: NextMove[] = []
   const contactsWithPrimaryMoves = new Set<string>()
 
   for (const commitment of commitments) {
     if (!["open", "snoozed"].includes(commitment.status)) continue
+    if (archived.has(commitment.contact_id)) continue
     if (
       commitment.status === "snoozed" &&
       commitment.snoozed_until &&
@@ -264,6 +273,7 @@ export function buildNextMoves({
 
   for (const intro of introRequests) {
     if (["meeting_booked", "closed", "declined"].includes(intro.status)) continue
+    if (archived.has(intro.target_contact_id)) continue
     const target = contactMap.get(intro.target_contact_id)
     const followUpDays = intro.next_follow_up_at ? daysFromNow(intro.next_follow_up_at, nowMs) : null
     const statusReason = intro.status === "draft"

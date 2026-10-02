@@ -45,28 +45,17 @@ export async function POST(request: Request) {
     // Never save a nameless contact. When extraction fails (AI outage) or the
     // note has no name, ask for one instead of creating "Unnamed contact",
     // which also fired activation analytics for a contact nobody can find.
+    // The prompt waits until after the strong-match check below: a nameless
+    // note with an exact email match merges into that contact instead.
+    let needsName = false
     if (typeof extracted.name !== "string" || !extracted.name.trim()) {
       // Notes queued offline sync in the background with nobody to ask, so
       // keep them (best-guess name or none) rather than dropping the note.
       if (body.allow_unnamed === true) {
         extracted.name = suggestNameFromNote(raw_note)
       } else {
-        // A capped free user should hear about the limit first, not type a
-        // name only to be told they can't add anyone.
-        const { allowed, limit } = await checkContactLimit(user.id)
-        if (!allowed) {
-          return forbiddenResponse(
-            `You've reached the ${limit}-contact limit on the free plan. Upgrade to Pro for unlimited contacts.`
-          )
-        }
-        return NextResponse.json(
-          {
-            error: "We couldn't find a name in that note. Add their name to save this contact.",
-            needs_name: true,
-            suggested_name: suggestNameFromNote(raw_note),
-          },
-          { status: 422 }
-        )
+        extracted.name = null
+        needsName = true
       }
     }
 
@@ -201,7 +190,28 @@ export async function POST(request: Request) {
           message: `This looks like ${strongMatch.reason.toLowerCase()}. Added your note to the existing contact instead of creating a duplicate.`,
         }, { status: 200 })
       }
+    }
 
+    if (needsName) {
+      // A capped free user should hear about the limit first, not type a
+      // name only to be told they can't add anyone.
+      const { allowed, limit } = await checkContactLimit(user.id)
+      if (!allowed) {
+        return forbiddenResponse(
+          `You've reached the ${limit}-contact limit on the free plan. Upgrade to Pro for unlimited contacts.`
+        )
+      }
+      return NextResponse.json(
+        {
+          error: "We couldn't find a name in that note. Add their name to save this contact.",
+          needs_name: true,
+          suggested_name: suggestNameFromNote(raw_note),
+        },
+        { status: 422 }
+      )
+    }
+
+    if (!skipDedup) {
       duplicates = await findDuplicates(supabase, user.id, {
         name: extracted.name as string | null,
         email: extracted.email as string | null,

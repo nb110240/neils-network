@@ -80,6 +80,7 @@ export async function POST(request: Request) {
         .eq("user_id", user.id)
         .eq("status", "open")
         .eq("direction", "user_owes")
+        .gte("due_at", now.toISOString())
         .lte("due_at", dueSoon)
         .limit(1000),
       supabase
@@ -89,8 +90,11 @@ export async function POST(request: Request) {
         .limit(1000),
     ])
 
-    if (contactsRes.error) {
-      log("error", "Investor update contacts query failed", { action: "investor_update", route: ROUTE, userId: user.id, error: contactsRes.error.message })
+    // Any failed read would silently become a zero in a draft sent to investors.
+    const queries = { contacts: contactsRes, activities: activitiesRes, completed_commitments: completedRes, open_commitments: openRes, intros: introsRes }
+    const failed = Object.entries(queries).find(([, res]) => res.error)
+    if (failed) {
+      log("error", "Investor update query failed", { action: "investor_update", route: ROUTE, userId: user.id, query: failed[0], error: failed[1].error?.message })
       return errorResponse("Could not load your pipeline")
     }
 

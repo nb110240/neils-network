@@ -209,7 +209,7 @@ export default function AddContactPage() {
               <Button
                 type="submit"
                 disabled={isLoading || !rawNote.trim()}
-                className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+                variant="copper"
               >
                 {isLoading ? (
                   <>
@@ -321,7 +321,7 @@ export default function AddContactPage() {
               onClick={() => {
                 if (linkedinSuccess) router.push(`/contact/${linkedinSuccess.id}`)
               }}
-              className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+              variant="copper"
             >
               <Edit2 className="mr-2 h-4 w-4" />
               Edit & Add Details
@@ -352,7 +352,7 @@ export default function AddContactPage() {
             </Button>
             <Button
               asChild
-              className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+              variant="copper"
             >
               <Link href="/pricing">
                 <ArrowUpRight className="mr-2 h-4 w-4" />

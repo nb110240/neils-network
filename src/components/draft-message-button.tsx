@@ -134,7 +134,7 @@ export function DraftMessageButton({ contactId, contactName, plan, variant = "fu
                   <Button variant="outline" onClick={() => generateDraft(draftType)}>
                     Regenerate
                   </Button>
-                  <Button onClick={copyToClipboard} className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0">
+                  <Button variant="copper" onClick={copyToClipboard}>
                     {copied ? (
                       <><Check className="mr-2 h-4 w-4" /> Copied</>
                     ) : (
@@ -198,7 +198,7 @@ export function DraftMessageButton({ contactId, contactName, plan, variant = "fu
                 <Button variant="outline" onClick={() => generateDraft(draftType)}>
                   Regenerate
                 </Button>
-                <Button onClick={copyToClipboard} className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0">
+                <Button variant="copper" onClick={copyToClipboard}>
                   {copied ? (
                     <><Check className="mr-2 h-4 w-4" /> Copied</>
                   ) : (

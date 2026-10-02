@@ -182,7 +182,8 @@ export function CaptureMeetingForm({ contacts, plan, initialContactId = "" }: { 
               <Button
                 type="submit"
                 disabled={isSubmitting || rawText.trim().length < 20}
-                className="h-11 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] border-0 px-6"
+                variant="copper"
+                className="h-11 px-6"
               >
                 <Sparkles className="mr-2 h-4 w-4" />
                 {isSubmitting ? "Finding your next moves..." : "Analyze for review"}

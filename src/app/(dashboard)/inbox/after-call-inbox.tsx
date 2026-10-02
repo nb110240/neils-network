@@ -259,7 +259,7 @@ function ReviewCard({
 
         <div className="flex flex-col-reverse gap-3 border-t border-stone-200 pt-5 dark:border-stone-700 sm:flex-row sm:items-center sm:justify-between">
           <Button variant="ghost" className="min-h-11" onClick={() => removeReview("dismiss")} disabled={busyAction !== null}>Dismiss review</Button>
-          <Button onClick={approve} disabled={busyAction !== null} className="h-11 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] border-0 px-6">
+          <Button variant="copper" onClick={approve} disabled={busyAction !== null} className="h-11 px-6">
             <Check className="mr-2 h-4 w-4" />
             {busyAction === "approve" ? "Applying approved changes..." : "Approve all changes"}
           </Button>
@@ -302,7 +302,7 @@ export function AfterCallInbox({ initialReviews, contacts }: { initialReviews: A
             <h1 className="mt-1 text-3xl font-normal tracking-tight sm:text-4xl">After-call inbox</h1>
             <p className="mt-1 text-base text-muted-foreground sm:text-lg">Review what Savvo found before anything changes.</p>
           </div>
-          <Button asChild className="min-h-11 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] border-0">
+          <Button variant="copper" asChild className="min-h-11">
             <Link href="/capture"><Plus className="mr-2 h-4 w-4" /> Capture meeting</Link>
           </Button>
         </div>

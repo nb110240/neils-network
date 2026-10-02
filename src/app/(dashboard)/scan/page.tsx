@@ -264,7 +264,7 @@ export default function ScanPage() {
               </Button>
               <Button
                 onClick={() => handleImport(scannedUrl)}
-                className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+                variant="copper"
               >
                 Add as Contact
               </Button>

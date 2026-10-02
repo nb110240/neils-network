@@ -90,7 +90,8 @@ export function InstallPrompt() {
         size="sm"
         onClick={install}
         disabled={installing}
-        className="shrink-0 h-8 text-xs bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+        variant="copper"
+        className="shrink-0 h-8 text-xs"
       >
         {installing ? "Installing..." : "Install"}
       </Button>

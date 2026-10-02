@@ -66,7 +66,7 @@ export function OnboardingChecklist({
           </div>
 
           <div className="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col">
-            <Button asChild className="min-h-11 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] border-0">
+            <Button variant="copper" asChild className="min-h-11">
               <Link href={primary.href}><FileText className="mr-2 h-4 w-4" />{primary.label}<ArrowRight className="ml-2 h-4 w-4" /></Link>
             </Button>
             <div className="flex gap-1">

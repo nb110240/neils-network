@@ -199,7 +199,7 @@ export function MeetingPrepButton({ contactId }: { contactId: string }) {
             <Button variant="outline" onClick={() => setShowUpgrade(false)}>
               Maybe later
             </Button>
-            <Button asChild className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0">
+            <Button variant="copper" asChild>
               <Link href="/pricing">
                 <ArrowUpRight className="mr-2 h-4 w-4" />
                 See Pro plans

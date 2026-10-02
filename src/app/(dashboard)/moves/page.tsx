@@ -54,7 +54,7 @@ export default async function MovesPage() {
             <h1 className="text-3xl font-normal tracking-tight sm:text-4xl">Your next moves</h1>
             <p className="mt-1 text-base text-muted-foreground sm:text-lg">Every open promise, review, and relationship action in priority order.</p>
           </div>
-          <Button asChild className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] border-0">
+          <Button variant="copper" asChild>
             <Link href="/capture"><Plus className="mr-2 h-4 w-4" /> Capture meeting</Link>
           </Button>
         </div>

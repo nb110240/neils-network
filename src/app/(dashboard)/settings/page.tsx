@@ -388,7 +388,7 @@ export default function SettingsPage() {
               <Button
                 size="sm"
                 asChild
-                className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+                variant="copper"
               >
                 <Link href="/pricing">{isCreditPro ? "Keep Pro" : "Upgrade to Pro"}</Link>
               </Button>

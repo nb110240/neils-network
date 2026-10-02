@@ -116,7 +116,7 @@ export default function SearchPage() {
             <p className="text-sm text-muted-foreground text-center max-w-sm">
               {searchError}
             </p>
-            <Button size="sm" asChild className="mt-4 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0">
+            <Button variant="copper" size="sm" asChild className="mt-4">
               <Link href="/pricing">Upgrade to Pro</Link>
             </Button>
           </CardContent>

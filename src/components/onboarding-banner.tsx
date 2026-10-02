@@ -50,7 +50,8 @@ export function OnboardingBanner({ contactCount, plan }: OnboardingBannerProps) 
         <Button
           asChild
           size="sm"
-          className="shrink-0 h-8 text-xs bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+          variant="copper"
+          className="shrink-0 h-8 text-xs"
         >
           <Link href="/add">
             <Plus className="mr-1.5 h-3.5 w-3.5" />

@@ -118,7 +118,7 @@ export function buildInvestorUpdateStats(
     if (c.status === "completed" && inWindow(c.completed_at, startMs, endMs)) completed++
     else if (c.status === "open" && c.direction === "user_owes" && c.due_at) {
       const due = Date.parse(c.due_at)
-      if (Number.isFinite(due) && due <= dueSoonMs) openDueSoon++
+      if (Number.isFinite(due) && due >= endMs && due <= dueSoonMs) openDueSoon++ // overdue is not "due soon"
     }
   }
 

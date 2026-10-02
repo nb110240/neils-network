@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Savvo brand colors. These override the indigo/pink defaults that the
+         :capacitor-android library module would otherwise supply for AppTheme. -->
+    <color name="colorPrimary">#C2410C</color>
+    <color name="colorPrimaryDark">#9A3412</color>
+    <color name="colorAccent">#EA580C</color>
+</resources>

@@ -89,7 +89,7 @@ Savvo does not scrape social networks and does not share your contacts. The peop
 
 Stop letting relationships go cold. Start every day knowing exactly who to reach out to. Download Savvo and keep every connection alive.
 
-Questions or feedback? Reach us at support@savvo.app.
+Questions or feedback? Reach us at neil@savvo.app.
 ```
 Count: approximately 1,830 characters. Well under 4,000.
 
@@ -174,18 +174,18 @@ Notes:
 
 | Field | Value |
 | --- | --- |
-| Support URL (required) | https://savvo.app/support |
+| Support URL (required) | https://savvo.app/help |
 | Marketing URL (optional) | https://savvo.app |
 | Privacy Policy URL (required) | https://savvo.app/privacy |
-| Support email (App Review contact) | support@savvo.app |
+| Support email (App Review contact) | neil@savvo.app |
 | Copyright | 2026 Savvo |
 
-Action item: confirm https://savvo.app/support and https://savvo.app/privacy both return
-200 to a LOGGED-OUT visitor before submission. App Review rejects dead support or privacy
-URLs. NOTE: `/support` is currently behind auth (protected in src/middleware.ts), so an
-unauthenticated reviewer gets redirected to login and the URL effectively fails review.
-Either ship a public `/support` page or set the Support URL to a public page (or
-https://savvo.app) and rely on support@savvo.app as the in-listing contact.
+https://savvo.app/help is public (returns 200 to a logged-out visitor) and covers sign-in,
+subscriptions on every store, data export and account deletion. https://savvo.app/support
+also works: logged-out visitors are redirected to /help, signed-in users get the in-app
+contact form. Before submission, confirm /help and /privacy both load in a private window.
+The email matches the one on the privacy policy and help page; if you set up a dedicated
+support@savvo.app inbox later, change it in all three places.
 
 ---
 

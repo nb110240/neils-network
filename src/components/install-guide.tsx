@@ -96,7 +96,7 @@ export function InstallGuide() {
             <Button
               onClick={install}
               disabled={installing}
-              className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+              variant="copper"
             >
               {installing ? "Installing..." : "Install Savvo"}
             </Button>

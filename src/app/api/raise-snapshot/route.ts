@@ -3,6 +3,7 @@ import { z } from "zod/v4"
 import { authenticateRequest, authFailed, badRequestResponse, errorResponse } from "@/lib/api-utils"
 import { createShareToken, snapshotUrl } from "@/lib/share-token"
 import { INVESTOR_STAGE_VALUES } from "@/lib/investor-stage"
+import { fetchAllRows } from "@/lib/fetch-all"
 
 const TitleSchema = z.object({
   title: z.string().trim().max(80).nullable().optional(),
@@ -17,12 +18,16 @@ export async function GET() {
 
     const [{ data: snapshot, error }, { data: stageRows }] = await Promise.all([
       supabase.from("raise_snapshots").select("token, title").eq("user_id", user.id).maybeSingle(),
-      supabase
-        .from("contacts")
-        .select("investor_stage")
-        .eq("created_by", user.id)
-        .is("archived_at", null)
-        .not("investor_stage", "is", null),
+      fetchAllRows((from, to) =>
+        supabase
+          .from("contacts")
+          .select("investor_stage")
+          .eq("created_by", user.id)
+          .is("archived_at", null)
+          .not("investor_stage", "is", null)
+          .order("id", { ascending: true })
+          .range(from, to)
+      ),
     ])
     if (error) return errorResponse("Could not load your raise snapshot")
 

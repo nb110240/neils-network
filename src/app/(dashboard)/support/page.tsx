@@ -67,7 +67,7 @@ export default function SupportPage() {
               <Button variant="outline" onClick={() => { setIsSent(false); setSubject(""); setMessage("") }}>
                 Send Another Message
               </Button>
-              <Button asChild className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0">
+              <Button variant="copper" asChild>
                 <Link href="/dashboard">Back to Dashboard</Link>
               </Button>
             </div>
@@ -133,7 +133,7 @@ export default function SupportPage() {
             <Button
               type="submit"
               disabled={isLoading || !subject || message.trim().length < 5}
-              className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+              variant="copper"
             >
               {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

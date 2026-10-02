@@ -25,6 +25,7 @@ describe("sitemap", () => {
       "https://savvo.app/blog/fundraising-crm-comparison",
       "https://savvo.app/changelog",
       "https://savvo.app/install",
+      "https://savvo.app/help",
       "https://savvo.app/privacy",
       "https://savvo.app/terms",
     ]

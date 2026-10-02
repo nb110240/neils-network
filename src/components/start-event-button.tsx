@@ -107,7 +107,7 @@ export function StartEventButton() {
           <Button
             onClick={handleCreate}
             disabled={!name.trim() || isCreating}
-            className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+            variant="copper"
           >
             {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Start Event

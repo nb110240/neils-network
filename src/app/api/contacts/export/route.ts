@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { authenticateRequest, authFailed, errorResponse } from "@/lib/api-utils"
+import { fetchAllRows } from "@/lib/fetch-all"
 
 function escapeCsvField(value: string | null): string {
   if (!value) return ""
@@ -16,12 +17,17 @@ export async function GET() {
     if (authFailed(auth)) return auth.error
     const { user, supabase } = auth
 
-    const { data: contacts, error } = await supabase
-      .from("contacts")
-      .select("name, email, phone, company, job_title, website, how_we_met, next_steps, follow_up_needed, last_contact_date, raw_note, source, created_at")
-      .eq("created_by", user.id)
-      .is("archived_at", null)
-      .order("name", { ascending: true })
+    // Paged: the API returns at most 1,000 rows per request.
+    const { data: contacts, error } = await fetchAllRows((from, to) =>
+      supabase
+        .from("contacts")
+        .select("name, email, phone, company, job_title, website, how_we_met, next_steps, follow_up_needed, last_contact_date, raw_note, source, created_at")
+        .eq("created_by", user.id)
+        .is("archived_at", null)
+        .order("name", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to)
+    )
 
     if (error) {
       console.error("Export contacts error:", error)

@@ -25,7 +25,8 @@ Live at [savvo.app](https://savvo.app). An iOS wrapper (Capacitor) ships the sam
 - Network graph (d3)
 
 **Account and platform**
-- Email/password (Turnstile CAPTCHA) and Google sign-in, TOTP 2FA, 24h idle logout
+- Email/password (Turnstile CAPTCHA), Google, and Sign in with Apple, TOTP 2FA, 24h idle logout
+- Push notifications in the app: promises due, meeting notes to review, intro follow-ups
 - Stripe (web) and RevenueCat (iOS) billing, GDPR export, atomic account deletion
 - Duplicate detection, merge, and merge-undo
 

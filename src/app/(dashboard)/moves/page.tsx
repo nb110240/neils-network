@@ -3,22 +3,31 @@ export const dynamic = "force-dynamic"
 import Link from "next/link"
 import { ArrowLeft, Plus } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
+import { fetchArchivedContactIdsForPage } from "@/lib/archived-contacts"
 import { buildNextMoves } from "@/lib/next-moves"
+import { getUserPlan } from "@/lib/subscription"
 import { NextMoves } from "@/components/next-moves"
 import { Button } from "@/components/ui/button"
 import type { AfterCallReview, Commitment, IntroRequest } from "@/lib/types"
+import { fetchAllRows } from "@/lib/fetch-all"
 
 export default async function MovesPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const [{ data: contacts }, { data: commitments }, { data: reviews }, { data: introRequests }] = await Promise.all([
-    supabase
-      .from("contacts")
-      .select("id, name, company, next_steps, follow_up_needed, next_due_date, snoozed_until, last_contact_date, created_at")
-      .eq("created_by", user.id)
-      .is("archived_at", null),
+  const [plan, { data: contacts }, { data: commitments }, { data: reviews }, { data: introRequests }, archivedContactIds] = await Promise.all([
+    getUserPlan(user.id),
+    // Paged: the API returns at most 1,000 rows per request.
+    fetchAllRows((from, to) =>
+      supabase
+        .from("contacts")
+        .select("id, name, company, next_steps, follow_up_needed, next_due_date, snoozed_until, last_contact_date, cadence_days, created_at")
+        .eq("created_by", user.id)
+        .is("archived_at", null)
+        .order("id", { ascending: true })
+        .range(from, to)
+    ),
     supabase
       .from("commitments")
       .select("*")
@@ -34,6 +43,7 @@ export default async function MovesPage() {
       .select("*")
       .eq("user_id", user.id)
       .in("status", ["draft", "requested", "accepted", "introduced"]),
+    fetchArchivedContactIdsForPage(supabase, user.id),
   ])
 
   const moves = buildNextMoves({
@@ -41,6 +51,7 @@ export default async function MovesPage() {
     commitments: (commitments || []) as Commitment[],
     reviews: (reviews || []) as AfterCallReview[],
     introRequests: (introRequests || []) as IntroRequest[],
+    archivedContactIds,
   })
 
   return (
@@ -54,12 +65,18 @@ export default async function MovesPage() {
             <h1 className="text-3xl font-normal tracking-tight sm:text-4xl">Your next moves</h1>
             <p className="mt-1 text-base text-muted-foreground sm:text-lg">Every open promise, review, and relationship action in priority order.</p>
           </div>
-          <Button asChild className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] border-0">
+          <Button variant="copper" asChild>
             <Link href="/capture"><Plus className="mr-2 h-4 w-4" /> Capture meeting</Link>
           </Button>
         </div>
       </div>
-      <NextMoves moves={moves} limit={null} />
+      <NextMoves
+        moves={moves}
+        limit={null}
+        plan={plan}
+        heading="All moves"
+        description="Ranked by urgency and what you promised."
+      />
     </div>
   )
 }

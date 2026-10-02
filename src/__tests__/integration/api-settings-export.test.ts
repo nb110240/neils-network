@@ -26,9 +26,15 @@ function tableClient(options: {
     from: vi.fn((table: string) => {
       const result = options.results?.[table] || { data: [], error: null }
       const builder: Record<string, unknown> = {}
-      for (const method of ["select", "eq"]) builder[method] = vi.fn(() => builder)
+      let page: Result = result
+      for (const method of ["select", "eq", "order"]) builder[method] = vi.fn(() => builder)
+      // Serve pages like the real API: an inclusive range, 1,000 rows max.
+      builder.range = vi.fn((from: number, to: number) => {
+        if (Array.isArray(result.data)) page = { ...result, data: result.data.slice(from, Math.min(to, from + 999) + 1) }
+        return builder
+      })
       builder.maybeSingle = vi.fn(async () => result)
-      builder.then = (resolve: (value: Result) => unknown) => Promise.resolve(result).then(resolve)
+      builder.then = (resolve: (value: Result) => unknown) => Promise.resolve(page).then(resolve)
       return builder
     }),
     auth: {
@@ -64,6 +70,16 @@ describe("GET /api/settings/export", () => {
     expect(h.serviceClient?.from).toHaveBeenCalledWith("integrations")
     expect(h.serviceClient?.from).toHaveBeenCalledWith("usage_counters")
     expect(h.userClient?.from).not.toHaveBeenCalledWith("integrations")
+  })
+
+  it("exports every contact past the API's 1,000-row page (regression)", async () => {
+    const contacts = Array.from({ length: 2345 }, (_, i) => ({ id: `contact-${i}`, name: `Person ${i}` }))
+    h.userClient = tableClient({ results: { contacts: { data: contacts, error: null } } })
+    const response = await GET()
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.contacts).toHaveLength(2345)
+    expect(body.contacts.at(-1)).toEqual({ id: "contact-2344", name: "Person 2344" })
   })
 
   it("fails closed when a required export query errors", async () => {

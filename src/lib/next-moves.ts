@@ -1,10 +1,22 @@
-import type { AfterCallReview, Commitment, IntroRequest } from "@/lib/types"
+import { calculateHealthScore } from "@/lib/health"
+import type { AfterCallReview, Commitment, HealthScore, IntroRequest } from "@/lib/types"
 
 export type NextMoveKind = "commitment" | "review" | "follow_up" | "waiting" | "intro"
+
+/**
+ * Why a contact-level ("follow_up") move exists, strongest first:
+ * scheduled (next_due_date reached) > flagged (follow_up_needed) >
+ * cold (orange/red health) > cooling (yellow health, past cadence or 45+ days).
+ */
+export type RelationshipSignal = "scheduled" | "flagged" | "cold" | "cooling"
 
 export interface NextMove {
   id: string
   kind: NextMoveKind
+  /** Only set for contact-level moves (kind === "follow_up"). */
+  signal: RelationshipSignal | null
+  /** Health of the related contact, when we know it. */
+  health: HealthScore | null
   title: string
   reason: string
   contactId: string | null
@@ -24,8 +36,15 @@ export interface MoveContact {
   next_due_date: string | null
   snoozed_until: string | null
   last_contact_date: string | null
+  cadence_days: number | null
   created_at: string
 }
+
+/** How many moves the dashboard shows before "View all" links to /moves. */
+export const DASHBOARD_MOVE_LIMIT = 5
+
+/** Yellow-health contacts without a cadence only surface once this stale. */
+export const COOLING_MIN_DAYS = 45
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -47,6 +66,108 @@ function dueReason(dueAt: string | null, nowMs: number): string {
   return `Due in ${days} days`
 }
 
+function cadenceLabel(days: number): string {
+  if (days === 7) return "Weekly"
+  if (days === 14) return "Every 2 weeks"
+  if (days === 30) return "Monthly"
+  if (days === 90) return "Quarterly"
+  return `Every ${days} days`
+}
+
+function formatDaysAgo(days: number): string {
+  if (days <= 0) return "today"
+  if (days === 1) return "yesterday"
+  if (days < 30) return `${days} days ago`
+  const months = Math.floor(days / 30)
+  return months === 1 ? "1 month ago" : `${months} months ago`
+}
+
+/** UTC calendar date (YYYY-MM-DD), matching how snoozed_until/next_due_date are stored. */
+export function todayKey(nowMs: number): string {
+  return new Date(nowMs).toISOString().slice(0, 10)
+}
+
+/** A contact is snoozed through the end of its snoozed_until date. */
+export function isContactSnoozed(contact: Pick<MoveContact, "snoozed_until">, today: string): boolean {
+  return !!contact.snoozed_until && contact.snoozed_until >= today
+}
+
+/**
+ * The single strongest relationship reason for a contact, or null when the
+ * contact needs nothing (snoozed, healthy and unflagged, or only mildly cooling).
+ * Within a tier, the longest-neglected contact ranks first (fractional score).
+ */
+function relationshipMove(contact: MoveContact, today: string, nowMs: number): NextMove | null {
+  if (isContactSnoozed(contact, today)) return null
+
+  const health = calculateHealthScore(contact.last_contact_date, contact.created_at, contact.cadence_days, nowMs)
+  const reference = contact.last_contact_date || contact.created_at
+  const daysSince = Math.max(0, Math.floor((nowMs - new Date(reference).getTime()) / DAY_MS))
+  const staleness = Math.min(daysSince, 999) / 1000
+  const name = contact.name || "this contact"
+  const base = {
+    id: `follow-up:${contact.id}`,
+    kind: "follow_up" as const,
+    health,
+    contactId: contact.id,
+    contactName: contact.name,
+    company: contact.company,
+    href: `/contact/${contact.id}`,
+  }
+
+  if (contact.next_due_date && contact.next_due_date <= today) {
+    const due = dueReason(contact.next_due_date, nowMs)
+    return {
+      ...base,
+      signal: "scheduled",
+      title: contact.next_steps || `Follow up with ${name}`,
+      reason: contact.cadence_days
+        ? `${cadenceLabel(contact.cadence_days)} check-in, ${due.toLowerCase()}`
+        : `Scheduled follow-up, ${due.toLowerCase()}`,
+      dueAt: contact.next_due_date,
+      score: 400 + Math.max(-30, daysFromNow(contact.next_due_date, nowMs)),
+    }
+  }
+
+  if (contact.follow_up_needed) {
+    // A healthy (green) contact with a flag is usually a fresh meeting: still
+    // worth doing, but it ranks below flags on relationships that are slipping.
+    const healthy = health.level === "green"
+    return {
+      ...base,
+      signal: "flagged",
+      title: contact.next_steps || `Follow up with ${name}`,
+      reason: `Follow-up needed, last contact ${formatDaysAgo(daysSince)}`,
+      dueAt: null,
+      score: (healthy ? 470 : 440) - staleness,
+    }
+  }
+
+  if (health.level === "orange" || health.level === "red") {
+    return {
+      ...base,
+      signal: "cold",
+      title: `Reconnect with ${name}`,
+      reason: `Last contact ${formatDaysAgo(daysSince)}`,
+      dueAt: null,
+      score: (health.level === "red" ? 610 : 620) - staleness,
+    }
+  }
+
+  if (health.level === "yellow" && (contact.cadence_days || daysSince >= COOLING_MIN_DAYS)) {
+    return {
+      ...base,
+      signal: "cooling",
+      title: `Check in with ${name}`,
+      reason: `Last contact ${formatDaysAgo(daysSince)}`,
+      dueAt: null,
+      score: 720 - staleness,
+    }
+  }
+
+  return null
+}
+
 function commitmentScore(commitment: Commitment, nowMs: number): number {
   const dueDays = commitment.due_at ? daysFromNow(commitment.due_at, nowMs) : null
   if (commitment.direction === "user_owes" && dueDays !== null && dueDays < 0) {
@@ -62,30 +183,47 @@ function commitmentScore(commitment: Commitment, nowMs: number): number {
 }
 
 /**
- * Pure, explainable ranking used by both the dashboard and Moves page.
- * Lower score wins: overdue promises, pending reviews, due promises,
- * unscheduled promises, due contact follow-ups, waiting-on-them, then health.
+ * The one prioritized action list. Pure and explainable; the dashboard, /moves
+ * and /reach-out all render (slices or filters of) this output.
+ *
+ * Lower score wins: overdue promises, pending reviews, due intro follow-ups,
+ * due promises, unscheduled promises, scheduled contact check-ins, flagged
+ * follow-ups, waiting-on-them, cold contacts, then cooling contacts.
+ *
+ * Each contact gets at most one relationship move (its strongest reason), and
+ * none at all when a commitment, review, or intro already covers them.
+ * Snoozed contacts (snoozed_until >= today) produce no relationship move;
+ * commitments carry their own snooze. Commitments and intros tied to an
+ * archived contact are dropped: archiving hides the person everywhere.
  */
 export function buildNextMoves({
   commitments,
   reviews,
   contacts,
   introRequests = [],
+  archivedContactIds = [],
   nowMs = Date.now(),
 }: {
   commitments: Commitment[]
   reviews: AfterCallReview[]
   contacts: MoveContact[]
   introRequests?: IntroRequest[]
+  /**
+   * Passed explicitly rather than inferred from `contacts`, which can be
+   * truncated by the API row cap: a missing contact is not proof of archive.
+   */
+  archivedContactIds?: Iterable<string>
   nowMs?: number
 }): NextMove[] {
   const contactMap = new Map(contacts.map((contact) => [contact.id, contact]))
-  const today = new Date(nowMs).toISOString().slice(0, 10)
+  const archived = new Set(archivedContactIds)
+  const today = todayKey(nowMs)
   const moves: NextMove[] = []
   const contactsWithPrimaryMoves = new Set<string>()
 
   for (const commitment of commitments) {
     if (!["open", "snoozed"].includes(commitment.status)) continue
+    if (archived.has(commitment.contact_id)) continue
     if (
       commitment.status === "snoozed" &&
       commitment.snoozed_until &&
@@ -97,6 +235,8 @@ export function buildNextMoves({
     moves.push({
       id: `commitment:${commitment.id}`,
       kind: waiting ? "waiting" : "commitment",
+      signal: null,
+      health: null,
       title: commitment.title,
       reason: waiting
         ? `Waiting on ${contact?.name || "them"}${commitment.due_at ? `, ${dueReason(commitment.due_at, nowMs).toLowerCase()}` : ""}`
@@ -117,6 +257,8 @@ export function buildNextMoves({
     moves.push({
       id: `review:${review.id}`,
       kind: "review",
+      signal: null,
+      health: null,
       title: `Review ${review.title}`,
       reason: `${review.proposed_commitments.length} proposed action${review.proposed_commitments.length === 1 ? "" : "s"} waiting for approval`,
       contactId: review.contact_id,
@@ -131,6 +273,7 @@ export function buildNextMoves({
 
   for (const intro of introRequests) {
     if (["meeting_booked", "closed", "declined"].includes(intro.status)) continue
+    if (archived.has(intro.target_contact_id)) continue
     const target = contactMap.get(intro.target_contact_id)
     const followUpDays = intro.next_follow_up_at ? daysFromNow(intro.next_follow_up_at, nowMs) : null
     const statusReason = intro.status === "draft"
@@ -143,6 +286,8 @@ export function buildNextMoves({
     moves.push({
       id: `intro:${intro.id}`,
       kind: "intro",
+      signal: null,
+      health: null,
       title: intro.status === "draft"
         ? `Review warm intro ask for ${target?.name || "your target"}`
         : `Advance introduction to ${target?.name || "your target"}`,
@@ -163,57 +308,14 @@ export function buildNextMoves({
 
   for (const contact of contacts) {
     if (contactsWithPrimaryMoves.has(contact.id)) continue
-    if (contact.snoozed_until && contact.snoozed_until >= today) continue
-
-    if (contact.next_due_date && contact.next_due_date <= today) {
-      moves.push({
-        id: `follow-up:${contact.id}`,
-        kind: "follow_up",
-        title: contact.next_steps || `Follow up with ${contact.name || "this contact"}`,
-        reason: dueReason(contact.next_due_date, nowMs),
-        contactId: contact.id,
-        contactName: contact.name,
-        company: contact.company,
-        dueAt: contact.next_due_date,
-        href: `/contact/${contact.id}`,
-        score: 400 + Math.max(-30, daysFromNow(contact.next_due_date, nowMs)),
-      })
-      continue
-    }
-
-    if (contact.follow_up_needed) {
-      moves.push({
-        id: `follow-up:${contact.id}`,
-        kind: "follow_up",
-        title: contact.next_steps || `Follow up with ${contact.name || "this contact"}`,
-        reason: "Follow-up marked as needed",
-        contactId: contact.id,
-        contactName: contact.name,
-        company: contact.company,
-        dueAt: null,
-        href: `/contact/${contact.id}`,
-        score: 450,
-      })
-      continue
-    }
-
-    const reference = contact.last_contact_date || contact.created_at
-    const daysSince = Math.floor((nowMs - new Date(reference).getTime()) / DAY_MS)
-    if (daysSince >= 90) {
-      moves.push({
-        id: `follow-up:${contact.id}`,
-        kind: "follow_up",
-        title: `Reconnect with ${contact.name || "this contact"}`,
-        reason: `${daysSince} days since your last interaction`,
-        contactId: contact.id,
-        contactName: contact.name,
-        company: contact.company,
-        dueAt: null,
-        href: `/contact/${contact.id}`,
-        score: 700 - Math.min(Math.max(daysSince - 90, 0), 99),
-      })
-    }
+    const move = relationshipMove(contact, today, nowMs)
+    if (move) moves.push(move)
   }
 
   return moves.sort((a, b) => a.score - b.score || a.id.localeCompare(b.id))
+}
+
+/** People-only view of the same list (what /reach-out renders). */
+export function relationshipMoves(moves: NextMove[]): NextMove[] {
+  return moves.filter((move) => move.kind === "follow_up")
 }

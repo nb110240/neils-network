@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { clearOfflineData } from "@/lib/clear-offline-cache"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
@@ -171,6 +172,19 @@ export default function SettingsPage() {
   }
 
   const handleManagePlan = async () => {
+    // In the app, store subscriptions are managed by Apple or Google. A plan
+    // bought on the web stays on the web: no external billing links in-app.
+    const { isNative } = await import("@/lib/native/capacitor")
+    if (isNative()) {
+      if (hasBillingAccount) {
+        addToast({ title: "Billed on the web", description: "This plan was purchased on the web, so it can't be changed in the app." })
+        return
+      }
+      const { openStoreSubscriptions } = await import("@/lib/native/purchases")
+      await openStoreSubscriptions()
+      return
+    }
+
     setIsPlanLoading(true)
     try {
       const res = await fetch("/api/stripe/portal", { method: "POST" })
@@ -197,6 +211,7 @@ export default function SettingsPage() {
         throw new Error(data.error || "Failed to delete account")
       }
       await supabase.auth.signOut()
+      await clearOfflineData()
       router.push("/")
       router.refresh()
     } catch (error) {
@@ -214,6 +229,7 @@ export default function SettingsPage() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
+    await clearOfflineData()
     router.push("/")
     router.refresh()
   }
@@ -388,7 +404,7 @@ export default function SettingsPage() {
               <Button
                 size="sm"
                 asChild
-                className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+                variant="copper"
               >
                 <Link href="/pricing">{isCreditPro ? "Keep Pro" : "Upgrade to Pro"}</Link>
               </Button>

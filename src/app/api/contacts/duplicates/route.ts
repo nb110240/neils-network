@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { authenticateRequest, authFailed, errorResponse } from "@/lib/api-utils"
-import { scorePair, tierForScore, type ConfidenceTier } from "@/lib/dedup"
+import { duplicateCandidatePairs, scorePair, tierForScore, type ConfidenceTier } from "@/lib/dedup"
+import { fetchAllRows } from "@/lib/fetch-all"
 
 interface ContactRow {
   id: string
@@ -73,14 +74,19 @@ export async function GET() {
     if (authFailed(auth)) return auth.error
     const { user, supabase } = auth
 
-    const { data: contactsRaw } = await supabase
-      .from("contacts")
-      .select(
-        "id, name, email, phone, company, job_title, website, last_contact_date, created_at, source, embedding"
-      )
-      .eq("created_by", user.id)
-      .is("archived_at", null)
-      .order("created_at", { ascending: false })
+    // Paged: the API returns at most 1,000 rows per request.
+    const { data: contactsRaw } = await fetchAllRows((from, to) =>
+      supabase
+        .from("contacts")
+        .select(
+          "id, name, email, phone, company, job_title, website, last_contact_date, created_at, source, embedding"
+        )
+        .eq("created_by", user.id)
+        .is("archived_at", null)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to)
+    )
 
     const contacts = (contactsRaw as ContactRow[] | null) ?? []
     if (contacts.length < 2) {
@@ -100,16 +106,16 @@ export async function GET() {
     for (const c of contacts) byId.set(c.id, c)
 
     const edges: Array<{ a: string; b: string; score: number; reason: string }> = []
-    for (let i = 0; i < contacts.length; i++) {
-      for (let j = i + 1; j < contacts.length; j++) {
-        const a = contacts[i]
-        const b = contacts[j]
-        const key = canonicalPairKey(a.id, b.id)
-        if (dismissed.has(key)) continue
-        const result = scorePair(a, b)
-        if (result && result.score >= 0.5) {
-          edges.push({ a: a.id, b: b.id, score: result.score, reason: result.reason })
-        }
+    // Only pairs sharing an email, phone, LinkedIn, name or name token can
+    // match: scoring all n² pairs times out on large networks.
+    for (const [i, j] of duplicateCandidatePairs(contacts)) {
+      const a = contacts[i]
+      const b = contacts[j]
+      const key = canonicalPairKey(a.id, b.id)
+      if (dismissed.has(key)) continue
+      const result = scorePair(a, b)
+      if (result && result.score >= 0.5) {
+        edges.push({ a: a.id, b: b.id, score: result.score, reason: result.reason })
       }
     }
 
@@ -124,9 +130,11 @@ export async function GET() {
     }
 
     const clusters = cluster([...involved], edges)
+    const rootOf = new Map<string, string>()
+    for (const [root, members] of clusters) for (const id of members) rootOf.set(id, root)
     const bestEdgePerCluster = new Map<string, { score: number; reason: string }>()
     for (const e of edges) {
-      const root = [...clusters.entries()].find(([, members]) => members.includes(e.a))?.[0]
+      const root = rootOf.get(e.a)
       if (!root) continue
       const prev = bestEdgePerCluster.get(root)
       if (!prev || e.score > prev.score) {

@@ -1,3 +1,4 @@
+import { type DigestMoves, hasDigestMoves } from "@/lib/digest-moves"
 import { Resend } from "resend"
 
 let _resend: Resend | null = null
@@ -43,6 +44,74 @@ interface DigestStats {
   followUpCount: number
   isPro: boolean
   isWeekly: boolean
+  /** Promises, overdue asks, pending reviews and intro follow-ups. */
+  moves?: DigestMoves
+}
+
+function shortDue(dueAt: string | null, overdue: boolean): string {
+  if (!dueAt) return ""
+  const label = new Date(dueAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+  return overdue ? `overdue since ${label}` : `due ${label}`
+}
+
+export function renderDigestMoves(moves: DigestMoves, appUrl: string): string {
+  if (!hasDigestMoves(moves)) return ""
+  const row = (text: string, href: string, meta: string, accent: string) => `
+    <div style="padding:10px 14px;border:1px solid #e7e5e4;border-left:3px solid ${accent};border-radius:10px;margin-bottom:8px">
+      <a href="${href}" style="color:#1c1917;text-decoration:none;font-size:14px">${text}</a>
+      ${meta ? `<p style="color:#78716c;font-size:12px;margin:3px 0 0">${meta}</p>` : ""}
+    </div>`
+
+  const promises = moves.promises
+    .map((p) => row(
+      `You promised <strong>${escapeHtml(p.contactName)}</strong>: ${escapeHtml(p.title)}`,
+      `${appUrl}/contact/${p.contactId}`,
+      shortDue(p.dueAt, p.overdue),
+      p.overdue ? "#ef4444" : "#c2410c",
+    ))
+    .join("")
+  const waiting = moves.waitingOn
+    .map((w) => row(
+      `<strong>${escapeHtml(w.contactName)}</strong> owes you: ${escapeHtml(w.title)}`,
+      `${appUrl}/contact/${w.contactId}`,
+      `${shortDue(w.dueAt, true)}. A gentle nudge keeps it moving.`,
+      "#eab308",
+    ))
+    .join("")
+  const intros = moves.introFollowUps
+    .map((i) => row(
+      `Follow up on your intro to <strong>${escapeHtml(i.targetName)}</strong>${i.connectorName ? ` via ${escapeHtml(i.connectorName)}` : ""}`,
+      `${appUrl}/intros`,
+      "",
+      "#c2410c",
+    ))
+    .join("")
+  const reviews = moves.pendingReviews > 0
+    ? row(
+        `${moves.pendingReviews} meeting ${moves.pendingReviews === 1 ? "note is" : "notes are"} waiting for your review`,
+        `${appUrl}/inbox`,
+        "Approve to update contacts and track the promises made.",
+        "#78716c",
+      )
+    : ""
+
+  return `
+    <p style="font-size:13px;font-weight:600;color:#1c1917;margin:0 0 8px">Your moves</p>
+    ${promises}${waiting}${intros}${reviews}
+    <div style="height:12px"></div>`
+}
+
+export function digestSubject(contactCount: number, moves: DigestMoves | undefined, isWeekly: boolean): string {
+  const first = moves?.promises[0]
+  if (first) {
+    const due = shortDue(first.dueAt, first.overdue)
+    const more = moves.promises.length > 1 ? ` (+${moves.promises.length - 1} more)` : ""
+    return `You promised ${first.contactName}: ${first.title}${due ? `, ${due}` : ""}${more}`
+  }
+  if (contactCount === 0 && moves && hasDigestMoves(moves)) return "Your moves for today"
+  return isWeekly
+    ? `Your weekly network check-in: ${contactCount} relationships need attention`
+    : `${contactCount} relationships need your attention`
 }
 
 function healthColor(level: string): string {
@@ -158,9 +227,8 @@ export async function sendDigestEmail(
       </div>`
     : ""
 
-  const subjectLine = isWeekly
-    ? `Your weekly network check-in: ${contacts.length} relationships need attention`
-    : `${contacts.length} relationships need your attention`
+  const subjectLine = digestSubject(contacts.length, stats?.moves, isWeekly)
+  const movesSection = stats?.moves ? renderDigestMoves(stats.moves, appUrl) : ""
 
   const subtitleText = isWeekly
     ? "Your weekly relationship check-in"
@@ -180,8 +248,9 @@ export async function sendDigestEmail(
 
   const bodyContent = `
     <p style="margin:0 0 4px">Hey ${escapeHtml(userName)},</p>
-    <p style="color:#44403c;margin:0 0 20px">These relationships could use some attention:</p>
-    ${healthExplainer}
+    ${movesSection}
+    ${contacts.length > 0 ? `<p style="color:#44403c;margin:0 0 20px">These relationships could use some attention:</p>
+    ${healthExplainer}` : ""}
     ${networkSummary}
     ${contactRows}
     ${upgradeCta}
@@ -312,6 +381,44 @@ export async function sendIntroResponseEmail(
         <a href="${appUrl}/intros" style="display:inline-block;padding:10px 28px;background:#c2410c;color:white;text-decoration:none;border-radius:8px;font-size:14px;font-weight:500">Open introductions</a>
       `,
     }),
+  })
+}
+
+/**
+ * Activation emails for confirmed accounts that have not added anyone yet.
+ * Step 1 (about day 1): capture one real interaction. Step 2 (about day 3):
+ * bring an existing investor list over.
+ */
+export async function sendActivationEmail(to: string, userName: string, step: 1 | 2) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://savvo.app"
+  const button = (href: string, label: string) =>
+    `<a href="${href}" style="display:inline-block;padding:10px 28px;background:#c2410c;color:white;text-decoration:none;border-radius:8px;font-size:14px;font-weight:500">${label}</a>`
+
+  const content = step === 1
+    ? {
+        subject: "Paste notes from your last meeting",
+        subtitle: "Start with one conversation",
+        body: `
+          <p style="margin:0 0 4px">Hey ${escapeHtml(userName)},</p>
+          <p style="color:#44403c;margin:0 0 16px">The fastest way to see what Savvo does: paste a few lines from your last meeting. Savvo pulls out who you met, what you promised, and when to follow up.</p>
+          <p style="color:#78716c;font-size:13px;margin:0 0 20px;padding:10px 12px;background:#fafaf9;border-radius:8px">"Coffee with Maya from Northwind. She asked for our churn cohorts. I said I'd send them Friday. She'll intro me to her fintech partner."</p>
+          <div style="margin:0 0 8px">${button(`${appUrl}/capture`, "Paste a meeting note")}</div>`,
+      }
+    : {
+        subject: "Bring your investor list into Savvo",
+        subtitle: "Import in under a minute",
+        body: `
+          <p style="margin:0 0 4px">Hey ${escapeHtml(userName)},</p>
+          <p style="color:#44403c;margin:0 0 16px">Already tracking investors in a spreadsheet? Import the CSV and Savvo keeps every conversation warm: who's going cold, what you owe, and where each investor stands.</p>
+          <div style="margin:0 0 16px">${button(`${appUrl}/import`, "Import a CSV")}</div>
+          <p style="color:#78716c;font-size:13px;margin:0">No spreadsheet yet? Start from the <a href="${appUrl}/templates/investor-tracker" style="color:#c2410c">free investor tracker template</a>.</p>`,
+      }
+
+  await sendEmail({
+    from: process.env.RESEND_FROM_EMAIL || "Savvo <hello@savvo.app>",
+    to,
+    subject: content.subject,
+    html: emailLayout({ subtitle: content.subtitle, body: content.body, appUrl }),
   })
 }
 

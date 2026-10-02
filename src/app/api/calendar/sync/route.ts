@@ -8,6 +8,9 @@ import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 import { analyzeInteraction } from "@/lib/action-extraction"
 import { hashMeetingContent, htmlToPlainText } from "@/lib/meeting-content"
+import { sendPushToUser } from "@/lib/push/send"
+import { calendarReviewsMessage } from "@/lib/push/messages"
+import { fetchAllRows } from "@/lib/fetch-all"
 
 // Matches contacts whose last_contact_date is before `date` OR unset.
 // A bare .lt() skips NULL (NULL < x is never true), which left imported
@@ -114,6 +117,10 @@ export async function GET(request: Request) {
             return false
           }
           await supabase.from("integrations").update({ last_sync_error: null }).eq("id", id)
+          // Background sync found meetings worth a review: nudge the phone.
+          // Manual syncs skip this; the person is already in the app.
+          const reviewsMessage = calendarReviewsMessage(result.reviewsCreated ?? 0)
+          if (reviewsMessage) await sendPushToUser(supabase, user_id, reviewsMessage)
           return true
         } catch (err) {
           console.error(`Calendar sync failed for user ${user_id}:`, err)
@@ -206,11 +213,16 @@ async function syncCalendarForUser(userId: string, userEmail: string) {
 
   // Get existing contacts for this user (to avoid duplicates)
   // Check both email AND name to catch contacts added without email
-  const { data: existingContacts } = await supabase
-    .from("contacts")
-    .select("id, email, name, company, job_title, how_we_met, next_steps")
-    .eq("created_by", userId)
-    .is("archived_at", null)
+  // Paged: the API returns at most 1,000 rows per request.
+  const { data: existingContacts } = await fetchAllRows((from, to) =>
+    supabase
+      .from("contacts")
+      .select("id, email, name, company, job_title, how_we_met, next_steps")
+      .eq("created_by", userId)
+      .is("archived_at", null)
+      .order("id", { ascending: true })
+      .range(from, to)
+  )
 
   // Build an email-keyed candidate map. Email is the only identifier we
   // trust for automatic linking — name/fuzzy/prefix heuristics have a

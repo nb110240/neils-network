@@ -5,6 +5,7 @@ const h = vi.hoisted(() => ({
   supabase: null as unknown,
   sendDigestEmail: vi.fn(async () => undefined),
   sendNewUserNudgeEmail: vi.fn(async () => undefined),
+  sendActivationEmail: vi.fn<(...args: unknown[]) => Promise<undefined>>(async () => undefined),
 }))
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -19,6 +20,7 @@ vi.mock("@/lib/rate-limit", () => ({
 vi.mock("@/lib/email", () => ({
   sendDigestEmail: h.sendDigestEmail,
   sendNewUserNudgeEmail: h.sendNewUserNudgeEmail,
+  sendActivationEmail: h.sendActivationEmail,
 }))
 
 import { GET } from "@/app/api/cron/daily-digest/route"
@@ -58,7 +60,12 @@ function digestSupabase(opts: {
   contactsByUser: Record<string, ReturnType<typeof makeContacts>>
   creditUserIds?: string[]
   dailyUserIds?: string[]
+  commitmentsByUser?: Record<string, unknown[]>
+  digestHistoryByUser?: Record<string, unknown[]>
+  contactsErrorFor?: string[]
+  updateUserError?: { message: string }
 }) {
+  const builders: Array<{ table: string; builder: Record<string, ReturnType<typeof vi.fn>> }> = []
   const listUsers = vi.fn(async ({ page }: { page: number }) => ({
     data: { users: opts.pages[page - 1] ?? [] },
     error: null,
@@ -66,7 +73,8 @@ function digestSupabase(opts: {
   const from = vi.fn((table: string) => {
     let ownerId: string | null = null
     const builder: Record<string, unknown> = {}
-    for (const m of ["select", "insert", "in", "is", "gt", "gte", "order"]) {
+    builders.push({ table, builder: builder as Record<string, ReturnType<typeof vi.fn>> })
+    for (const m of ["select", "insert", "in", "is", "gt", "gte", "lte", "order", "limit", "range"]) {
       builder[m] = vi.fn(() => builder)
     }
     builder.eq = vi.fn((col: string, value: string) => {
@@ -76,6 +84,8 @@ function digestSupabase(opts: {
     const resolveData = () => {
       if (table === "contacts") return opts.contactsByUser[ownerId ?? ""] ?? []
       if (table === "pro_credits") return (opts.creditUserIds ?? []).map((user_id) => ({ user_id }))
+      if (table === "commitments") return opts.commitmentsByUser?.[ownerId ?? ""] ?? []
+      if (table === "digest_history") return opts.digestHistoryByUser?.[ownerId ?? ""] ?? []
       return []
     }
     builder.single = vi.fn(async () => ({
@@ -85,10 +95,17 @@ function digestSupabase(opts: {
       error: null,
     }))
     builder.then = (resolve: (v: unknown) => void) =>
-      Promise.resolve({ data: resolveData(), error: null }).then(resolve)
+      Promise.resolve(
+        table === "contacts" && opts.contactsErrorFor?.includes(ownerId ?? "")
+          ? { data: null, error: { message: "statement timeout" } }
+          : { data: resolveData(), error: null }
+      ).then(resolve)
     return builder
   })
-  return { from, auth: { admin: { listUsers } } }
+  const updateUserById = vi.fn<(...args: unknown[]) => Promise<{ data: object; error: { message: string } | null }>>(
+    async () => ({ data: {}, error: opts.updateUserError ?? null })
+  )
+  return { from, builders, auth: { admin: { listUsers, updateUserById } } }
 }
 
 describe("GET /api/cron/daily-digest", () => {
@@ -98,6 +115,8 @@ describe("GET /api/cron/daily-digest", () => {
     process.env.CRON_SECRET = "test-cron-secret"
     h.sendDigestEmail.mockClear()
     h.sendNewUserNudgeEmail.mockClear()
+    h.sendActivationEmail.mockReset()
+    h.sendActivationEmail.mockResolvedValue(undefined)
     vi.useFakeTimers({ toFake: ["Date"] })
     // A Monday, so weekly-frequency users are due.
     vi.setSystemTime(new Date("2026-10-05T14:00:00Z"))
@@ -172,5 +191,151 @@ describe("GET /api/cron/daily-digest", () => {
     expect(res.status).toBe(200)
     expect(h.sendDigestEmail).toHaveBeenCalledTimes(1)
     expect(h.sendDigestEmail).toHaveBeenCalledWith("credit@example.com", "credit", expect.any(Array), expect.objectContaining({ isPro: true }))
+  })
+
+  it("sends a promise that's due even when every contact was recently suggested", async () => {
+    // Every contact was suggested in the last 14 days, so there are no
+    // relationship picks, but a promise due tomorrow should still send.
+    const contacts = makeContacts("founder", 5)
+    h.supabase = digestSupabase({
+      pages: [[makeUser("founder")]],
+      contactsByUser: { founder: contacts },
+      digestHistoryByUser: {
+        founder: contacts.map((c) => ({ contact_id: c.id, sent_at: "2026-10-01T14:00:00Z" })),
+      },
+      commitmentsByUser: {
+        founder: [{ id: "k1", contact_id: "founder-c0", direction: "user_owes", title: "Send the deck", due_at: "2026-10-06T17:00:00Z" }],
+      },
+    })
+    const res = await GET(buildRequest({ url: URL, headers: { authorization: "Bearer test-cron-secret" } }))
+    expect(res.status).toBe(200)
+    expect(h.sendDigestEmail).toHaveBeenCalledTimes(1)
+    const [, , picks, stats] = h.sendDigestEmail.mock.calls[0] as unknown as [string, string, unknown[], { moves: { promises: Array<{ title: string; contactName: string }> } }]
+    expect(picks).toEqual([])
+    expect(stats.moves.promises).toEqual([expect.objectContaining({ title: "Send the deck", contactName: "Contact 0" })])
+  })
+
+  it("sends nothing when there are no picks and no moves", async () => {
+    const contacts = makeContacts("quiet", 5)
+    h.supabase = digestSupabase({
+      pages: [[makeUser("quiet")]],
+      contactsByUser: { quiet: contacts },
+      digestHistoryByUser: { quiet: contacts.map((c) => ({ contact_id: c.id, sent_at: "2026-10-01T14:00:00Z" })) },
+    })
+    await GET(buildRequest({ url: URL, headers: { authorization: "Bearer test-cron-secret" } }))
+    expect(h.sendDigestEmail).not.toHaveBeenCalled()
+  })
+
+  it("sends the first activation email to a confirmed day-1 account with no contacts and records it", async () => {
+    const newcomer = {
+      ...makeUser("newcomer"),
+      created_at: "2026-10-04T10:00:00Z",
+      email_confirmed_at: "2026-10-04T10:05:00Z",
+      app_metadata: { provider: "email", providers: ["email"] },
+    }
+    const client = digestSupabase({ pages: [[newcomer]], contactsByUser: {} })
+    h.supabase = client
+    const res = await GET(buildRequest({ url: URL, headers: { authorization: "Bearer test-cron-secret" } }))
+    expect((await res.json()).nudges).toBe(1)
+    expect(h.sendActivationEmail).toHaveBeenCalledWith("newcomer@example.com", "newcomer", 1)
+    expect(client.auth.admin.updateUserById).toHaveBeenCalledWith("newcomer", {
+      app_metadata: expect.objectContaining({
+        provider: "email",
+        providers: ["email"],
+        activation_emails_sent: 1,
+        activation_email_last_at: expect.any(String),
+      }),
+    })
+  })
+
+  it("rolls back the activation record when the email fails to send", async () => {
+    const newcomer = {
+      ...makeUser("newcomer"),
+      created_at: "2026-10-04T10:00:00Z",
+      email_confirmed_at: "2026-10-04T10:05:00Z",
+      app_metadata: {},
+    }
+    const client = digestSupabase({ pages: [[newcomer]], contactsByUser: {} })
+    h.supabase = client
+    h.sendActivationEmail.mockRejectedValueOnce(new Error("resend down"))
+    const res = await GET(buildRequest({ url: URL, headers: { authorization: "Bearer test-cron-secret" } }))
+    expect(res.status).toBe(200)
+    expect(client.auth.admin.updateUserById).toHaveBeenCalledTimes(2)
+    expect(client.auth.admin.updateUserById).toHaveBeenLastCalledWith("newcomer", {
+      app_metadata: expect.objectContaining({ activation_emails_sent: 0 }),
+    })
+  })
+
+  it("does not send an activation email it could not record (keeps the two-email cap)", async () => {
+    // Regression: the send was recorded after the fact, so a failed
+    // metadata write left the step eligible to go out again.
+    const newcomer = {
+      ...makeUser("newcomer"),
+      created_at: "2026-10-04T10:00:00Z",
+      email_confirmed_at: "2026-10-04T10:05:00Z",
+      app_metadata: {},
+    }
+    h.supabase = digestSupabase({ pages: [[newcomer]], contactsByUser: {}, updateUserError: { message: "auth down" } })
+    const res = await GET(buildRequest({ url: URL, headers: { authorization: "Bearer test-cron-secret" } }))
+    expect(res.status).toBe(200)
+    expect(h.sendActivationEmail).not.toHaveBeenCalled()
+  })
+
+  it("does not treat a failed contacts query as an account with no contacts", async () => {
+    const newcomer = {
+      ...makeUser("newcomer"),
+      created_at: "2026-10-04T10:00:00Z",
+      email_confirmed_at: "2026-10-04T10:05:00Z",
+      app_metadata: {},
+    }
+    const client = digestSupabase({ pages: [[newcomer]], contactsByUser: {}, contactsErrorFor: ["newcomer"] })
+    h.supabase = client
+    const res = await GET(buildRequest({ url: URL, headers: { authorization: "Bearer test-cron-secret" } }))
+    expect(res.status).toBe(200)
+    expect(h.sendActivationEmail).not.toHaveBeenCalled()
+    expect(client.auth.admin.updateUserById).not.toHaveBeenCalled()
+  })
+
+  it("sends due promises instead of the generic nudge to accounts with 1-4 contacts", async () => {
+    h.supabase = digestSupabase({
+      pages: [[makeUser("early"), makeUser("idle")]],
+      contactsByUser: { early: makeContacts("early", 2), idle: makeContacts("idle", 2) },
+      commitmentsByUser: {
+        early: [{ id: "k1", contact_id: "early-c1", direction: "user_owes", title: "Send churn cohorts", due_at: "2026-10-06T17:00:00Z" }],
+      },
+    })
+    const res = await GET(buildRequest({ url: URL, headers: { authorization: "Bearer test-cron-secret" } }))
+    expect(await res.json()).toMatchObject({ sent: 1, nudges: 1 })
+    expect(h.sendDigestEmail).toHaveBeenCalledTimes(1)
+    const [to, , picks, stats] = h.sendDigestEmail.mock.calls[0] as unknown as [string, string, unknown[], { totalContacts: number; moves: { promises: Array<{ title: string }> } }]
+    expect(to).toBe("early@example.com")
+    expect(picks).toEqual([])
+    expect(stats.totalContacts).toBe(2)
+    expect(stats.moves.promises).toEqual([expect.objectContaining({ title: "Send churn cohorts" })])
+    expect(h.sendNewUserNudgeEmail).toHaveBeenCalledTimes(1)
+    expect(h.sendNewUserNudgeEmail).toHaveBeenCalledWith("idle@example.com", "idle", expect.any(Array))
+  })
+
+  it("excludes archived contacts in the move queries, before the row limits apply", async () => {
+    const client = digestSupabase({
+      pages: [[makeUser("founder")]],
+      contactsByUser: { founder: makeContacts("founder", 5) },
+    })
+    h.supabase = client
+    await GET(buildRequest({ url: URL, headers: { authorization: "Bearer test-cron-secret" } }))
+    const commitments = client.builders.find((b) => b.table === "commitments")!.builder
+    expect(commitments.select).toHaveBeenCalledWith(expect.stringContaining("contacts!inner("))
+    expect(commitments.is).toHaveBeenCalledWith("contacts.archived_at", null)
+    const intros = client.builders.find((b) => b.table === "intro_requests")!.builder
+    expect(intros.select).toHaveBeenCalledWith(expect.stringContaining("target:contacts!target_contact_id!inner("))
+    expect(intros.is).toHaveBeenCalledWith("target.archived_at", null)
+  })
+
+  it("never sends activation email to unconfirmed or long-dormant accounts", async () => {
+    const unconfirmed = { ...makeUser("pending"), created_at: "2026-10-04T10:00:00Z", app_metadata: {} }
+    const dormant = { ...makeUser("dormant"), email_confirmed_at: "2026-01-01T00:00:00Z", app_metadata: {} }
+    h.supabase = digestSupabase({ pages: [[unconfirmed, dormant]], contactsByUser: {} })
+    await GET(buildRequest({ url: URL, headers: { authorization: "Bearer test-cron-secret" } }))
+    expect(h.sendActivationEmail).not.toHaveBeenCalled()
   })
 })

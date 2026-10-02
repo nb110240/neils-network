@@ -1,5 +1,6 @@
 import Link from "next/link"
 import type { Metadata } from "next"
+import { TrackerUpload } from "@/components/tracker-upload"
 
 export const metadata: Metadata = {
   title: "Free Investor Pipeline Tracker Template",
@@ -108,6 +109,10 @@ export default function InvestorTrackerTemplatePage() {
             </a>
           </div>
           <p className="text-xs text-stone-700 dark:text-stone-300 mt-3">Works in Google Sheets, Excel, Numbers, and Notion. Includes 3 example rows.</p>
+          <div className="mx-auto mt-8 max-w-md text-left">
+            <p className="mb-2 text-center text-sm font-medium text-stone-900 dark:text-stone-100">Already filled it in?</p>
+            <TrackerUpload />
+          </div>
         </section>
 
         {/* How to use: columns */}

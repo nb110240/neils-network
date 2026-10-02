@@ -1,7 +1,9 @@
+import { ReferralClaim } from "@/components/referral-claim"
 import { NavHeader } from "@/components/nav-header"
 import { MobileFab } from "@/components/mobile-fab"
 import { OfflineIndicator } from "@/components/offline-indicator"
 import { IdleLogout } from "@/components/idle-logout"
+import { PendingImportRedirect } from "@/components/pending-import-redirect"
 
 export default function DashboardLayout({
   children,
@@ -13,10 +15,12 @@ export default function DashboardLayout({
       <NavHeader />
       <OfflineIndicator />
       <IdleLogout />
+      <PendingImportRedirect />
       <main className="container mx-auto px-4 py-6 pb-20 sm:pb-6">
         {children}
       </main>
       <MobileFab />
+      <ReferralClaim />
     </div>
   )
 }

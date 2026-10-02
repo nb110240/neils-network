@@ -20,6 +20,7 @@ import Link from "next/link"
 import { type NetworkingGoal, GOAL_CONFIGS } from "@/lib/personalization"
 import { Celebration, useFirstContactCelebration } from "@/components/celebration"
 import { trackContactsCreated } from "@/components/posthog-provider"
+import { isOfflineQueuedResponse, persistQueuedNote, queuedNoteFrom } from "@/lib/offline-queue"
 
 const DEFAULT_PLACEHOLDER = `Example: Met John Doe at the AI Summit. He's VP of Engineering at Acme Corp. We talked about their platform and he mentioned they're hiring. Should follow up next week.`
 
@@ -27,6 +28,9 @@ export default function AddContactPage() {
   const router = useRouter()
   const { addToast } = useToast()
   const [rawNote, setRawNote] = useState("")
+  // Shown when the API could not find a name in the note (422 needs_name).
+  const [needsName, setNeedsName] = useState(false)
+  const [contactName, setContactName] = useState("")
   const [linkedinUrl, setLinkedinUrl] = useState("")
   const [linkedinNote, setLinkedinNote] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -47,6 +51,16 @@ export default function AddContactPage() {
     })
   }, [])
 
+  // The name prompt answers the note that produced it. Editing the note
+  // drops the prompt so a stale name cannot override the edited note's name.
+  const handleNoteChange = (value: string) => {
+    setRawNote(value)
+    if (needsName) {
+      setNeedsName(false)
+      setContactName("")
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!rawNote.trim()) return
@@ -57,11 +71,24 @@ export default function AddContactPage() {
       const response = await fetch("/api/contacts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ raw_note: rawNote }),
+        body: JSON.stringify({
+          raw_note: rawNote,
+          ...(needsName && contactName.trim() ? { name: contactName.trim() } : {}),
+        }),
       })
 
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}))
+        // No name found in the note (or AI extraction failed). Nothing was
+        // saved; ask for the name instead of creating an unnamed contact.
+        if (response.status === 422 && payload.needs_name) {
+          setNeedsName(true)
+          if (!contactName.trim() && typeof payload.suggested_name === "string") {
+            setContactName(payload.suggested_name)
+          }
+          setIsLoading(false)
+          return
+        }
         // 409 name-mismatch conflict from the auto-merge safety check.
         // Surface the structured message so the user can decide whether
         // to force-create (skip_dedup) or open the matched contact.
@@ -80,6 +107,31 @@ export default function AddContactPage() {
       }
 
       const data = await response.json()
+
+      // Offline: the service worker queued the note and answered for the
+      // server, so there is no contact (or id) yet. Stay here, ready for the
+      // next note; it syncs when the connection returns.
+      if (isOfflineQueuedResponse(data)) {
+        // Storage full or blocked: the note exists nowhere else, so keep it
+        // on screen rather than clearing it.
+        const queued = queuedNoteFrom(data)
+        if (queued && !persistQueuedNote(queued)) {
+          addToast({
+            title: "Couldn’t save offline",
+            description: "Your browser storage is full or blocked. Keep this note and add it when you’re back online.",
+            variant: "destructive",
+          })
+          return
+        }
+        addToast({
+          title: "Saved offline",
+          description: "We'll add this contact as soon as you're back online.",
+        })
+        setRawNote("")
+        setNeedsName(false)
+        setContactName("")
+        return
+      }
 
       // Handle merged response — note was added to existing contact
       if (data.merged) {
@@ -194,10 +246,29 @@ export default function AddContactPage() {
               aria-label="Describe who you met"
               placeholder={placeholder}
               value={rawNote}
-              onChange={(e) => setRawNote(e.target.value)}
+              onChange={(e) => handleNoteChange(e.target.value)}
               rows={6}
               className="resize-none text-base leading-relaxed"
             />
+            {needsName && (
+              <div className="space-y-2 rounded-lg border border-stone-200 bg-stone-50 p-4 dark:border-stone-700 dark:bg-stone-800">
+                <label htmlFor="add-contact-name" className="text-sm font-medium text-stone-900 dark:text-stone-100">
+                  Who is this?
+                </label>
+                <p className="text-sm text-stone-700 dark:text-stone-300">
+                  We couldn&apos;t find a name in your note. Add one and we&apos;ll save the rest.
+                </p>
+                <Input
+                  id="add-contact-name"
+                  autoFocus
+                  placeholder="Full name"
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  maxLength={200}
+                  className="bg-white dark:bg-stone-900"
+                />
+              </div>
+            )}
             <div className="flex justify-end gap-3">
               <Button
                 type="button"
@@ -208,8 +279,8 @@ export default function AddContactPage() {
               </Button>
               <Button
                 type="submit"
-                disabled={isLoading || !rawNote.trim()}
-                className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+                disabled={isLoading || !rawNote.trim() || (needsName && !contactName.trim())}
+                variant="copper"
               >
                 {isLoading ? (
                   <>
@@ -321,7 +392,7 @@ export default function AddContactPage() {
               onClick={() => {
                 if (linkedinSuccess) router.push(`/contact/${linkedinSuccess.id}`)
               }}
-              className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+              variant="copper"
             >
               <Edit2 className="mr-2 h-4 w-4" />
               Edit & Add Details
@@ -352,7 +423,7 @@ export default function AddContactPage() {
             </Button>
             <Button
               asChild
-              className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+              variant="copper"
             >
               <Link href="/pricing">
                 <ArrowUpRight className="mr-2 h-4 w-4" />

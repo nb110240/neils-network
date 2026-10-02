@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/toast"
+import { useIsNative } from "@/lib/native/use-is-native"
 import { Check, X, Loader2, ArrowLeft } from "lucide-react"
 
 const features = [
@@ -32,12 +33,56 @@ export default function PricingPage() {
   // null = still checking. /pricing is publicly reachable, so default to the
   // logged-out treatment until auth is confirmed.
   const [isAuthed, setIsAuthed] = useState<boolean | null>(null)
+  const isNativeApp = useIsNative()
+  const [isRestoring, setIsRestoring] = useState(false)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setIsAuthed(!!user)
     })
   }, [supabase])
+
+  // App Store and Google Play require a way to restore an existing store
+  // subscription (new phone, reinstall). Shown in the app only.
+  const handleRestore = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      router.push("/login")
+      return
+    }
+    setIsRestoring(true)
+    try {
+      const { configurePurchases, restorePurchases } = await import("@/lib/native/purchases")
+      await configurePurchases(user.id)
+      const result = await restorePurchases()
+      // The store found a subscription, but Pro is granted server-side (by
+      // the RevenueCat webhook). A subscription bought under another Savvo
+      // account stays there, so confirm this account is Pro before saying so.
+      const plan = result.ok
+        ? await fetch("/api/subscription").then((res) => (res.ok ? res.json() : null)).catch(() => null)
+        : null
+      if (result.ok && plan?.plan && plan.plan !== "free") {
+        addToast({ title: "Pro restored", description: "Your subscription is active on this device." })
+        router.push("/dashboard")
+        router.refresh()
+      } else if (result.ok) {
+        addToast({
+          title: "Subscription found",
+          description: "It isn’t active on this Savvo account yet. If you subscribed with a different account, sign in with that one, or contact support.",
+        })
+      } else {
+        addToast({
+          title: result.error ? "Couldn't restore" : "Nothing to restore",
+          description: result.error || "No active subscription was found for this Apple or Google account.",
+          variant: result.error ? "destructive" : undefined,
+        })
+      }
+    } catch (error) {
+      addToast({ title: "Couldn't restore", description: error instanceof Error ? error.message : "Try again in a moment.", variant: "destructive" })
+    } finally {
+      setIsRestoring(false)
+    }
+  }
 
   const handleUpgrade = async () => {
     // Logged-out visitors can reach /pricing directly. Calling the
@@ -51,9 +96,10 @@ export default function PricingPage() {
 
     setIsLoading(true)
     try {
-      // Native (iOS): Apple Guideline 3.1.1 requires In-App Purchase for digital
-      // goods, so route the upgrade through RevenueCat instead of Stripe. Web
-      // falls through to Stripe Checkout below.
+      // Native (iOS + Android): Apple Guideline 3.1.1 and Google Play's
+      // Payments policy require store billing for digital goods, so route the
+      // upgrade through RevenueCat (StoreKit / Play Billing, picked by
+      // platform) instead of Stripe. Web falls through to Stripe Checkout below.
       const { isNative } = await import("@/lib/native/capacitor")
       if (isNative()) {
         const { configurePurchases, purchasePro } = await import(
@@ -227,7 +273,8 @@ export default function PricingPage() {
                 ))}
               </ul>
               <Button
-                className="w-full bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 shadow-md border-0"
+                variant="copper"
+                className="w-full shadow-md"
                 onClick={handleUpgrade}
                 disabled={isLoading}
               >
@@ -275,6 +322,20 @@ export default function PricingPage() {
             </CardContent>
           </Card>
         </div>
+
+        {isNativeApp && isAuthed && (
+          <p className="mt-8 text-center text-sm text-stone-700 dark:text-stone-300">
+            Already subscribed on another device?{" "}
+            <button
+              type="button"
+              onClick={handleRestore}
+              disabled={isRestoring}
+              className="inline-flex min-h-11 items-center font-medium text-[var(--copper-text)] underline-offset-4 hover:underline disabled:opacity-60"
+            >
+              {isRestoring ? "Restoring…" : "Restore purchases"}
+            </button>
+          </p>
+        )}
       </div>
     </main>
   )

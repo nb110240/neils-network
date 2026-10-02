@@ -119,21 +119,30 @@ Select the **App** target -> **Signing & Capabilities** tab.
 
 2. **Push Notifications capability**
    - Click "+ Capability" -> add **Push Notifications**.
-   - This adds the `aps-environment` entitlement. Capacitor's
-     `registerPushNotifications()` depends on it.
-   - **APNs key (recommended over certificates):** in the Apple Developer
-     portal -> Keys -> "+", enable "Apple Push Notifications service (APNs)",
-     download the `.p8` once (you cannot re-download it), and note the Key ID +
-     your Team ID. Upload this key to whatever sends your pushes (your backend
-     or a provider). The device token flows: APNs -> `@capacitor/push-notifications`
-     `registration` event -> your app posts it to the backend
-     (`/api/native/push-token`, still a TODO in `src/lib/native/capacitor.ts`).
+   - This adds the `aps-environment` entitlement that `@capacitor/push-notifications` needs.
+   - Forward the APNs token to Capacitor in `ios/App/App/AppDelegate.swift`
+     (Capacitor does not do this for you):
 
-3. **Background Modes (only if you do background/silent push)**
+     ```swift
+     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+         NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
+     }
+
+     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+         NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)
+     }
+     ```
+   - Server side is described in **Setup E. Push notifications** below.
+
+3. **Sign in with Apple capability**
+   - Click "+ Capability" -> add **Sign in with Apple**. Required by App Review
+     guideline 4.8 because the app offers Google sign-in. See **Setup D**.
+
+4. **Background Modes (only if you do background/silent push)**
    - "+ Capability" -> Background Modes -> check "Remote notifications".
    - Skip this if you only send normal user-facing notifications.
 
-4. **Associated Domains (only if you use universal links / `appUrlOpen`)**
+5. **Associated Domains (only if you use universal links / `appUrlOpen`)**
    - "+ Capability" -> Associated Domains.
    - Add: `applinks:savvo.app`.
    - This requires an `apple-app-site-association` (AASA) file served at
@@ -344,7 +353,11 @@ These came out of cross-model adversarial review. None affect the web build; all
 
 3. **In-app purchase via RevenueCat — CODE IN PLACE.** The Pro CTA branches on `isNative()` to RevenueCat (`src/lib/native/purchases.ts`); Stripe stays web-only, satisfying Guideline 3.1.1. The webhook at `/api/native/revenuecat-webhook` mirrors entitlements into the `subscriptions` table. Remaining config: create the auto-renewable products in App Store Connect, configure RevenueCat (entitlement `pro`, an offering with monthly + annual packages), set the env vars, and point the RevenueCat webhook at the route.
 
-4. **PostHog analytics blocked by CSP (MEDIUM, pre-existing — verify).** `connect-src` in next.config.ts does not list the PostHog ingestion host (e.g. `https://us.i.posthog.com`), so analytics may be blocked on web AND in the WebView while the privacy label claims PostHog collection. This is a pre-existing web issue, not introduced by the wrapper. Confirm whether PostHog is proxied; if not, add the host to `connect-src` or correct the privacy disclosure.
+4. **Sign in with Apple — CODE IN PLACE.** Guideline 4.8 requires it whenever Google sign-in is offered. iOS uses the native Apple sheet (`@capacitor-community/apple-sign-in` → `supabase.auth.signInWithIdToken`), Android and web use Supabase's Apple OAuth. Account deletion revokes the Apple token (guideline 5.1.1(v)). Remaining config: **Setup D**.
+
+5. **Push notifications — CODE IN PLACE.** Device tokens are stored per account (`push_tokens`), the app asks for permission in context on the dashboard (not at launch), and the server sends through APNs directly. Remaining config: **Setup E** and the AppDelegate snippet in step 4.
+
+6. **PostHog analytics blocked by CSP (MEDIUM, pre-existing — verify).** `connect-src` in next.config.ts does not list the PostHog ingestion host (e.g. `https://us.i.posthog.com`), so analytics may be blocked on web AND in the WebView while the privacy label claims PostHog collection. This is a pre-existing web issue, not introduced by the wrapper. Confirm whether PostHog is proxied; if not, add the host to `connect-src` or correct the privacy disclosure.
 
 ## Setup: IAP, native Google sign-in, universal links
 
@@ -379,6 +392,33 @@ The app code for all three is committed and the web build is unaffected. These a
 >
 > Defense in depth: `purchases.ts` fetches an HMAC of the signed-in user id from the authenticated `/api/native/revenuecat-attribute` route and sets it as the `savvo_sig` subscriber attribute, which the webhook recomputes and verifies (`REVENUECAT_ATTRIBUTE_SECRET`) before granting — so `app_user_id` alone (set with the public SDK key) cannot grant Pro.
 
+### D. Sign in with Apple
+
+1. Apple Developer portal → Identifiers:
+   - App ID `app.savvo`: enable **Sign in with Apple** (as primary App ID).
+   - Create a **Services ID** (for web and Android, e.g. `app.savvo.web`). Enable Sign in with Apple on it, set the domain to `<project>.supabase.co` and the return URL to `https://<project>.supabase.co/auth/v1/callback`.
+2. Keys → "+" → enable **Sign in with Apple** (it can be the same key as APNs). Download the `.p8` once; note the Key ID.
+3. Supabase → Auth → Providers → Apple: enable it.
+   - **Client IDs:** `app.savvo,app.savvo.web` (bundle id for the native sheet, Services ID for web and Android).
+   - **Secret key:** Supabase asks for a client-secret JWT generated from the `.p8`. Apple caps it at 6 months, so set a calendar reminder to regenerate it, or web/Android Apple sign-in stops working.
+4. Supabase → Auth → URL Configuration: keep `https://savvo.app/**` in Redirect URLs (the web flow returns to `/auth/callback?provider=apple`).
+5. Env (server only): `APPLE_TEAM_ID`, `APPLE_SIWA_KEY_ID`, `APPLE_SIWA_PRIVATE_KEY` (the `.p8` contents; `\n` escapes are fine), `APPLE_SERVICES_ID`. These let account deletion revoke the Apple token. Without them sign-in still works, but revocation is skipped and logged.
+6. **Hide My Email:** people who hide their email get an `@privaterelay.appleid.com` address. Apple only forwards mail from registered senders: Apple Developer → Services → **Sign in with Apple for Email Communication** → register `savvo.app` (and the Resend sending address), and make sure SPF/DKIM pass. Without this, digests and activation emails to those users bounce.
+7. Smoke-test on device: sign up with Apple (try "Hide My Email"), sign out, sign in again, then delete the account from Settings and confirm the app disappears from Settings → Apple ID → Sign-In & Security → Sign in with Apple.
+
+### E. Push notifications
+
+1. Apple Developer → Keys → "+" → enable **Apple Push Notifications service (APNs)** (or reuse the Sign in with Apple key and enable both). Download the `.p8` once.
+2. Env (server only): `APNS_KEY_ID`, `APNS_PRIVATE_KEY` (the `.p8` contents), `APPLE_TEAM_ID`. Optional: `APNS_BUNDLE_ID` (default `app.savvo`), `APNS_ENV=sandbox` only when testing an Xcode debug build. TestFlight and App Store builds use the production APNs host, which is the default.
+3. Android uses Firebase Cloud Messaging: set `FCM_SERVICE_ACCOUNT` to the Firebase service account JSON (see `android/DEPLOY-ANDROID.md`).
+4. Apply migration `20261002120000_push_and_apple_sign_in.sql` (adds `push_tokens`, `apple_sign_in_tokens`, `user_preferences.push_enabled`).
+5. What sends a push:
+   - `/api/cron/push-moves` (15:00 UTC weekdays): the most urgent promise due within a day (or overdue up to two weeks), else pending reviews, else intro follow-ups. One notification per person, none when there's nothing to do.
+   - Calendar background sync: "How did your meetings go?" when it creates new reviews.
+   - Forwarded meeting notes: deep-links to the new review.
+   People can switch push off in Settings → Notifications (inside the app), and dead tokens are deleted when APNs/FCM report them.
+6. Smoke-test on a TestFlight build: finish the dashboard tour, reopen the dashboard, tap "Turn on", accept the system dialog, then add a promise due today and trigger the cron (`curl -H "Authorization: Bearer $CRON_SECRET" https://savvo.app/api/cron/push-moves`). Tap the notification: it should open that contact. Sign out and confirm no more pushes arrive.
+
 ## Native safe-area polish — WIRED IN CODE, verify on a simulator
 
 This is implemented native-only and does not touch mobile-web layout: `initNative()` sets `viewport-fit=cover` on the viewport meta at runtime (native only), the `body` padding + `.safe-area-inset-*` utilities live in `globals.css`, and the sticky header + full-screen mobile overlay carry the inset classes (the FAB already insets inline). On web `env()` insets are 0, so all of it is inert there.
@@ -388,7 +428,6 @@ Remaining: just verify on a notched simulator in BOTH light and dark mode — he
 ## Native feature wiring (optional, before relying on them)
 
 These plugins are installed and guarded but not yet called from anywhere (by design):
-- `registerPushNotifications()` - call after sign-in on native, and implement `/api/native/push-token`.
 - `shareContact()` - call it on native where the web share UI currently fires.
 - `@capacitor/haptics` - installed for native polish; wire to key interactions or drop it from `package.json`.
 
@@ -400,8 +439,10 @@ These plugins are installed and guarded but not yet called from anywhere (by des
 - [ ] `npx cap add ios` run; `ios/` project exists
 - [ ] `npm run ios:sync` run after the latest plugin/config change
 - [ ] Signing: team selected, "Automatically manage signing" on, profile generated
-- [ ] Push Notifications capability added; APNs `.p8` key created and wired to your sender
-- [ ] Push token endpoint (`/api/native/push-token`) implemented and `registerPushNotifications()` actually called on native (currently a TODO)
+- [ ] Push Notifications capability added, AppDelegate forwards the token (step 4), `APNS_*` env set (Setup E)
+- [ ] Sign in with Apple capability added, Supabase Apple provider has Client IDs `app.savvo,<Services ID>`, `APPLE_*` env set (Setup D)
+- [ ] Sending domain registered for Apple's private email relay (Setup D, step 6)
+- [ ] Migration `20261002120000_push_and_apple_sign_in.sql` applied
 - [ ] Associated Domains `applinks:savvo.app` added ONLY if AASA file is served (else skip)
 - [ ] Version (CFBundleShortVersionString) matches `package.json` (`0.1.0`); Build (CFBundleVersion) incremented vs last upload
 - [ ] Info.plist has a clear usage string for every permission actually requested (camera/contacts/photos as applicable); none for permissions not requested

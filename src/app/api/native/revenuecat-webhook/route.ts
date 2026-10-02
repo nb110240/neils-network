@@ -11,9 +11,13 @@ import { isValidUUID } from "@/lib/api-utils"
 /**
  * RevenueCat webhook -> Pro entitlement sync.
  *
- * RevenueCat is the source of truth for iOS IAP. It POSTs subscription events
- * here; we mirror them into the same `subscriptions` table the Stripe webhook
- * writes, so the rest of the app reads one Pro signal regardless of platform.
+ * RevenueCat is the source of truth for native in-app purchases on both iOS
+ * (event.store "APP_STORE") and Android (event.store "PLAY_STORE"). It POSTs
+ * subscription events here; we mirror them into the same `subscriptions` table
+ * the Stripe webhook writes, so the rest of the app reads one Pro signal
+ * regardless of platform. Event handling is deliberately store-agnostic: the
+ * same event types, entitlement check, and signature check apply to every
+ * store, so a Play purchase grants and expires Pro exactly like an App Store one.
  *
  * RevenueCat is configured (in code) with appUserID = the Supabase user id, so
  * event.app_user_id maps to subscriptions.user_id.
@@ -41,6 +45,27 @@ function authorized(header: string | null): boolean {
   return timingSafeEqual(a, b)
 }
 
+/**
+ * Whether an extension's new expiration is later than the stored period end,
+ * i.e. it really extends the subscription. `error` when the lookup failed.
+ */
+async function extendsStoredPeriod(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  userId: string,
+  currentPeriodEnd: string | null,
+): Promise<{ extends: boolean; error: { message: string } | null }> {
+  const incoming = currentPeriodEnd ? Date.parse(currentPeriodEnd) : NaN
+  if (!Number.isFinite(incoming)) return { extends: false, error: null }
+  const { data: existing, error } = await supabase
+    .from("subscriptions")
+    .select("current_period_end")
+    .eq("user_id", userId)
+    .maybeSingle()
+  if (error) return { extends: false, error }
+  const stored = existing?.current_period_end ? Date.parse(existing.current_period_end) : 0
+  return { extends: incoming > stored, error: null }
+}
+
 export async function POST(request: Request) {
   if (!authorized(request.headers.get("authorization"))) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
@@ -49,6 +74,7 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as {
     event?: {
       type?: string
+      store?: string
       app_user_id?: string
       expiration_at_ms?: number
       entitlement_ids?: string[] | null
@@ -68,6 +94,8 @@ export async function POST(request: Request) {
 
   const userId = event.app_user_id
   const type = event.type
+  // Logged only (e.g. "APP_STORE", "PLAY_STORE"); never used to branch.
+  const store = typeof event.store === "string" ? event.store : undefined
 
   // Defense in depth: app_user_id is set by the native client with the PUBLIC
   // SDK key, so by itself it is not authoritative. When a server secret is
@@ -87,6 +115,7 @@ export async function POST(request: Request) {
         action: "revenuecat.webhook",
         route: "/api/native/revenuecat-webhook",
         eventType: type,
+        store,
         userId,
       })
       return NextResponse.json({ received: true })
@@ -112,6 +141,9 @@ export async function POST(request: Request) {
     "PRODUCT_CHANGE",
     "UNCANCELLATION",
     "NON_RENEWING_PURCHASE",
+    // Expiration pushed out (App Store / Play deferral or extension): refresh
+    // current_period_end so a later stale EXPIRATION cannot downgrade early.
+    "SUBSCRIPTION_EXTENDED",
   ]
   const DEACTIVATE = ["EXPIRATION"]
 
@@ -129,16 +161,34 @@ export async function POST(request: Request) {
         userId,
       })
     } else {
-      const { error } = await supabase.from("subscriptions").upsert(
-        {
-          user_id: userId,
-          plan: "pro",
-          status: "active",
-          current_period_end: currentPeriodEnd,
-        },
-        { onConflict: "user_id" },
-      )
-      dbError = error
+      // A retried or late extension that is no newer than what we have (for
+      // example after an EXPIRATION or a later RENEWAL) must not reactivate
+      // the subscription or pull its period end back.
+      const extension = type === "SUBSCRIPTION_EXTENDED"
+        ? await extendsStoredPeriod(supabase, userId, currentPeriodEnd)
+        : null
+      if (extension?.error) {
+        dbError = extension.error
+      } else if (extension && !extension.extends) {
+        log("info", "RevenueCat stale extension ignored", {
+          action: "revenuecat.webhook",
+          route: "/api/native/revenuecat-webhook",
+          eventType: type,
+          store,
+          userId,
+        })
+      } else {
+        const { error } = await supabase.from("subscriptions").upsert(
+          {
+            user_id: userId,
+            plan: "pro",
+            status: "active",
+            current_period_end: currentPeriodEnd,
+          },
+          { onConflict: "user_id" },
+        )
+        dbError = error
+      }
     }
   } else if (DEACTIVATE.includes(type)) {
     // Guard against a stale/out-of-order expiration overwriting a newer
@@ -167,6 +217,7 @@ export async function POST(request: Request) {
       action: "revenuecat.webhook",
       route: "/api/native/revenuecat-webhook",
       eventType: type,
+      store,
       error: dbError.message,
     })
     return NextResponse.json({ message: "Write failed" }, { status: 500 })
@@ -176,6 +227,7 @@ export async function POST(request: Request) {
     action: "revenuecat.webhook",
     route: "/api/native/revenuecat-webhook",
     eventType: type,
+    store,
     userId,
     grantsPro,
   })

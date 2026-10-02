@@ -11,6 +11,7 @@ import { getGranolaNote, granolaNoteToMeetingText, listGranolaNotes } from "@/li
 import { hashMeetingContent } from "@/lib/meeting-content"
 import { createServiceClient } from "@/lib/supabase/server"
 import { getUserPlan } from "@/lib/subscription"
+import { fetchAllRows } from "@/lib/fetch-all"
 
 export async function POST() {
   try {
@@ -61,11 +62,16 @@ export async function POST() {
     )
     const settledIds = new Set(existingIds)
 
-    const { data: contacts } = await service
-      .from("contacts")
-      .select("id, name, email, company, job_title, how_we_met, next_steps")
-      .eq("created_by", user.id)
-      .is("archived_at", null)
+    // Paged: the API returns at most 1,000 rows per request.
+    const { data: contacts } = await fetchAllRows((from, to) =>
+      service
+        .from("contacts")
+        .select("id, name, email, company, job_title, how_we_met, next_steps")
+        .eq("created_by", user.id)
+        .is("archived_at", null)
+        .order("id", { ascending: true })
+        .range(from, to)
+    )
     const contactsByEmail = new Map<string, typeof contacts>()
     for (const contact of contacts || []) {
       if (!contact.email) continue

@@ -18,7 +18,7 @@ function makeClient(opts: {
     const queue = queues[table] || [{ data: null, error: null }]
     const result = queue.length > 1 ? queue.shift()! : queue[0]
     const builder: Record<string, unknown> = {}
-    for (const method of ["select", "insert", "update", "delete", "eq", "is", "not", "in", "order", "limit"]) {
+    for (const method of ["select", "insert", "update", "delete", "eq", "is", "not", "in", "order", "limit", "range"]) {
       builder[method] = vi.fn((...args: unknown[]) => {
         calls.push({ table, method, args })
         return builder

@@ -7,6 +7,7 @@ import { ServiceWorkerRegistrar } from "@/components/sw-registrar"
 import { PostHogProvider } from "@/components/posthog-provider"
 import { NativeBootstrap } from "@/components/native-bootstrap"
 import "./globals.css"
+import { THEME_BOOT_SCRIPT } from "@/lib/theme"
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -159,15 +160,11 @@ export default function RootLayout({
     <html lang="en" translate="no" suppressHydrationWarning>
       <head>
         <meta name="google" content="notranslate" />
-        {/* Theme bootstrap: apply the stored theme before first paint so dark
+        {/* Theme bootstrap: apply the saved theme before first paint so dark
             mode survives full page loads (ThemeSelector only runs on the
-            settings page). Mirrors ThemeSelector's semantics exactly:
-            "savvo-theme" = "dark" | "light", absent = follow system. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("savvo-theme");var d=t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d)}catch(e){}})()`,
-          }}
-        />
+            settings page). Light unless the person chose dark or system;
+            see src/lib/theme.ts. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

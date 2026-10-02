@@ -50,7 +50,8 @@ export function WelcomeExperience({
         <div className="flex flex-col items-center gap-3">
           <Button
             asChild
-            className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0 h-14 px-10 text-base shadow-lg hover:shadow-xl transition-all"
+            variant="copper"
+            className="h-14 px-10 text-base shadow-lg hover:shadow-xl transition-all"
           >
             <Link
               href="/capture"

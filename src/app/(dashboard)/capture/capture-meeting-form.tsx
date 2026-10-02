@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, ArrowRight, FileText, LockKeyhole, Sparkles } from "lucide-react"
@@ -11,13 +11,9 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { captureEvent } from "@/components/posthog-provider"
 import type { PlanType, ReviewSource } from "@/lib/types"
+import type { ContactOption } from "@/lib/contact-picker"
+import { ContactPicker } from "@/components/contact-picker"
 
-interface ContactOption {
-  id: string
-  name: string | null
-  company: string | null
-  email: string | null
-}
 
 function defaultLocalDateTime(): string {
   const now = new Date()
@@ -31,7 +27,7 @@ const SOURCE_OPTIONS: Array<{ value: ReviewSource; label: string }> = [
   { value: "forwarded_email", label: "Forwarded email" },
 ]
 
-export function CaptureMeetingForm({ contacts, plan, initialContactId = "" }: { contacts: ContactOption[]; plan: PlanType; initialContactId?: string }) {
+export function CaptureMeetingForm({ contacts, truncated = false, plan, initialContactId = "" }: { contacts: ContactOption[]; truncated?: boolean; plan: PlanType; initialContactId?: string }) {
   const router = useRouter()
   const [contactId, setContactId] = useState(initialContactId)
   const [source, setSource] = useState<ReviewSource>("manual")
@@ -41,9 +37,8 @@ export function CaptureMeetingForm({ contacts, plan, initialContactId = "" }: { 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const selectedContact = useMemo(
-    () => contacts.find((contact) => contact.id === contactId),
-    [contacts, contactId]
+  const [selectedContact, setSelectedContact] = useState<ContactOption | null>(
+    () => contacts.find((contact) => contact.id === initialContactId) ?? null
   )
 
   async function handleSubmit(event: React.FormEvent) {
@@ -104,19 +99,17 @@ export function CaptureMeetingForm({ contacts, plan, initialContactId = "" }: { 
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="capture-contact">Who was the meeting with?</Label>
-                <select
+                <ContactPicker
                   id="capture-contact"
+                  contacts={contacts}
+                  truncated={truncated}
                   value={contactId}
-                  onChange={(event) => setContactId(event.target.value)}
-                  className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="">Let Savvo identify them from the notes</option>
-                  {contacts.map((contact) => (
-                    <option key={contact.id} value={contact.id}>
-                      {contact.name || contact.email || "Unnamed contact"}{contact.company ? ` at ${contact.company}` : ""}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(id, contact) => {
+                    setContactId(id)
+                    setSelectedContact(contact)
+                  }}
+                  emptyLabel="Let Savvo identify them from the notes"
+                />
                 {selectedContact && <p className="text-xs text-muted-foreground">Updates will be proposed for {selectedContact.name || selectedContact.email}.</p>}
               </div>
 
@@ -182,7 +175,8 @@ export function CaptureMeetingForm({ contacts, plan, initialContactId = "" }: { 
               <Button
                 type="submit"
                 disabled={isSubmitting || rawText.trim().length < 20}
-                className="h-11 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] border-0 px-6"
+                variant="copper"
+                className="h-11 px-6"
               >
                 <Sparkles className="mr-2 h-4 w-4" />
                 {isSubmitting ? "Finding your next moves..." : "Analyze for review"}

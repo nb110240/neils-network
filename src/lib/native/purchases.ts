@@ -1,38 +1,77 @@
 "use client"
 
 /**
- * RevenueCat In-App Purchase helpers (iOS Pro tier).
+ * RevenueCat In-App Purchase helpers (iOS + Android Pro tier).
  *
- * Apple Guideline 3.1.1 requires digital goods sold inside the iOS app to use
- * In-App Purchase, not Stripe. On native we route the Pro upgrade through
- * RevenueCat (which wraps StoreKit + handles receipt validation and entitlement
- * sync via its webhook). On web the app keeps using Stripe Checkout untouched.
+ * Apple Guideline 3.1.1 and Google Play's Payments policy both require digital
+ * goods sold inside the native app to use the store's own billing, not Stripe.
+ * On native we route the Pro upgrade through RevenueCat (which wraps StoreKit
+ * on iOS and Google Play Billing on Android, handles receipt validation, and
+ * syncs entitlements via its webhook). On web the app keeps using Stripe
+ * Checkout untouched.
  *
  * Like the rest of src/lib/native, nothing from @revenuecat/* is imported at
  * module load: every function early-returns on web and dynamically imports the
  * SDK only after an isNative() check, so this is a no-op on web/SSR and never
  * breaks `next build`.
  *
- * Setup (see ios/DEPLOY-IOS.md):
+ * Setup (see ios/DEPLOY-IOS.md and android/DEPLOY-ANDROID.md):
  *  - NEXT_PUBLIC_REVENUECAT_IOS_KEY = the RevenueCat public iOS SDK key.
+ *  - NEXT_PUBLIC_REVENUECAT_ANDROID_KEY = the RevenueCat public Google Play SDK
+ *    key. The key is chosen by Capacitor platform; a platform without its own
+ *    key fails closed ("Purchases are not configured"), it never borrows the
+ *    other store's key.
  *  - A RevenueCat entitlement with identifier "pro" attached to the App Store
- *    Connect auto-renewable subscription products (monthly + annual).
+ *    Connect and Google Play auto-renewable subscription products (monthly +
+ *    annual).
  *  - RevenueCat appUserID is set to the Supabase user id so the webhook can map
  *    purchases back to the right account.
  */
 
 import { isNative } from "./capacitor"
 
-const RC_API_KEY = process.env.NEXT_PUBLIC_REVENUECAT_IOS_KEY
+// Referenced literally so Next.js inlines them into the client bundle.
+const RC_IOS_KEY = process.env.NEXT_PUBLIC_REVENUECAT_IOS_KEY
+const RC_ANDROID_KEY = process.env.NEXT_PUBLIC_REVENUECAT_ANDROID_KEY
 const PRO_ENTITLEMENT = "pro"
+
+/**
+ * The RevenueCat public SDK key for a Capacitor platform, or undefined when
+ * that platform has no key (callers then fail closed). Only "ios" and
+ * "android" ever get a key.
+ */
+export function revenueCatKeyFor(
+  platform: string,
+  keys: { ios?: string; android?: string } = {
+    ios: RC_IOS_KEY,
+    android: RC_ANDROID_KEY,
+  },
+): string | undefined {
+  if (platform === "ios") return keys.ios || undefined
+  if (platform === "android") return keys.android || undefined
+  return undefined
+}
+
+/** Capacitor.getPlatform() from the injected global ("web" when absent). */
+function nativePlatform(): string {
+  if (typeof window === "undefined") return "web"
+  const cap = (window as unknown as { Capacitor?: { getPlatform?: () => string } })
+    .Capacitor
+  return cap?.getPlatform?.() ?? "web"
+}
+
+function apiKey(): string | undefined {
+  return revenueCatKeyFor(nativePlatform())
+}
 
 let configuredFor: string | null = null
 
 /** Configure RevenueCat once per signed-in user. No-op on web. */
 export async function configurePurchases(appUserId: string): Promise<void> {
-  if (!isNative() || !RC_API_KEY || configuredFor === appUserId) return
+  const key = apiKey()
+  if (!isNative() || !key || configuredFor === appUserId) return
   const { Purchases } = await import("@revenuecat/purchases-capacitor")
-  await Purchases.configure({ apiKey: RC_API_KEY, appUserID: appUserId })
+  await Purchases.configure({ apiKey: key, appUserID: appUserId })
 
   // Set a server-minted signed subscriber attribute BEFORE marking configured,
   // so a purchase can never proceed unsigned under enforcement (which would
@@ -50,7 +89,7 @@ export async function configurePurchases(appUserId: string): Promise<void> {
 type PurchaseResult = { ok: boolean; error?: string }
 
 /**
- * Buy the Pro subscription via StoreKit. Returns ok=true once the "pro"
+ * Buy the Pro subscription via StoreKit (iOS) or Google Play Billing (Android). Returns ok=true once the "pro"
  * entitlement is active. error "cancelled" means the user dismissed the sheet
  * (callers should stay silent). No-op on web.
  */
@@ -58,7 +97,7 @@ export async function purchasePro(
   billing: "monthly" | "yearly",
 ): Promise<PurchaseResult> {
   if (!isNative()) return { ok: false, error: "not native" }
-  if (!RC_API_KEY) return { ok: false, error: "Purchases are not configured" }
+  if (!apiKey()) return { ok: false, error: "Purchases are not configured" }
 
   try {
     const { Purchases, PACKAGE_TYPE } = await import(
@@ -82,7 +121,10 @@ export async function purchasePro(
   }
 }
 
-/** Restore previous purchases (App Store requirement). No-op on web. */
+/**
+ * Restore previous purchases (App Store requirement; also restores Google Play
+ * subscriptions on Android). No-op on web.
+ */
 export async function restorePurchases(): Promise<PurchaseResult> {
   if (!isNative()) return { ok: false, error: "not native" }
   try {
@@ -92,4 +134,25 @@ export async function restorePurchases(): Promise<PurchaseResult> {
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Restore failed" }
   }
+}
+
+const STORE_SUBSCRIPTIONS_URL: Record<string, string> = {
+  ios: "https://apps.apple.com/account/subscriptions",
+  android: "https://play.google.com/store/account/subscriptions?package=app.savvo",
+}
+
+/** Where a platform's subscribers cancel or change plans, or null on web. */
+export function storeSubscriptionsUrl(platform: string): string | null {
+  return STORE_SUBSCRIPTIONS_URL[platform] ?? null
+}
+
+/**
+ * Opens the App Store / Google Play subscription screen, where store
+ * subscriptions are cancelled or changed. No-op on web.
+ */
+export async function openStoreSubscriptions(): Promise<void> {
+  const url = isNative() ? storeSubscriptionsUrl(nativePlatform()) : null
+  if (!url) return
+  const { Browser } = await import("@capacitor/browser")
+  await Browser.open({ url })
 }

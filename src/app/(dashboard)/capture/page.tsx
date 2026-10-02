@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic"
 
 import { createClient } from "@/lib/supabase/server"
 import { getUserPlan } from "@/lib/subscription"
+import { loadPickerContacts } from "@/lib/contact-picker"
 import { CaptureMeetingForm } from "./capture-meeting-form"
 
 export default async function CaptureMeetingPage({
@@ -13,21 +14,17 @@ export default async function CaptureMeetingPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const [{ data: contacts }, plan] = await Promise.all([
-    supabase
-      .from("contacts")
-      .select("id, name, company, email")
-      .eq("created_by", user.id)
-      .is("archived_at", null)
-      .order("name", { ascending: true })
-      .limit(500),
+  const requestedContact = (await searchParams).contact || ""
+  const [{ contacts, truncated }, plan] = await Promise.all([
+    // Fetches the requested contact explicitly when it falls outside the
+    // preloaded 500, so /capture?contact=<id> never silently drops it.
+    loadPickerContacts(supabase, user.id, [requestedContact]),
     getUserPlan(user.id),
   ])
 
-  const requestedContact = (await searchParams).contact || ""
-  const initialContactId = (contacts || []).some((contact) => contact.id === requestedContact)
+  const initialContactId = contacts.some((contact) => contact.id === requestedContact)
     ? requestedContact
     : ""
 
-  return <CaptureMeetingForm contacts={contacts || []} plan={plan} initialContactId={initialContactId} />
+  return <CaptureMeetingForm contacts={contacts} truncated={truncated} plan={plan} initialContactId={initialContactId} />
 }

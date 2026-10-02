@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache"
 import { NextResponse, after } from "next/server"
 import * as Sentry from "@sentry/nextjs"
 import { cookies } from "next/headers"
@@ -5,6 +6,7 @@ import { randomBytes } from "crypto"
 import { authenticateRequest, authFailed, badRequestResponse, forbiddenResponse, errorResponse } from "@/lib/api-utils"
 import { getUserPlan, getPlanLimits, checkContactLimit } from "@/lib/subscription"
 import { findStrongMatchInMemory } from "@/lib/dedup"
+import { fetchAllRows } from "@/lib/fetch-all"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
@@ -168,11 +170,16 @@ export async function POST(request: Request) {
     // Filter out contacts that already exist (dedup before insert).
     // Preload once; per-row DB lookups would be O(rows * existing_contacts)
     // and time out on networks with many contacts.
-    const { data: existingForDedup } = await supabase
-      .from("contacts")
-      .select("id, name, email, phone, company, website")
-      .eq("created_by", user.id)
-      .is("archived_at", null)
+    // Paged: the API returns at most 1,000 rows per request.
+    const { data: existingForDedup } = await fetchAllRows((from, to) =>
+      supabase
+        .from("contacts")
+        .select("id, name, email, phone, company, website")
+        .eq("created_by", user.id)
+        .is("archived_at", null)
+        .order("id", { ascending: true })
+        .range(from, to)
+    )
 
     const existingContacts = (existingForDedup ?? []) as Array<{
       id: string
@@ -222,6 +229,10 @@ export async function POST(request: Request) {
       console.error("Google import error:", error)
       return errorResponse("Failed to import contacts")
     }
+
+    revalidatePath("/dashboard")
+    revalidatePath("/reach-out")
+    revalidatePath("/contacts")
 
     // Generate embeddings after the response is sent. after() keeps the
     // serverless instance alive until this finishes, so a frozen/reclaimed

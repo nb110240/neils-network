@@ -33,10 +33,19 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const protectedPaths = ["/dashboard", "/search", "/contact", "/add", "/import", "/contacts", "/settings", "/scan", "/dev", "/support", "/graph", "/intros", "/reach-out", "/capture", "/inbox", "/moves"]
+  const protectedPaths = ["/dashboard", "/search", "/contact", "/add", "/import", "/contacts", "/settings", "/scan", "/dev", "/support", "/graph", "/intros", "/reach-out", "/capture", "/inbox", "/moves", "/updates"]
   const isProtectedPath = protectedPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)
   )
+
+  // The App Store and Google Play list savvo.app/support as the support URL,
+  // and their reviewers aren't signed in: send them to the public help page.
+  if (!user && request.nextUrl.pathname === "/support") {
+    const url = request.nextUrl.clone()
+    url.pathname = "/help"
+    url.search = ""
+    return NextResponse.redirect(url)
+  }
 
   if (isProtectedPath && !user) {
     const url = request.nextUrl.clone()

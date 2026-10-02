@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+                Native Google OAuth redirect: app.savvo://auth/callback
+                (NATIVE_OAUTH_REDIRECT in src/lib/native/google-auth.ts).
+                The system browser hands the PKCE code back to the app here;
+                @capacitor/app delivers it as an appUrlOpen event.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="@string/custom_url_scheme"
+                    android:host="auth"
+                    android:path="/callback" />
+            </intent-filter>
+
+            <!--
+                Android App Links for https://savvo.app/auth/* (Supabase email
+                verify / password reset), mirroring the iOS
+                apple-app-site-association components. autoVerify requires
+                https://savvo.app/.well-known/assetlinks.json to list this
+                package and the Play app signing SHA-256 fingerprint
+                (see android/DEPLOY-ANDROID.md).
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="savvo.app" />
+                <data android:pathPrefix="/auth/" />
+            </intent-filter>
+
+        </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"></meta-data>
+        </provider>
+    </application>
+
+    <!-- Permissions -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Android 13+ runtime permission for push notifications (@capacitor/push-notifications). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!--
+        The /scan page (LinkedIn QR scanner) calls getUserMedia inside the
+        WebView. Capacitor's WebChromeClient only grants WebView camera access
+        when CAMERA is declared here; frames are decoded on device.
+        required="false" keeps camera-less devices eligible on Play.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+</manifest>

@@ -1,7 +1,15 @@
 // v3: purges v2 caches, which stored cross-origin Supabase responses
 // (auth and REST payloads with user data).
-const CACHE_NAME = "savvo-v3"
+// v4: purges v3 caches, which could hold a signed-out user's pages and
+// cached the /login redirect under protected URLs.
+const CACHE_NAME = "savvo-v4"
 const OFFLINE_QUEUE_KEY = "savvo-offline-queue"
+// Bumped on every CLEAR_CACHES (sign-out). A page response is cached only if
+// no sign-out happened between its request and its cache write, so a fetch
+// still in flight at sign-out cannot recreate the previous user's cache.
+let cacheGeneration = 0
+// True while syncQueue is sending the offline queue.
+let syncing = false
 
 // Cache essential pages on install
 self.addEventListener("install", (event) => {
@@ -43,12 +51,22 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.startsWith("/api/")) return
 
   // Network-first for pages
+  const generation = cacheGeneration
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        if (response.ok) {
+        // A protected page redirected to /login means nobody is signed in:
+        // drop every cached page so the previous user's data cannot be
+        // served offline on a shared device.
+        if (response.redirected && new URL(response.url).pathname === "/login") {
+          event.waitUntil(clearAllCaches())
+          return response
+        }
+        if (response.ok && !response.redirected && generation === cacheGeneration) {
           const clone = response.clone()
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
+          caches.open(CACHE_NAME).then((cache) => {
+            if (generation === cacheGeneration) return cache.put(event.request, clone)
+          })
         }
         return response
       })
@@ -69,13 +87,13 @@ async function handleContactPost(request) {
     // Offline — save to queue
     const body = await request.json()
 
-    // Store in IndexedDB via message to clients
+    // Keep a name the user already confirmed so sync does not re-guess it.
+    const queued = { raw_note: body.raw_note, name: body.name, queued_at: new Date().toISOString() }
+
+    // Open tabs store it in localStorage (src/lib/offline-queue.ts)
     const clients = await self.clients.matchAll()
     for (const client of clients) {
-      client.postMessage({
-        type: "OFFLINE_QUEUE_ADD",
-        data: { raw_note: body.raw_note, queued_at: new Date().toISOString() },
-      })
+      client.postMessage({ type: "OFFLINE_QUEUE_ADD", data: queued })
     }
 
     return new Response(
@@ -84,6 +102,8 @@ async function handleContactPost(request) {
         offline: true,
         message: "Saved offline. Will sync when back online.",
         contact: { name: "Pending...", raw_note: body.raw_note },
+        // /add stores this too and only reports the note saved once it is.
+        queued,
       }),
       {
         status: 200,
@@ -93,21 +113,49 @@ async function handleContactPost(request) {
   }
 }
 
-// Sync queued contacts when back online
+async function clearAllCaches() {
+  const keys = await caches.keys()
+  await Promise.all(keys.map((key) => caches.delete(key)))
+}
+
+// Sync queued contacts when back online; clear cached pages on sign-out.
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SYNC_OFFLINE_QUEUE") {
-    syncQueue(event.data.queue)
+    // One worker serves every tab: while a sync runs, a second request (a
+    // tab whose lock timed out, or a new tab) is ignored, so no note is sent
+    // twice. Its result still reaches every tab.
+    if (syncing) return
+    syncing = true
+    const done = syncQueue(event.data.queue).finally(() => { syncing = false })
+    if (event.waitUntil) event.waitUntil(done)
+  }
+  if (event.data?.type === "CLEAR_CACHES") {
+    cacheGeneration++
+    const done = clearAllCaches()
+    if (event.waitUntil) event.waitUntil(done)
   }
 })
 
+// Mirrors isRetryableStatus in src/lib/offline-queue.ts: signed out, rate
+// limited, or a server error can succeed later, so those notes stay queued.
+function isRetryableStatus(status) {
+  return status === 401 || status === 408 || status === 429 || status >= 500
+}
+
 async function syncQueue(queue) {
+  // Report exactly which notes were delivered so the page removes only
+  // those. Clearing the whole queue lost notes when a send failed.
+  const delivered = []
   for (const item of queue) {
     try {
-      await fetch("/api/contacts", {
+      const response = await fetch("/api/contacts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ raw_note: item.raw_note }),
+        // Nobody is there to answer a name prompt during background sync.
+        body: JSON.stringify({ raw_note: item.raw_note, name: item.name, allow_unnamed: true }),
       })
+      if (isRetryableStatus(response.status)) break
+      delivered.push(`${item.queued_at}|${item.raw_note}`)
     } catch {
       // Still offline, stop trying
       break
@@ -117,6 +165,6 @@ async function syncQueue(queue) {
   // Notify clients sync is done
   const clients = await self.clients.matchAll()
   for (const client of clients) {
-    client.postMessage({ type: "OFFLINE_SYNC_COMPLETE" })
+    client.postMessage({ type: "OFFLINE_SYNC_COMPLETE", delivered })
   }
 }

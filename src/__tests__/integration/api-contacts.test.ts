@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { createMockSupabase } from "../helpers/mock-supabase"
 import { postRequest, getRequest } from "../helpers/mock-request"
 import { CONTACT_COLUMNS } from "@/lib/contact-columns"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 
 // ─── Route mocks ───
 const h = vi.hoisted(() => ({
@@ -50,6 +52,7 @@ vi.mock("@/lib/subscription", () => ({
 }))
 
 import { POST, GET } from "@/app/api/contacts/route"
+import { revalidatePath } from "next/cache"
 
 const URL = "http://localhost/api/contacts"
 
@@ -95,6 +98,19 @@ describe("POST /api/contacts", () => {
     expect(json.success).toBe(true)
   })
 
+  it("revalidates dashboard, reach-out and contacts after creating (regression)", async () => {
+    vi.mocked(revalidatePath).mockClear()
+    h.supabase = createMockSupabase({
+      authUser: { id: "u1" },
+      queryResult: { data: [], error: null },
+    })
+    const res = await POST(postRequest(URL, { raw_note: "Met Ada at a conference" }))
+    expect(res.status).toBe(200)
+    expect(revalidatePath).toHaveBeenCalledWith("/dashboard")
+    expect(revalidatePath).toHaveBeenCalledWith("/reach-out")
+    expect(revalidatePath).toHaveBeenCalledWith("/contacts")
+  })
+
   it("returns 429 when rate limited", async () => {
     h.supabase = createMockSupabase({ authUser: { id: "u1" } })
     h.rateLimitSuccess = false
@@ -119,6 +135,95 @@ describe("POST /api/contacts", () => {
     })
     const res = await POST(postRequest(URL, { raw_note: "Met Ada at a conference" }))
     expect(res.status).toBe(500)
+  })
+})
+
+describe("POST /api/contacts without a name", () => {
+  // Regression: when AI extraction failed (all fields null), /add saved a
+  // contact with name=null and the page fired activation for it.
+  beforeEach(() => {
+    h.rateLimitSuccess = true
+    h.contactLimitAllowed = true
+    h.extracted = { name: null, email: null, company: null }
+  })
+
+  it("returns 422 asking for a name and saves nothing", async () => {
+    h.supabase = createMockSupabase({ authUser: { id: "u1" }, queryResult: { data: [], error: null } })
+    const res = await POST(postRequest(URL, { raw_note: "Priya Raman\nPartner at Lightspeed, wants the deck" }))
+    expect(res.status).toBe(422)
+    const json = await res.json()
+    expect(json.needs_name).toBe(true)
+    expect(json.error).toMatch(/name/i)
+    expect(json.suggested_name).toBe("Priya Raman")
+    expect(h.supabase._queryBuilder.insert).not.toHaveBeenCalled()
+  })
+
+  it("tells a capped free user about the limit before asking for a name", async () => {
+    // Otherwise they type a name only to be told they can't add anyone.
+    h.contactLimitAllowed = false
+    h.supabase = createMockSupabase({ authUser: { id: "u1" }, queryResult: { data: [], error: null } })
+    const res = await POST(postRequest(URL, { raw_note: "great chat about seed rounds" }))
+    expect(res.status).toBe(403)
+    expect((await res.json()).error).toMatch(/contact limit/)
+    expect(h.supabase._queryBuilder.insert).not.toHaveBeenCalled()
+  })
+
+  it("merges a nameless note into an exact-email match instead of prompting", async () => {
+    // Regression: the name prompt (and the limit check before it) ran before
+    // the strong-match check, so an exact-email note never merged, even for
+    // a capped user whose merges are otherwise allowed.
+    h.contactLimitAllowed = false
+    h.extracted = { name: null, email: "ada@example.com", company: null }
+    h.supabase = createMockSupabase({
+      authUser: { id: "u1" },
+      queryResult: { data: [{ id: "c1", name: "Ada Lovelace", email: "ada@example.com" }], error: null },
+    })
+    const res = await POST(postRequest(URL, { raw_note: "follow up with ada@example.com about the deck" }))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.merged).toBe(true)
+    expect(json.contactId).toBe("c1")
+    expect(h.supabase._queryBuilder.insert).not.toHaveBeenCalled()
+  })
+
+  it("does not suggest a name when the first line is not one", async () => {
+    h.supabase = createMockSupabase({ authUser: { id: "u1" }, queryResult: { data: [], error: null } })
+    const res = await POST(postRequest(URL, { raw_note: "great chat at the demo day about seed rounds" }))
+    expect(res.status).toBe(422)
+    expect((await res.json()).suggested_name).toBeNull()
+  })
+
+  it("saves with the name the user typed", async () => {
+    h.supabase = createMockSupabase({ authUser: { id: "u1" }, queryResult: { data: [], error: null } })
+    const res = await POST(postRequest(URL, { raw_note: "great chat about seed rounds", name: "  Sam Lee " }))
+    expect(res.status).toBe(200)
+    expect(h.supabase._queryBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({ name: "Sam Lee" }))
+  })
+
+  it("keeps offline-queued notes (no one to prompt) with a best-guess name", async () => {
+    h.supabase = createMockSupabase({ authUser: { id: "u1" }, queryResult: { data: [], error: null } })
+    const res = await POST(postRequest(URL, { raw_note: "Met Jane Doe, partner at Acme", allow_unnamed: true }))
+    expect(res.status).toBe(200)
+    expect(h.supabase._queryBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({ name: "Jane Doe" }))
+  })
+
+  it("/add drops the name prompt when the note is edited", () => {
+    // Regression: a name typed for one note was sent with the edited note
+    // and overrode the name extracted from it.
+    const source = readFileSync(join(process.cwd(), "src/app/(dashboard)/add/page.tsx"), "utf8")
+    const handler = source.match(/const handleNoteChange = \(value: string\) => \{[\s\S]*?\n  \}/)?.[0] ?? ""
+    expect(handler).toContain("setNeedsName(false)")
+    expect(handler).toContain('setContactName("")')
+    expect(source).toContain("onChange={(e) => handleNoteChange(e.target.value)}")
+    expect(source).not.toContain("onChange={(e) => setRawNote(e.target.value)}")
+  })
+
+  it("/add only tracks contact_created after a successful save", () => {
+    const source = readFileSync(join(process.cwd(), "src/app/(dashboard)/add/page.tsx"), "utf8")
+    const needsName = source.indexOf("payload.needs_name")
+    const track = source.indexOf('trackContactsCreated("natural_language"')
+    expect(needsName).toBeGreaterThan(-1)
+    expect(track).toBeGreaterThan(needsName)
   })
 })
 

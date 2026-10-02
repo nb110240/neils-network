@@ -21,6 +21,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${base}/blog/fundraising-crm-comparison`, lastModified, changeFrequency: "monthly", priority: 0.6 },
     { url: `${base}/changelog`, lastModified, changeFrequency: "weekly", priority: 0.6 },
     { url: `${base}/install`, lastModified, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${base}/help`, lastModified, changeFrequency: "monthly", priority: 0.4 },
     { url: `${base}/privacy`, lastModified, changeFrequency: "monthly", priority: 0.3 },
     { url: `${base}/terms`, lastModified, changeFrequency: "monthly", priority: 0.3 },
   ]

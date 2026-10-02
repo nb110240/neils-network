@@ -40,7 +40,7 @@ function perTableSupabase(options: { user?: { id: string; email?: string } | nul
     from: vi.fn((table: string) => {
       const result = queued[table]?.shift() || { data: null, error: null }
       const builder: Record<string, unknown> = {}
-      for (const method of ["select", "insert", "update", "delete", "eq", "is", "in", "or", "order", "limit"]) {
+      for (const method of ["select", "insert", "update", "delete", "eq", "is", "in", "or", "order", "limit", "range"]) {
         builder[method] = vi.fn((value: unknown) => {
           if (method === "insert") h.inserts.push(value)
           if (method === "update") h.updates.push(value)
@@ -96,6 +96,26 @@ describe("warm introduction APIs", () => {
     h.client = perTableSupabase({ results: { contacts: [{ data: [], error: null }] } })
     const response = await getPaths(buildRequest({ url: `http://localhost/api/intro-requests/paths?target_id=${TARGET}` }))
     expect(response.status).toBe(404)
+  })
+
+  it("finds paths to a target past the API's 1,000-row page (regression)", async () => {
+    const filler = Array.from({ length: 1000 }, (_, i) => ({
+      id: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
+      name: `Filler ${i}`,
+      company: null, job_title: null, how_we_met: null, next_steps: null, raw_note: null,
+      last_contact_date: null, created_at: "2026-01-01T00:00:00Z",
+    }))
+    const target = { ...filler[0], id: TARGET, name: "Maya Chen", company: "Northwind Ventures" }
+    const connector = { ...filler[0], id: CONNECTOR, name: "Sam Ortiz", raw_note: "Sam worked with Maya Chen at Northwind." }
+    h.client = perTableSupabase({ results: {
+      contacts: [{ data: filler, error: null }, { data: [target, connector], error: null }],
+      contact_tags: [{ data: [], error: null }],
+    } })
+    const response = await getPaths(buildRequest({ url: `http://localhost/api/intro-requests/paths?target_id=${TARGET}` }))
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.target.id).toBe(TARGET)
+    expect(body.paths[0].connector.id).toBe(CONNECTOR)
   })
 
   it("owner-scopes status updates and assigns a follow-up timestamp", async () => {

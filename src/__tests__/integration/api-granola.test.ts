@@ -39,7 +39,7 @@ function perTableSupabase(options: { user?: { id: string; email?: string } | nul
     from: vi.fn((table: string) => {
       const result = queued[table]?.shift() || { data: null, error: null }
       const builder: Record<string, unknown> = {}
-      for (const method of ["select", "insert", "update", "delete", "upsert", "eq", "is", "in", "order", "limit"]) {
+      for (const method of ["select", "insert", "update", "delete", "upsert", "eq", "is", "in", "order", "limit", "range"]) {
         builder[method] = vi.fn((value: unknown) => {
           if (method === "insert" || method === "upsert") h.inserts.push({ table, value })
           return builder

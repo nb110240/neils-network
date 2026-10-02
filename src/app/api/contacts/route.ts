@@ -51,6 +51,14 @@ export async function POST(request: Request) {
       if (body.allow_unnamed === true) {
         extracted.name = suggestNameFromNote(raw_note)
       } else {
+        // A capped free user should hear about the limit first, not type a
+        // name only to be told they can't add anyone.
+        const { allowed, limit } = await checkContactLimit(user.id)
+        if (!allowed) {
+          return forbiddenResponse(
+            `You've reached the ${limit}-contact limit on the free plan. Upgrade to Pro for unlimited contacts.`
+          )
+        }
         return NextResponse.json(
           {
             error: "We couldn't find a name in that note. Add their name to save this contact.",

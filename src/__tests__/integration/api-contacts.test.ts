@@ -158,6 +158,16 @@ describe("POST /api/contacts without a name", () => {
     expect(h.supabase._queryBuilder.insert).not.toHaveBeenCalled()
   })
 
+  it("tells a capped free user about the limit before asking for a name", async () => {
+    // Otherwise they type a name only to be told they can't add anyone.
+    h.contactLimitAllowed = false
+    h.supabase = createMockSupabase({ authUser: { id: "u1" }, queryResult: { data: [], error: null } })
+    const res = await POST(postRequest(URL, { raw_note: "great chat about seed rounds" }))
+    expect(res.status).toBe(403)
+    expect((await res.json()).error).toMatch(/contact limit/)
+    expect(h.supabase._queryBuilder.insert).not.toHaveBeenCalled()
+  })
+
   it("does not suggest a name when the first line is not one", async () => {
     h.supabase = createMockSupabase({ authUser: { id: "u1" }, queryResult: { data: [], error: null } })
     const res = await POST(postRequest(URL, { raw_note: "great chat at the demo day about seed rounds" }))

@@ -37,4 +37,12 @@ describe("brand fonts in globals.css", () => {
   it("never fakes a bold DM Serif Display, which only has one weight", () => {
     expect(rule("h1, h2, h3, h4, h5, h6")).toContain("font-synthesis-weight: none")
   })
+
+  it("keeps heading defaults in @layer base so utilities like font-sans and tracking-* can override them", () => {
+    expect(css).toMatch(/@layer base \{\s*h1, h2, h3, h4, h5, h6 \{/)
+  })
+
+  it("renders uppercase eyebrow headings in the sans, not serif capitals", () => {
+    expect(rule(":is(h1, h2, h3, h4, h5, h6).uppercase")).toContain("font-family: var(--font-dm-sans)")
+  })
 })

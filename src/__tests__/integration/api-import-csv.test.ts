@@ -47,10 +47,23 @@ vi.mock("@/lib/openai", () => ({
   buildContactEmbeddingText: vi.fn(() => "embedding text"),
 }))
 
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { POST, PUT } from "@/app/api/import/csv/route"
+import { guessImportField } from "@/lib/import-mapping"
+import { isUneditedTemplate, readPendingImport, savePendingImport } from "@/lib/pending-import"
 import { revalidatePath } from "next/cache"
 
 const URL = "http://localhost/api/import/csv"
+
+function memoryStorage() {
+  const store = new Map<string, string>()
+  return {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => void store.set(k, v),
+    removeItem: (k: string) => void store.delete(k),
+  }
+}
 
 // Local-only Supabase mock. The contacts table is read once for dedup
 // (returns []) and written once via insert().select() (returns the rows
@@ -197,9 +210,9 @@ describe("/api/import/csv", () => {
       expect(json.skipped).toBe(1)
     })
 
-    it("lets a free user import a full 30-row investor tracker", async () => {
+    it("lets a free user import a 30-row investor tracker", async () => {
       // Regression: free import was capped at five, so founders who filled
-      // the free 30-row template hit a paywall on their first import.
+      // the free template hit a paywall on their first import.
       const client = importSupabase({ authUser: { id: "u1" }, allowance: { allowed: true, remaining: 20, used: 30 } })
       h.supabase = client
       h.plan = "free"
@@ -212,6 +225,37 @@ describe("/api/import/csv", () => {
         requested_count: 30,
         limit_count: 50,
       })
+    })
+
+    it("imports a filled tracker handed over from the template page, stages included", async () => {
+      // The template page keeps the visitor's CSV in localStorage through
+      // signup; /import reads it back, auto-maps the headers and posts it.
+      vi.stubGlobal("localStorage", memoryStorage())
+      const template = readFileSync(join(process.cwd(), "public/templates/investor-pipeline-tracker.csv"), "utf8")
+      const [header] = template.trim().split("\n")
+      const filled = [
+        header,
+        "Maya Chen,Northwind Ventures,Partner,$1M-$3M,Seed,Direct,First Meeting,2026-09-20,Send deck,2026-09-25,",
+        "Leo Park,Harbor Capital,Principal,$500K-$1M,Seed,Warm intro,Term Sheet,2026-09-22,Review terms,2026-09-30,",
+      ].join("\n")
+      expect(isUneditedTemplate(filled)).toBe(false)
+      expect(savePendingImport("my-tracker.csv", filled)).toBe(true)
+
+      const pending = readPendingImport()
+      expect(pending?.text).toBe(filled)
+      const mapping = Object.fromEntries(header.split(",").map((col) => [col, guessImportField(col)]))
+      expect(mapping["Investor Name"]).toBe("name")
+      expect(mapping["Status"]).toBe("investor_stage")
+
+      h.supabase = importSupabase({ authUser: { id: "u1" }, allowance: { allowed: true, remaining: 48, used: 2 } })
+      h.plan = "free"
+      const res = await POST(csvFormRequest({ csv: pending!.text, mapping }))
+      expect(res.status).toBe(200)
+      expect((await res.json()).imported).toBe(2)
+      expect(h.insertedRows).toEqual([
+        expect.objectContaining({ name: "Maya Chen", company: "Northwind Ventures", investor_stage: "first_meeting" }),
+        expect.objectContaining({ name: "Leo Park", company: "Harbor Capital", investor_stage: "committed" }),
+      ])
     })
 
     it("tells a free user how much room is left before the contact limit", async () => {

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/toast"
 import { IMPORT_FIELDS, guessImportField } from "@/lib/import-mapping"
 import { PLAN_LIMITS } from "@/lib/types"
+import { clearPendingImport, readPendingImport } from "@/lib/pending-import"
 import {
   ArrowLeft,
   Upload,
@@ -105,9 +106,26 @@ function ImportPageInner() {
     }
   }
 
+  // A tracker uploaded on the public template page before signup: load it
+  // straight into column mapping. Cleared immediately so the dashboard
+  // redirect (PendingImportRedirect) can't loop.
+  useEffect(() => {
+    if (isPro === null) return
+    const pending = readPendingImport()
+    if (!pending) return
+    clearPendingImport()
+    setMode("csv")
+    void loadCsvFile(new File([pending.text], pending.name, { type: "text/csv" }))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPro])
+
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
     if (!selectedFile) return
+    await loadCsvFile(selectedFile)
+  }
+
+  const loadCsvFile = async (selectedFile: File) => {
     setFile(selectedFile)
     setIsLoading(true)
 

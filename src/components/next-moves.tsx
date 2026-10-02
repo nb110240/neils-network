@@ -276,7 +276,7 @@ function MoveRow({
               )}
             </div>
             {showTitle && (
-              <p className="truncate text-sm text-stone-700 dark:text-stone-300">{move.title}</p>
+              <p className="line-clamp-2 text-sm text-stone-700 dark:text-stone-300 sm:line-clamp-none sm:truncate">{move.title}</p>
             )}
             <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 sm:flex-nowrap">
               {move.health && move.kind === "follow_up" && <HealthBadge health={move.health} />}
@@ -287,7 +287,7 @@ function MoveRow({
 
         <div className="flex shrink-0 items-center gap-1">
           {move.kind === "review" && (
-            <Button size="sm" asChild className="min-h-11 sm:min-h-9 bg-[var(--copper)] hover:bg-[var(--copper)]/90">
+            <Button size="sm" asChild className="min-h-11 sm:min-h-9 bg-[var(--copper)] text-white hover:bg-[var(--copper)]/90">
               <Link href={move.href} onClick={() => captureEvent("review_opened_from_moves")}>Review</Link>
             </Button>
           )}

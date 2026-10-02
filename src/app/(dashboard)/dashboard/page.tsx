@@ -165,7 +165,7 @@ export default async function DashboardPage() {
           <p className="text-sm text-amber-800 dark:text-amber-300">
             {(totalContacts || 0)}/50 contacts used. {50 - (totalContacts || 0) === 0 ? "You've hit the limit." : `${50 - (totalContacts || 0)} remaining.`}
           </p>
-          <Button size="sm" asChild className="shrink-0 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0 text-xs h-7">
+          <Button size="sm" asChild className="shrink-0 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 border-0 text-xs h-7">
             <Link href="/pricing">Upgrade to Pro</Link>
           </Button>
         </div>
@@ -187,7 +187,7 @@ export default async function DashboardPage() {
           ) : (
             <ManageSubscriptionButton />
           )}
-          <Button asChild className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 shadow-md hover:shadow-lg border-0" data-tour="add-contact-btn">
+          <Button asChild className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 shadow-md hover:shadow-lg border-0" data-tour="add-contact-btn">
             <Link href="/add">
               <Plus className="mr-2 h-4 w-4" />
               Add Contact
@@ -277,7 +277,7 @@ export default async function DashboardPage() {
               <p className="text-muted-foreground text-center max-w-sm mt-2">
                 Start building your network by adding your first contact.
               </p>
-              <Button className="mt-6 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 shadow-md border-0" asChild>
+              <Button className="mt-6 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] text-white hover:opacity-90 shadow-md border-0" asChild>
                 <Link href="/add">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Your First Contact

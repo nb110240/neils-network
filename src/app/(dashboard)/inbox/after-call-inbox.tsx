@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Copy, Inbox, Plus, Sparkles, Trash2, X } from "lucide-react"
@@ -11,13 +11,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { captureEvent, trackContactsCreated } from "@/components/posthog-provider"
 import type { AfterCallReview, ProposedCommitment, ProposedContactPatch } from "@/lib/types"
+import type { ContactOption } from "@/lib/contact-picker"
+import { ContactPicker } from "@/components/contact-picker"
 
-interface ContactOption {
-  id: string
-  name: string | null
-  company: string | null
-  email: string | null
-}
 
 function dateInputValue(value: string | null): string {
   return value ? value.slice(0, 10) : ""
@@ -49,11 +45,13 @@ function sourceLabel(source: AfterCallReview["source"]): string {
 function ReviewCard({
   review,
   contacts,
+  truncated,
   onRemove,
   onApproved,
 }: {
   review: AfterCallReview
   contacts: ContactOption[]
+  truncated: boolean
   onRemove: (id: string) => void
   onApproved: (result: { id: string; contactId: string | null; followUp: string | null }) => void
 }) {
@@ -72,7 +70,9 @@ function ReviewCard({
     if (isSelected) selectedRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }, [isSelected])
 
-  const selectedContact = useMemo(() => contacts.find((contact) => contact.id === contactId), [contacts, contactId])
+  const [selectedContact, setSelectedContact] = useState<ContactOption | null>(
+    () => contacts.find((contact) => contact.id === review.contact_id) ?? null
+  )
 
   function setPatchField(field: keyof ProposedContactPatch, value: string) {
     setPatch((current) => ({ ...current, [field]: value || null }))
@@ -162,15 +162,18 @@ function ReviewCard({
           </div>
           <div className="space-y-2">
             <Label htmlFor={`review-contact-${review.id}`}>Apply to</Label>
-            <select
+            <ContactPicker
               id={`review-contact-${review.id}`}
+              contacts={contacts}
+              truncated={truncated}
               value={contactId}
-              onChange={(event) => setContactId(event.target.value)}
+              onChange={(id, contact) => {
+                setContactId(id)
+                setSelectedContact(contact)
+              }}
+              emptyLabel="Create a new contact from this review"
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="">Create a new contact from this review</option>
-              {contacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.name || contact.email || "Unnamed contact"}{contact.company ? ` at ${contact.company}` : ""}</option>)}
-            </select>
+            />
             {selectedContact && <p className="text-xs text-muted-foreground">Reviewing updates for {selectedContact.name || selectedContact.email}.</p>}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -269,7 +272,7 @@ function ReviewCard({
   )
 }
 
-export function AfterCallInbox({ initialReviews, contacts }: { initialReviews: AfterCallReview[]; contacts: ContactOption[] }) {
+export function AfterCallInbox({ initialReviews, contacts, truncated = false }: { initialReviews: AfterCallReview[]; contacts: ContactOption[]; truncated?: boolean }) {
   const [reviews, setReviews] = useState(initialReviews)
   const [approved, setApproved] = useState<{ id: string; contactId: string | null; followUp: string | null } | null>(null)
   const [copied, setCopied] = useState(false)
@@ -355,6 +358,7 @@ export function AfterCallInbox({ initialReviews, contacts }: { initialReviews: A
             key={review.id}
             review={review}
             contacts={contacts}
+            truncated={truncated}
             onRemove={(id) => setReviews((current) => current.filter((item) => item.id !== id))}
             onApproved={({ id, contactId, followUp }) => {
               setReviews((current) => current.filter((item) => item.id !== id))

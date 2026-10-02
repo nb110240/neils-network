@@ -10,25 +10,18 @@ function buildTourSteps(goal: NetworkingGoal | null): WalkthroughStep[] {
 
   return [
     {
-      target: "[data-tour='stats-reach-out']",
-      title: "People who need attention",
-      description: config?.reachOutExplanation ||
-        "This shows contacts with pending follow-ups or relationships going cold. Savvo tracks this automatically based on when you last connected.",
+      target: "[data-tour='next-moves']",
+      title: "Your next moves",
+      description: config
+        ? `Promises first, then follow-ups, then people drifting. ${config.reachOutExplanation}`
+        : "One prioritized list: promises you made come first, then follow-ups, then people drifting. When it's empty, you're caught up.",
       placement: "bottom",
     },
     {
       target: "[data-tour='stats-cold']",
-      title: "Going cold warning",
-      description: "When you haven't reached out in a while, contacts turn orange then red. This counter helps you catch drifting relationships before it's too late.",
+      title: "Going cold, caught early",
+      description: "Contacts who slip past their check-in rhythm land here and in your next moves. Zero means everyone is warm. Savvo keeps watching so you don't have to.",
       placement: "bottom",
-    },
-    {
-      target: "[data-tour='reach-out-section']",
-      title: "Your daily action list",
-      description: config
-        ? `Your prioritized reach-out list for ${config.label.toLowerCase()}. Follow-ups come first, then contacts going cold.`
-        : "These are the people you should reach out to today, prioritized by urgency. Follow-ups come first, then cold contacts.",
-      placement: "top",
     },
     {
       target: "[data-tour='add-contact-btn']",

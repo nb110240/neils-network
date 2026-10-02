@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Check, Clipboard, Loader2, Share2 } from "lucide-react"
+import Link from "next/link"
+import { ArrowRight, Check, Clipboard, Loader2, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -168,6 +169,14 @@ export function RaiseSnapshotCard() {
                 Create share link
               </Button>
             )}
+
+            <Link
+              href="/updates"
+              className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-[var(--copper-text)] hover:underline"
+            >
+              Draft this month&apos;s investor update
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </>
         )}
       </CardContent>

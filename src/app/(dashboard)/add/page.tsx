@@ -51,6 +51,16 @@ export default function AddContactPage() {
     })
   }, [])
 
+  // The name prompt answers the note that produced it. Editing the note
+  // drops the prompt so a stale name cannot override the edited note's name.
+  const handleNoteChange = (value: string) => {
+    setRawNote(value)
+    if (needsName) {
+      setNeedsName(false)
+      setContactName("")
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!rawNote.trim()) return
@@ -225,7 +235,7 @@ export default function AddContactPage() {
               aria-label="Describe who you met"
               placeholder={placeholder}
               value={rawNote}
-              onChange={(e) => setRawNote(e.target.value)}
+              onChange={(e) => handleNoteChange(e.target.value)}
               rows={6}
               className="resize-none text-base leading-relaxed"
             />

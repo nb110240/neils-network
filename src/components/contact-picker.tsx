@@ -14,6 +14,32 @@ function matches(contact: ContactOption, query: string): boolean {
 }
 
 /**
+ * Options for the picker: preloaded contacts matching `q`, server results
+ * (only while searching the server, and only those matching the current `q`,
+ * since `remote` can still hold results for an earlier query), and the
+ * selected contact.
+ */
+export function pickerOptions({
+  contacts,
+  remote,
+  q,
+  searchingServer,
+  selected,
+}: {
+  contacts: ContactOption[]
+  remote: ContactOption[]
+  q: string
+  searchingServer: boolean
+  selected?: ContactOption
+}): ContactOption[] {
+  const byId = new Map<string, ContactOption>()
+  for (const contact of contacts) if (!q || matches(contact, q)) byId.set(contact.id, contact)
+  if (searchingServer) for (const contact of remote) if (matches(contact, q)) byId.set(contact.id, contact)
+  if (selected) byId.set(selected.id, selected)
+  return [...byId.values()]
+}
+
+/**
  * Contact <select> with a search box. Filters the preloaded contacts locally;
  * when the preload was truncated, also asks the server so every contact can
  * be found. The selected contact always stays in the list.
@@ -72,14 +98,17 @@ export function ContactPicker({
     return map
   }, [contacts, seen])
 
-  const options = useMemo(() => {
-    const byId = new Map<string, ContactOption>()
-    for (const contact of contacts) if (!q || matches(contact, q)) byId.set(contact.id, contact)
-    if (searchingServer) for (const contact of remote) byId.set(contact.id, contact)
-    const selected = value ? lookup.get(value) : undefined
-    if (selected) byId.set(selected.id, selected)
-    return [...byId.values()]
-  }, [contacts, remote, lookup, q, value, searchingServer])
+  const options = useMemo(
+    () =>
+      pickerOptions({
+        contacts,
+        remote,
+        q,
+        searchingServer,
+        selected: value ? lookup.get(value) : undefined,
+      }),
+    [contacts, remote, lookup, q, value, searchingServer]
+  )
 
   const showSearch = truncated || contacts.length > 12
 

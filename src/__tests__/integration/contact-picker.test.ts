@@ -42,6 +42,7 @@ vi.mock("@/lib/subscription", () => ({ getUserPlan: vi.fn(async () => "pro") }))
 import { loadPickerContacts, PICKER_PRELOAD_LIMIT } from "@/lib/contact-picker"
 import CapturePage from "@/app/(dashboard)/capture/page"
 import { GET as lookup } from "@/app/api/contacts/lookup/route"
+import { pickerOptions } from "@/components/contact-picker"
 
 const FAR_ID = "99999999-9999-4999-8999-999999999999"
 const first500: Row[] = Array.from({ length: PICKER_PRELOAD_LIMIT }, (_, i) => ({
@@ -124,5 +125,26 @@ describe("GET /api/contacts/lookup", () => {
     const res = await lookup(new Request("https://savvo.app/api/contacts/lookup?q=z"))
     expect((await res.json()).contacts).toEqual([])
     expect(client.from).not.toHaveBeenCalled()
+  })
+})
+
+describe("pickerOptions", () => {
+  const acme: Row = { id: "acme-1", name: "Ravi Patel", company: "Acme", email: null }
+
+  it("drops server results left over from an earlier query", () => {
+    // Regression: after searching "Zoe", typing "Acme" still listed Zoe while
+    // the new lookup was pending, and kept her if it failed.
+    const options = pickerOptions({ contacts: first500, remote: [far], q: "Acme", searchingServer: true })
+    expect(options.map((c) => c.id)).not.toContain(FAR_ID)
+  })
+
+  it("lists server results that match the current query", () => {
+    const options = pickerOptions({ contacts: first500, remote: [far, acme], q: "acme", searchingServer: true })
+    expect(options.map((c) => c.id)).toEqual(["acme-1"])
+  })
+
+  it("always keeps the selected contact", () => {
+    const options = pickerOptions({ contacts: [], remote: [], q: "acme", searchingServer: true, selected: far })
+    expect(options).toEqual([far])
   })
 })

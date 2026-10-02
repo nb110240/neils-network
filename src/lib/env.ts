@@ -25,7 +25,7 @@ const REQUIRED_ENV = [
   // and outbound email links — several call sites use it with no fallback.
   "NEXT_PUBLIC_APP_URL",
   // Authenticates Vercel cron calls (daily digest, calendar sync, cleanup).
-  // Missing = crons silently no-op. OAuth state is signed with
+  // Missing or invalid = cron requests return 401. OAuth state is signed with
   // OAUTH_STATE_SECRET only; calendar-oauth-state.ts throws without it (no
   // CRON_SECRET fallback).
   "CRON_SECRET",

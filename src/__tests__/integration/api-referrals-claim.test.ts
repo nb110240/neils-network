@@ -141,4 +141,18 @@ describe("claimReferralOnce", () => {
     await claimReferralOnce(user, { storage, fetchImpl, cookieCode: null })
     expect(fetchImpl).toHaveBeenCalledTimes(2)
   })
+
+  it("retries on a later load after a 401 (session not ready yet)", async () => {
+    // Regression: a 401 left the per-user flag set, so the claim was skipped
+    // on every later, authenticated load on that device.
+    const storage = memoryStorage()
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("{}", { status: 401 }))
+      .mockResolvedValueOnce(new Response("{}", { status: 200 }))
+    await claimReferralOnce(user, { storage, fetchImpl, cookieCode: null })
+    await claimReferralOnce(user, { storage, fetchImpl, cookieCode: null })
+    await claimReferralOnce(user, { storage, fetchImpl, cookieCode: null })
+    expect(fetchImpl).toHaveBeenCalledTimes(2)
+  })
 })

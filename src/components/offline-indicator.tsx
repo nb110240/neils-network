@@ -57,7 +57,7 @@ export function OfflineIndicator() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             // Nobody is there to answer a name prompt during background sync.
-            body: JSON.stringify({ raw_note: item.raw_note, allow_unnamed: true }),
+            body: JSON.stringify({ raw_note: item.raw_note, name: item.name, allow_unnamed: true }),
           })
           if (isRetryableStatus(response.status)) break
           delivered.push(queueKey(item))

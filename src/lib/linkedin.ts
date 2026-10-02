@@ -56,3 +56,21 @@ export function normalizeLinkedInProfileUrl(
   }
   return { url: `https://www.linkedin.com/in/${slug}`, slug, rawSlug: match[1] }
 }
+
+// ─── LinkedIn URL in free text (QR payloads, pasted input) ───
+// Finds a profile or lnkd.in link with or without a scheme ("www.linkedin.com/
+// in/...", as typed or shared, has none). The lookbehind stops a match from
+// starting mid-host, so "evil-linkedin.com/in/x" is not read as linkedin.com.
+// The API re-validates with normalizeLinkedInProfileUrl.
+const PROFILE_IN_TEXT = [
+  /(?<![\w.-])(?:https?:\/\/)?(?:(?:[a-z]{2,3}|m)\.)?linkedin\.com\/in\/(?:[\w-]|%[0-9a-f]{2})+\/?/i,
+  /(?<![\w.-])(?:https?:\/\/)?lnkd\.in\/[\w-]+/i,
+]
+
+export function extractLinkedInUrl(text: string): string | null {
+  for (const pattern of PROFILE_IN_TEXT) {
+    const match = (text || "").match(pattern)
+    if (match) return match[0]
+  }
+  return null
+}

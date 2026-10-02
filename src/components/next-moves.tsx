@@ -278,9 +278,9 @@ function MoveRow({
             {showTitle && (
               <p className="truncate text-sm text-stone-700 dark:text-stone-300">{move.title}</p>
             )}
-            <div className="mt-0.5 flex items-center gap-2">
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 sm:flex-nowrap">
               {move.health && move.kind === "follow_up" && <HealthBadge health={move.health} />}
-              <span className="truncate text-xs text-muted-foreground">{move.reason}</span>
+              <span className="text-xs text-muted-foreground sm:truncate">{move.reason}</span>
             </div>
           </div>
         </Link>

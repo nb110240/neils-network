@@ -138,11 +138,11 @@ export function GranolaIntegration({ isPaidPlan }: { isPaidPlan: boolean }) {
                 <p className="flex items-center gap-2 text-sm font-medium text-emerald-900 dark:text-emerald-200">
                   <Check className="h-4 w-4" /> Connected
                 </p>
-                {status.last_sync_at && (
-                  <p className="mt-1 text-xs text-emerald-800 dark:text-emerald-300">
-                    Last synced {new Date(status.last_sync_at).toLocaleString()}
-                  </p>
-                )}
+                <p className="mt-1 text-xs text-emerald-800 dark:text-emerald-300">
+                  {status.last_sync_at
+                    ? `Syncs every night. Last synced ${new Date(status.last_sync_at).toLocaleString()}`
+                    : "Syncs every night."}
+                </p>
               </div>
               <Button type="button" size="sm" className="min-h-11" onClick={sync} disabled={syncing}>
                 {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}

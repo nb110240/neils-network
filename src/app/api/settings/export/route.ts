@@ -16,7 +16,7 @@ export async function GET() {
     const { user, supabase } = auth
     const service = await createServiceClient()
 
-    const [contacts, activities, tags, contactTags, events, preferences, integrations, usage, reviews, commitments, researchReports, introRequests] =
+    const [contacts, activities, tags, contactTags, events, preferences, integrations, usage, reviews, commitments, researchReports, introRequests, pipelineRecipients] =
       await Promise.all([
         // Every multi-row table is paged: the API returns at most 1,000 rows
         // per request, and an export must never silently drop data.
@@ -47,9 +47,15 @@ export async function GET() {
         fetchAllRows((from, to) => supabase.from("commitments").select("*").eq("user_id", user.id).order("id").range(from, to)),
         fetchAllRows((from, to) => supabase.from("investor_research_reports").select("*").eq("user_id", user.id).order("id").range(from, to)),
         fetchAllRows((from, to) => supabase.from("intro_requests").select("*").eq("user_id", user.id).order("id").range(from, to)),
+        // Service role only (unsubscribe tokens stay server-side), so select
+        // what the user entered, never the token.
+        service
+          .from("pipeline_digest_recipients")
+          .select("email, created_at, last_sent_at, unsubscribed_at")
+          .eq("user_id", user.id),
       ])
 
-    const failedQuery = [contacts, activities, tags, contactTags, events, preferences, integrations, usage, reviews, commitments, researchReports, introRequests]
+    const failedQuery = [contacts, activities, tags, contactTags, events, preferences, integrations, usage, reviews, commitments, researchReports, introRequests, pipelineRecipients]
       .find((result) => result.error)
     if (failedQuery?.error) {
       throw new Error(`Export query failed: ${failedQuery.error.message}`)
@@ -74,6 +80,7 @@ export async function GET() {
       commitments: commitments.data ?? [],
       investor_research_reports: researchReports.data ?? [],
       intro_requests: introRequests.data ?? [],
+      pipeline_email_recipients: pipelineRecipients.data ?? [],
     }
 
     log("info", "data export", {

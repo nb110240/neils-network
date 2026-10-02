@@ -21,7 +21,15 @@ type SendPayload = Parameters<Resend["emails"]["send"]>[0]
 export async function sendEmail(payload: SendPayload): Promise<void> {
   const result = await getResend().emails.send(payload)
   if (result?.error) {
-    throw new Error(`Resend send failed: ${result.error.message}`)
+    throw new EmailSendError(`Resend send failed: ${result.error.message}`, result.error.name ?? null)
+  }
+}
+
+/** A rejected send; `code` is Resend's error name, e.g. "rate_limit_exceeded". */
+export class EmailSendError extends Error {
+  constructor(message: string, readonly code: string | null) {
+    super(message)
+    this.name = "EmailSendError"
   }
 }
 
@@ -440,6 +448,9 @@ export function emailLayout(options: {
   body: string
   appUrl?: string
   showUnsubscribe?: boolean
+  /** Replaces the "Open Savvo · Email preferences" links, for people who
+   * aren't Savvo users (e.g. a founder's co-founder). Must be escaped HTML. */
+  footerHtml?: string
 }): string {
   const appUrl = options.appUrl || process.env.NEXT_PUBLIC_APP_URL || "https://savvo.app"
 
@@ -462,8 +473,8 @@ export function emailLayout(options: {
     <!-- Footer -->
     <div style="border-top:1px solid #e7e5e4;margin-top:32px;padding-top:20px;text-align:center">
       <p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:12px;color:#a8a29e;margin:0">
-        <a href="${appUrl}/dashboard" style="color:#c2410c;text-decoration:none;font-weight:500">Open Savvo</a>
-        ${options.showUnsubscribe !== false ? ` · <a href="${appUrl}/settings" style="color:#a8a29e;text-decoration:none">Email preferences</a>` : ""}
+        ${options.footerHtml ?? `<a href="${appUrl}/dashboard" style="color:#c2410c;text-decoration:none;font-weight:500">Open Savvo</a>
+        ${options.showUnsubscribe !== false ? ` · <a href="${appUrl}/settings" style="color:#a8a29e;text-decoration:none">Email preferences</a>` : ""}`}
       </p>
       <p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:11px;color:#d6d3d1;margin:8px 0 0">
         Savvo · Your network is your net worth

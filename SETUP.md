@@ -94,6 +94,8 @@ Defined in `vercel.json` and authenticated with `CRON_SECRET`:
 | `/api/cron/daily-digest` | 14:00 Mon–Fri | Digest email (daily for Pro, Monday for Free) |
 | `/api/cron/push-moves` | 15:00 Mon–Fri | Push the most urgent promise, pending reviews, or intro follow-ups to people with the app |
 | `/api/calendar/sync` | 18:00 daily | Pull calendar events for connected users |
+| `/api/cron/granola-sync` | 07:00 daily | Import new Granola notes into the Review Inbox for Pro users (least recently synced first) |
+| `/api/cron/pipeline-digest` | 13:00 Monday | Weekly pipeline email to the co-founders/advisors each Pro founder added in Settings |
 | `/api/cron/cleanup-unverified` | 03:00 Sunday | Remove stale unverified signups |
 
 Locally, trigger a digest with `POST /api/dev/trigger-digest` and the `DEV_SECRET` header.

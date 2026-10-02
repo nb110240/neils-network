@@ -38,6 +38,7 @@ import { ThemeSelector } from "@/components/theme-selector"
 import { RecentlyDeleted } from "@/components/recently-deleted"
 import { DuplicateReview } from "@/components/duplicate-review"
 import { DataExportButton } from "@/components/data-export-button"
+import { PipelineEmailCard } from "@/components/pipeline-email-card"
 import { MfaSettings } from "@/components/mfa-settings"
 import { InboundNotesAddress } from "@/components/inbound-notes-address"
 import { GranolaIntegration } from "@/components/granola-integration"
@@ -415,6 +416,8 @@ export default function SettingsPage() {
       </Card>
 
       <RaiseSnapshotCard />
+
+      <PipelineEmailCard isPaidPlan={isPaidPlan} />
 
       <ReferralCard />
 

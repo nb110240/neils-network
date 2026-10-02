@@ -150,7 +150,7 @@ function relationshipMove(contact: MoveContact, today: string, nowMs: number): N
       title: `Reconnect with ${name}`,
       reason: `Last contact ${formatDaysAgo(daysSince)}`,
       dueAt: null,
-      score: (health.level === "red" ? 600 : 610) - staleness,
+      score: (health.level === "red" ? 610 : 620) - staleness,
     }
   }
 
@@ -161,7 +161,7 @@ function relationshipMove(contact: MoveContact, today: string, nowMs: number): N
       title: `Check in with ${name}`,
       reason: `Last contact ${formatDaysAgo(daysSince)}`,
       dueAt: null,
-      score: 700 - staleness,
+      score: 720 - staleness,
     }
   }
 

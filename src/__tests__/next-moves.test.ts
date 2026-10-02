@@ -312,6 +312,27 @@ describe("buildNextMoves relationship rules (shared by dashboard, /moves, /reach
     ])
   })
 
+  it("ranks an unscheduled waiting-on-them item ahead of red and orange cold contacts, with cooling last", () => {
+    const moves = buildNextMoves({
+      nowMs: NOW,
+      reviews: [],
+      contacts: [
+        contact({ id: "cooling", last_contact_date: daysBefore(60) }),
+        contact({ id: "orange", last_contact_date: daysBefore(120) }),
+        contact({ id: "red", last_contact_date: daysBefore(400) }),
+        contact({ id: "owes-us" }),
+      ],
+      commitments: [commitment({ id: "waiting", contact_id: "owes-us", direction: "contact_owes", due_at: null })],
+    })
+
+    expect(moves.map((move) => move.id)).toEqual([
+      "commitment:waiting",
+      "follow-up:red",
+      "follow-up:orange",
+      "follow-up:cooling",
+    ])
+  })
+
   it("caps the dashboard at DASHBOARD_MOVE_LIMIT while /moves keeps the full ranked list", () => {
     const contacts = Array.from({ length: DASHBOARD_MOVE_LIMIT + 3 }, (_, i) =>
       contact({ id: `c-${i}`, follow_up_needed: true, last_contact_date: daysBefore(40 + i) }))

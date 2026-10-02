@@ -11,8 +11,6 @@ import { getPlanLimits, getUserPlan } from "@/lib/subscription"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ContactCard } from "@/components/contact-card"
-import { ReachOutList, type ReachOutContact } from "@/components/reach-out-list"
-import { NewRelationships } from "@/components/new-relationships"
 import { CalendarConnectButton } from "@/components/calendar-connect-button"
 import { ManageSubscriptionButton } from "@/components/manage-subscription-button"
 import { UpgradeToast } from "@/components/upgrade-toast"
@@ -23,19 +21,10 @@ import { OnboardingChecklist } from "@/components/onboarding-checklist"
 import { DashboardWalkthrough } from "@/components/dashboard-walkthrough"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { InstallPrompt } from "@/components/install-prompt"
-import { FollowUpList, type FollowUpContact } from "@/components/follow-up-list"
 import { NextMoves } from "@/components/next-moves"
 import { buildNextMoves } from "@/lib/next-moves"
 import type { AfterCallReview, Commitment, IntroRequest } from "@/lib/types"
-import { Plus, Users, ArrowRight, ThermometerSnowflake, Crown, HandHeart } from "lucide-react"
-
-function cadenceLabel(days: number): string {
-  if (days === 7) return "Weekly"
-  if (days === 14) return "Every 2 weeks"
-  if (days === 30) return "Monthly"
-  if (days === 90) return "Quarterly"
-  return `Every ${days} days`
-}
+import { Plus, Users, ArrowRight, ThermometerSnowflake, Crown } from "lucide-react"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -51,7 +40,15 @@ export default async function DashboardPage() {
   // user.id), so fetch them in parallel instead of serially. The list IS the
   // complete unarchived set, so its length is the total contact count — a
   // separate COUNT round-trip was redundant.
-  const [plan, { data: allContacts }, { data: commitmentRows }, { data: reviewRows }, { data: introRows }] = await Promise.all([
+  const [
+    plan,
+    { data: allContacts },
+    { data: commitmentRows },
+    { data: reviewRows },
+    { data: introRows },
+    { count: reviewCount },
+    { count: commitmentCount },
+  ] = await Promise.all([
     getUserPlan(user.id),
     supabase
       .from("contacts")
@@ -59,18 +56,31 @@ export default async function DashboardPage() {
       .eq("created_by", user.id)
       .is("archived_at", null)
       .order("created_at", { ascending: false }),
+    // Only open work feeds the action list (same filters as /moves).
     supabase
       .from("commitments")
       .select("*")
-      .eq("user_id", user.id),
+      .eq("user_id", user.id)
+      .in("status", ["open", "snoozed"]),
     supabase
       .from("after_call_reviews")
       .select("*")
       .eq("user_id", user.id)
+      .eq("status", "pending")
       .order("occurred_at", { ascending: false }),
     supabase
       .from("intro_requests")
       .select("*")
+      .eq("user_id", user.id)
+      .in("status", ["draft", "requested", "accepted", "introduced"]),
+    // Lifetime counts drive onboarding progress, so fetch counts, not rows.
+    supabase
+      .from("after_call_reviews")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id),
+    supabase
+      .from("commitments")
+      .select("id", { count: "exact", head: true })
       .eq("user_id", user.id),
   ])
 
@@ -104,158 +114,13 @@ export default async function DashboardPage() {
     commitments,
     reviews,
     introRequests,
-    contacts: (allContacts || []).map((contact) => ({
-      id: contact.id,
-      name: contact.name,
-      company: contact.company,
-      next_steps: contact.next_steps,
-      follow_up_needed: contact.follow_up_needed,
-      next_due_date: contact.next_due_date,
-      snoozed_until: contact.snoozed_until,
-      last_contact_date: contact.last_contact_date,
-      created_at: contact.created_at,
-    })),
+    contacts: allContacts || [],
     nowMs: now,
   })
-
-  // --- Reach Out Today: unified prioritized list ---
-  const todayStr = new Date().toISOString().split("T")[0]
-  const daysSince = (dateStr: string | null, fallback: string) => {
-    const ref = dateStr || fallback
-    return Math.floor((now - new Date(ref).getTime()) / (1000 * 60 * 60 * 24))
-  }
-
-  const formatDaysAgo = (days: number): string => {
-    if (days <= 0) return "Today"
-    if (days === 1) return "Yesterday"
-    if (days < 30) return `${days} days ago`
-    const months = Math.floor(days / 30)
-    return months === 1 ? "1 month ago" : `${months} months ago`
-  }
-
-  // Filter out snoozed contacts from reach-out lists
-  const isSnoozed = (c: typeof contactsWithHealth[0]) =>
-    c.snoozed_until && c.snoozed_until >= todayStr
-  const activeContacts = contactsWithHealth.filter((c) => !isSnoozed(c))
-
-  // Priority 0 (NEW): Contacts with next_due_date <= today (user-scheduled)
-  const scheduledContacts: ReachOutContact[] = activeContacts
-    .filter((c) => c.next_due_date && c.next_due_date <= todayStr)
-    .sort((a, b) => (a.next_due_date || "").localeCompare(b.next_due_date || ""))
-    .map((c) => ({
-      ...c,
-      reason: c.cadence_days
-        ? `${cadenceLabel(c.cadence_days)}, due`
-        : "Scheduled follow-up",
-    }))
-
-  const scheduledIds = new Set(scheduledContacts.map((c) => c.id))
-
-  // Priority 1: follow_up_needed contacts that aren't green (green = already healthy)
-  const followUpContacts: ReachOutContact[] = activeContacts
-    .filter((c) => !scheduledIds.has(c.id) && c.follow_up_needed && c.health.level !== "green")
-    .sort((a, b) => {
-      const aDate = new Date(a.last_contact_date || a.created_at).getTime()
-      const bDate = new Date(b.last_contact_date || b.created_at).getTime()
-      return aDate - bDate
-    })
-    .map((c) => ({ ...c, reason: "Follow-up needed" }))
-
-  // Priority 2: orange or red health, oldest first (exclude already listed)
-  const listedIds = new Set([...scheduledIds, ...followUpContacts.map((c) => c.id)])
-  const coldContacts: ReachOutContact[] = activeContacts
-    .filter((c) => !listedIds.has(c.id) && (c.health.level === "orange" || c.health.level === "red"))
-    .sort((a, b) => {
-      const aDate = new Date(a.last_contact_date || a.created_at).getTime()
-      const bDate = new Date(b.last_contact_date || b.created_at).getTime()
-      return aDate - bDate
-    })
-    .map((c) => ({
-      ...c,
-      reason: formatDaysAgo(daysSince(c.last_contact_date, c.created_at)),
-    }))
-
-  // Combine priority 0 + 1 + 2
-  let reachOutContacts = [...scheduledContacts, ...followUpContacts, ...coldContacts]
-
-  // Priority 3: yellow + 45+ days, only if list < 5
-  if (reachOutContacts.length < 5) {
-    const existingIds = new Set(reachOutContacts.map((c) => c.id))
-    const coolingContacts: ReachOutContact[] = activeContacts
-      .filter((c) => {
-        if (existingIds.has(c.id)) return false
-        if (c.health.level !== "yellow") return false
-        return daysSince(c.last_contact_date, c.created_at) >= 45
-      })
-      .sort((a, b) => {
-        const aDate = new Date(a.last_contact_date || a.created_at).getTime()
-        const bDate = new Date(b.last_contact_date || b.created_at).getTime()
-        return aDate - bDate
-      })
-      .map((c) => ({
-        ...c,
-        reason: formatDaysAgo(daysSince(c.last_contact_date, c.created_at)),
-      }))
-    reachOutContacts = [...reachOutContacts, ...coolingContacts]
-  }
-
-  const reachOutTotal = reachOutContacts.length
-  const reachOutCapped = reachOutContacts.slice(0, 8)
-
-  // --- Follow-ups Pending: contacts with follow_up_needed, with trigger date ---
-  const allFollowUpContacts = contactsWithHealth.filter((c) => c.follow_up_needed)
-  const followUpContactIds = allFollowUpContacts.map((c) => c.id)
-
-  // Get the most recent activity with follow_up_needed for each contact
-  const followUpTriggerDates = new Map<string, { date: string; context: string | null }>()
-  if (followUpContactIds.length > 0) {
-    const { data: followUpActivities } = await supabase
-      .from("contact_activities")
-      .select("contact_id, occurred_at, content")
-      .in("contact_id", followUpContactIds)
-      .eq("follow_up_needed", true)
-      .order("occurred_at", { ascending: false })
-
-    if (followUpActivities) {
-      for (const a of followUpActivities) {
-        // Only keep the most recent per contact
-        if (!followUpTriggerDates.has(a.contact_id)) {
-          followUpTriggerDates.set(a.contact_id, {
-            date: a.occurred_at,
-            context: a.content?.slice(0, 80) || null,
-          })
-        }
-      }
-    }
-  }
-
-  const followUpList: FollowUpContact[] = allFollowUpContacts
-    .map((c) => {
-      const trigger = followUpTriggerDates.get(c.id)
-      return {
-        ...c,
-        followUpTriggeredAt: trigger?.date || c.updated_at || c.created_at,
-        followUpContext: trigger?.context || c.next_steps || null,
-      }
-    })
-    .sort((a, b) => new Date(a.followUpTriggeredAt).getTime() - new Date(b.followUpTriggeredAt).getTime())
-
-  // --- New in Your Network: added in last 7 days, not yet followed up ---
-  const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000
-  const newContacts = contactsWithHealth
-    .filter((c) => {
-      const createdAt = new Date(c.created_at).getTime()
-      if (createdAt < sevenDaysAgo) return false
-      // Not yet followed up: last_contact_date is null or within 1 minute of created_at
-      if (!c.last_contact_date) return true
-      const lastContact = new Date(c.last_contact_date).getTime()
-      const created = new Date(c.created_at).getTime()
-      return Math.abs(lastContact - created) < 60_000
-    })
-    .slice(0, 4)
+  const goingColdCount = contactsWithHealth.filter((c) => c.health.level === "orange" || c.health.level === "red").length
 
   const recentContacts = contactsWithHealth.slice(0, 6)
-  const isEmpty = (allContacts || []).length === 0 && reviews.length === 0
+  const isEmpty = (allContacts || []).length === 0 && (reviewCount ?? 0) === 0
 
   // Brand new user — guided welcome experience
   if (isEmpty) {
@@ -284,9 +149,9 @@ export default async function DashboardPage() {
       <OnboardingChecklist
         contactCount={totalContacts || 0}
         calendarConnected={calendarConnected}
-        reviewCount={reviews.length}
-        pendingReviewCount={reviews.filter((review) => review.status === "pending").length}
-        actionCount={commitments.length}
+        reviewCount={reviewCount ?? 0}
+        pendingReviewCount={reviews.length}
+        actionCount={commitmentCount ?? 0}
         moveCount={nextMoves.length}
         plan={plan}
       />
@@ -327,10 +192,10 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <NextMoves moves={nextMoves} />
+      <NextMoves moves={nextMoves} plan={plan} />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 stagger-children">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 stagger-children">
         <Card className="shadow-refined">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Contacts</CardTitle>
@@ -344,35 +209,20 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-refined" data-tour="stats-reach-out">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Reach Out</CardTitle>
-            <HandHeart className="h-4 w-4 text-[var(--copper-text)]" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-normal whitespace-nowrap">{reachOutTotal}</div>
-            <p className="text-sm text-muted-foreground mt-1">
-              need attention
-            </p>
-          </CardContent>
-        </Card>
-
         <Card className="shadow-refined" data-tour="stats-cold">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Going Cold</CardTitle>
             <ThermometerSnowflake className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-normal whitespace-nowrap">
-              {contactsWithHealth.filter((c) => c.health.level === "orange" || c.health.level === "red").length}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              90+ days since last contact
+            <div className="text-3xl font-normal whitespace-nowrap">{goingColdCount}</div>
+            <p className="text-sm text-muted-foreground mt-1">
+              overdue for a check-in
             </p>
           </CardContent>
         </Card>
 
-        <Card className="shadow-refined">
+        <Card className="shadow-refined col-span-2 lg:col-span-1">
           <CardHeader>
             <CardTitle className="text-sm font-medium text-muted-foreground">Quick Actions</CardTitle>
           </CardHeader>
@@ -393,17 +243,6 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Follow-ups Pending */}
-      <FollowUpList contacts={followUpList} nowMs={now} />
-
-      {/* New in Your Network */}
-      {newContacts.length > 0 && (
-        <NewRelationships contacts={newContacts} />
-      )}
-
-      {/* Reach Out Today */}
-      <ReachOutList contacts={reachOutCapped} plan={plan} total={reachOutTotal} />
 
       {/* Recent Contacts */}
       <div className="space-y-4">

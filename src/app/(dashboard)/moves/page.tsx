@@ -4,6 +4,7 @@ import Link from "next/link"
 import { ArrowLeft, Plus } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { buildNextMoves } from "@/lib/next-moves"
+import { getUserPlan } from "@/lib/subscription"
 import { NextMoves } from "@/components/next-moves"
 import { Button } from "@/components/ui/button"
 import type { AfterCallReview, Commitment, IntroRequest } from "@/lib/types"
@@ -13,10 +14,11 @@ export default async function MovesPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const [{ data: contacts }, { data: commitments }, { data: reviews }, { data: introRequests }] = await Promise.all([
+  const [plan, { data: contacts }, { data: commitments }, { data: reviews }, { data: introRequests }] = await Promise.all([
+    getUserPlan(user.id),
     supabase
       .from("contacts")
-      .select("id, name, company, next_steps, follow_up_needed, next_due_date, snoozed_until, last_contact_date, created_at")
+      .select("id, name, company, next_steps, follow_up_needed, next_due_date, snoozed_until, last_contact_date, cadence_days, created_at")
       .eq("created_by", user.id)
       .is("archived_at", null),
     supabase
@@ -59,7 +61,13 @@ export default async function MovesPage() {
           </Button>
         </div>
       </div>
-      <NextMoves moves={moves} limit={null} />
+      <NextMoves
+        moves={moves}
+        limit={null}
+        plan={plan}
+        heading="All moves"
+        description="Ranked by urgency and what you promised."
+      />
     </div>
   )
 }

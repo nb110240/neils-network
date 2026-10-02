@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+import { NextResponse, after } from "next/server"
 import { revalidatePath } from "next/cache"
 import { Resend } from "resend"
 import { analyzeInteraction } from "@/lib/action-extraction"
@@ -11,6 +11,8 @@ import {
   normalizeMeetingText,
 } from "@/lib/meeting-content"
 import { log } from "@/lib/logger"
+import { sendPushToUser } from "@/lib/push/send"
+import { forwardedNotesMessage } from "@/lib/push/messages"
 
 function webhookHeaders(request: Request) {
   return {
@@ -156,6 +158,10 @@ export async function POST(request: Request) {
 
     revalidatePath("/dashboard")
     revalidatePath("/inbox")
+    if (review?.id) {
+      const reviewId = review.id as string
+      after(() => sendPushToUser(service, alias.user_id, forwardedNotesMessage(title, reviewId)))
+    }
     log("info", "Forwarded meeting notes added to approval inbox", {
       action: "webhook.received",
       route: "/api/webhooks/resend",

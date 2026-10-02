@@ -96,40 +96,6 @@ export async function initNative(): Promise<void> {
 }
 
 /**
- * Requests push permission, registers with APNs, and posts the device token
- * to the backend. No-op on web.
- */
-export async function registerPushNotifications(): Promise<void> {
-  if (!isNative()) return
-
-  try {
-    const { PushNotifications } = await import("@capacitor/push-notifications")
-
-    const perm = await PushNotifications.requestPermissions()
-    if (perm.receive !== "granted") return
-
-    PushNotifications.addListener("registration", (token: { value: string }) => {
-      // TODO: POST token.value to the push-token registration endpoint, e.g.
-      //   await fetch("/api/native/push-token", {
-      //     method: "POST",
-      //     headers: { "Content-Type": "application/json" },
-      //     body: JSON.stringify({ token: token.value, platform: "ios" }),
-      //   })
-      // Endpoint does not exist yet — wire it up when the server side lands.
-      void token
-    })
-
-    PushNotifications.addListener("registrationError", () => {
-      // Registration failed — non-critical; surface later if needed.
-    })
-
-    await PushNotifications.register()
-  } catch {
-    // Push plugin unavailable — non-critical.
-  }
-}
-
-/**
  * Opens the native share sheet with the given contact text. Falls back to a
  * no-op on web (callers should use the existing web flow there).
  */

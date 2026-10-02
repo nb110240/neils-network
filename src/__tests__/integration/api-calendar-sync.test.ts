@@ -8,6 +8,7 @@ const h = vi.hoisted(() => ({
   rateLimitSuccess: true,
   plan: "pro" as "free" | "pro" | "team",
   analysis: vi.fn(),
+  sendPush: vi.fn(async () => ({ sent: 1, removed: 0 })),
 }))
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -37,6 +38,7 @@ vi.mock("@/lib/openai", () => ({
 }))
 
 vi.mock("@/lib/action-extraction", () => ({ analyzeInteraction: h.analysis }))
+vi.mock("@/lib/push/send", () => ({ sendPushToUser: h.sendPush }))
 
 import { GET, POST } from "@/app/api/calendar/sync/route"
 
@@ -100,6 +102,7 @@ describe("/api/calendar/sync", () => {
     h.rateLimitSuccess = true
     h.plan = "pro"
     h.analysis.mockReset()
+    h.sendPush.mockClear()
     h.analysis.mockResolvedValue({
       summary: "Jane will send the deck.",
       contactPatch: {},
@@ -388,6 +391,53 @@ describe("/api/calendar/sync", () => {
       expect(json.synced).toBe(0)
       expect(client._queryBuilder.order).toHaveBeenCalledWith("last_attempt_at", { ascending: true, nullsFirst: true })
       expect(client._queryBuilder.limit).toHaveBeenCalledWith(3)
+    })
+  })
+
+  describe("push after background sync", () => {
+    const eventWithNotes = {
+      items: [{
+        id: "evt-with-notes",
+        summary: "Investor update",
+        description: "<p>Jane agreed to send the partnership deck by Friday.</p>",
+        start: { dateTime: "2026-05-01T10:00:00Z" },
+        attendees: [{ email: "u1@x.com" }, { email: "jane@acme.com", displayName: "Jane" }],
+      }],
+    }
+    const tables = () => ({
+      integrations: [{
+        id: "int1",
+        user_id: "u1",
+        access_token: "ya29.token",
+        refresh_token: "1//refresh",
+        token_expires_at: new Date(Date.now() + 3_600_000).toISOString(),
+      }],
+      contacts: [{ id: "contact-1", email: "jane@acme.com", name: "Jane", company: "Acme", job_title: "Partner", how_we_met: null, next_steps: null }],
+      contact_activities: [],
+      after_call_reviews: [],
+    })
+
+    beforeEach(() => {
+      vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => eventWithNotes, text: async () => "" })))
+    })
+
+    it("asks how the meetings went when the cron created reviews", async () => {
+      const client = perTableSupabase({ authUser: { id: "u1", email: "u1@x.com" }, tables: tables() })
+      h.supabase = client
+      const res = await GET(buildRequest({ url: URL, headers: { authorization: "Bearer test-cron-secret" } }))
+      expect((await res.json()).synced).toBe(1)
+      expect(h.sendPush).toHaveBeenCalledWith(client, "u1", expect.objectContaining({
+        title: "How did your meetings go?",
+        body: "Notes from a recent meeting are ready to review",
+        url: "/inbox",
+      }))
+    })
+
+    it("stays quiet for a manual sync, where the person is already in the app", async () => {
+      h.supabase = perTableSupabase({ authUser: { id: "u1", email: "u1@x.com" }, tables: tables() })
+      const res = await POST()
+      expect((await res.json()).reviewsCreated).toBe(1)
+      expect(h.sendPush).not.toHaveBeenCalled()
     })
   })
 })

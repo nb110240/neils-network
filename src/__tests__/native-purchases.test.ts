@@ -18,7 +18,13 @@ const rc = vi.hoisted(() => ({
   purchasePackage: vi.fn(async () => ({
     customerInfo: { entitlements: { active: { pro: {} } } },
   })),
+  restorePurchases: vi.fn(async () => ({
+    customerInfo: { entitlements: { active: { pro: {} } } },
+  })),
 }))
+
+const browser = vi.hoisted(() => ({ open: vi.fn(async () => {}) }))
+vi.mock("@capacitor/browser", () => ({ Browser: browser }))
 
 vi.mock("@revenuecat/purchases-capacitor", () => ({
   Purchases: rc,
@@ -113,5 +119,41 @@ describe("native purchases platform keys", () => {
     const { purchasePro } = await load({ ios: "appl_x", android: "goog_x" })
     expect(await purchasePro("monthly")).toEqual({ ok: false, error: "not native" })
     expect(rc.configure).not.toHaveBeenCalled()
+  })
+})
+
+describe("store subscription management", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
+  })
+
+  it("sends each platform's subscribers to their own store", async () => {
+    const { storeSubscriptionsUrl } = await load({ ios: "appl_x", android: "goog_x" })
+    expect(storeSubscriptionsUrl("ios")).toBe("https://apps.apple.com/account/subscriptions")
+    expect(storeSubscriptionsUrl("android")).toBe("https://play.google.com/store/account/subscriptions?package=app.savvo")
+    expect(storeSubscriptionsUrl("web")).toBeNull()
+  })
+
+  it("opens the Play subscription screen on Android and nothing on the web", async () => {
+    browser.open.mockClear()
+    setPlatform("android")
+    const android = await load({ android: "goog_x" })
+    await android.openStoreSubscriptions()
+    expect(browser.open).toHaveBeenCalledWith({ url: "https://play.google.com/store/account/subscriptions?package=app.savvo" })
+
+    browser.open.mockClear()
+    setPlatform("web")
+    const web = await load({})
+    await web.openStoreSubscriptions()
+    expect(browser.open).not.toHaveBeenCalled()
+  })
+
+  it("restores an active Pro entitlement", async () => {
+    setPlatform("ios")
+    const { restorePurchases } = await load({ ios: "appl_x" })
+    await expect(restorePurchases()).resolves.toEqual({ ok: true })
+    rc.restorePurchases.mockResolvedValueOnce({ customerInfo: { entitlements: { active: {} } } } as never)
+    await expect(restorePurchases()).resolves.toEqual({ ok: false })
   })
 })

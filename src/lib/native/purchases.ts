@@ -135,3 +135,24 @@ export async function restorePurchases(): Promise<PurchaseResult> {
     return { ok: false, error: e instanceof Error ? e.message : "Restore failed" }
   }
 }
+
+const STORE_SUBSCRIPTIONS_URL: Record<string, string> = {
+  ios: "https://apps.apple.com/account/subscriptions",
+  android: "https://play.google.com/store/account/subscriptions?package=app.savvo",
+}
+
+/** Where a platform's subscribers cancel or change plans, or null on web. */
+export function storeSubscriptionsUrl(platform: string): string | null {
+  return STORE_SUBSCRIPTIONS_URL[platform] ?? null
+}
+
+/**
+ * Opens the App Store / Google Play subscription screen, where store
+ * subscriptions are cancelled or changed. No-op on web.
+ */
+export async function openStoreSubscriptions(): Promise<void> {
+  const url = isNative() ? storeSubscriptionsUrl(nativePlatform()) : null
+  if (!url) return
+  const { Browser } = await import("@capacitor/browser")
+  await Browser.open({ url })
+}

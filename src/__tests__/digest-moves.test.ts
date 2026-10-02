@@ -54,6 +54,18 @@ describe("buildDigestMoves", () => {
     expect(moves.introFollowUps).toEqual([{ targetName: "Jane VC", connectorName: "Priya", status: "requested" }])
   })
 
+  it("keeps moves for an active contact with no name", () => {
+    const moves = buildDigestMoves({
+      now: NOW,
+      pendingReviews: 0,
+      contactNames: new Map<string, string | null>([["n1", null], ["t1", "Jane VC"]]),
+      commitments: [{ id: "a", contact_id: "n1", direction: "user_owes", title: "Send the deck", due_at: "2026-10-06T17:00:00Z" }],
+      intros: [{ id: "i1", target_contact_id: "n1", connector_contact_id: "gone", status: "requested", next_follow_up_at: "2026-10-04T00:00:00Z" }],
+    })
+    expect(moves.promises).toEqual([expect.objectContaining({ title: "Send the deck", contactName: "Unknown" })])
+    expect(moves.introFollowUps).toEqual([{ targetName: "Unknown", connectorName: null, status: "requested" }])
+  })
+
   it("reports nothing to do when everything is empty", () => {
     expect(hasDigestMoves(buildDigestMoves({ now: NOW, pendingReviews: 0, commitments: [], intros: [], contactNames: names }))).toBe(false)
   })

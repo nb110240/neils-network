@@ -172,6 +172,19 @@ export default function SettingsPage() {
   }
 
   const handleManagePlan = async () => {
+    // In the app, store subscriptions are managed by Apple or Google. A plan
+    // bought on the web stays on the web: no external billing links in-app.
+    const { isNative } = await import("@/lib/native/capacitor")
+    if (isNative()) {
+      if (hasBillingAccount) {
+        addToast({ title: "Billed on the web", description: "This plan was purchased on the web, so it can't be changed in the app." })
+        return
+      }
+      const { openStoreSubscriptions } = await import("@/lib/native/purchases")
+      await openStoreSubscriptions()
+      return
+    }
+
     setIsPlanLoading(true)
     try {
       const res = await fetch("/api/stripe/portal", { method: "POST" })

@@ -11,9 +11,13 @@ import { isValidUUID } from "@/lib/api-utils"
 /**
  * RevenueCat webhook -> Pro entitlement sync.
  *
- * RevenueCat is the source of truth for iOS IAP. It POSTs subscription events
- * here; we mirror them into the same `subscriptions` table the Stripe webhook
- * writes, so the rest of the app reads one Pro signal regardless of platform.
+ * RevenueCat is the source of truth for native in-app purchases on both iOS
+ * (event.store "APP_STORE") and Android (event.store "PLAY_STORE"). It POSTs
+ * subscription events here; we mirror them into the same `subscriptions` table
+ * the Stripe webhook writes, so the rest of the app reads one Pro signal
+ * regardless of platform. Event handling is deliberately store-agnostic: the
+ * same event types, entitlement check, and signature check apply to every
+ * store, so a Play purchase grants and expires Pro exactly like an App Store one.
  *
  * RevenueCat is configured (in code) with appUserID = the Supabase user id, so
  * event.app_user_id maps to subscriptions.user_id.
@@ -49,6 +53,7 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as {
     event?: {
       type?: string
+      store?: string
       app_user_id?: string
       expiration_at_ms?: number
       entitlement_ids?: string[] | null
@@ -68,6 +73,8 @@ export async function POST(request: Request) {
 
   const userId = event.app_user_id
   const type = event.type
+  // Logged only (e.g. "APP_STORE", "PLAY_STORE"); never used to branch.
+  const store = typeof event.store === "string" ? event.store : undefined
 
   // Defense in depth: app_user_id is set by the native client with the PUBLIC
   // SDK key, so by itself it is not authoritative. When a server secret is
@@ -87,6 +94,7 @@ export async function POST(request: Request) {
         action: "revenuecat.webhook",
         route: "/api/native/revenuecat-webhook",
         eventType: type,
+        store,
         userId,
       })
       return NextResponse.json({ received: true })
@@ -112,6 +120,9 @@ export async function POST(request: Request) {
     "PRODUCT_CHANGE",
     "UNCANCELLATION",
     "NON_RENEWING_PURCHASE",
+    // Expiration pushed out (App Store / Play deferral or extension): refresh
+    // current_period_end so a later stale EXPIRATION cannot downgrade early.
+    "SUBSCRIPTION_EXTENDED",
   ]
   const DEACTIVATE = ["EXPIRATION"]
 
@@ -167,6 +178,7 @@ export async function POST(request: Request) {
       action: "revenuecat.webhook",
       route: "/api/native/revenuecat-webhook",
       eventType: type,
+      store,
       error: dbError.message,
     })
     return NextResponse.json({ message: "Write failed" }, { status: 500 })
@@ -176,6 +188,7 @@ export async function POST(request: Request) {
     action: "revenuecat.webhook",
     route: "/api/native/revenuecat-webhook",
     eventType: type,
+    store,
     userId,
     grantsPro,
   })

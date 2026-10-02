@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
+import { Fragment } from "react"
 import Link from "next/link"
+import { ArrowRight, Check, FileSpreadsheet } from "lucide-react"
 import { TypingDemo } from "@/components/typing-demo"
 
 // Title and description are inherited from the root layout (the homepage keeps
@@ -258,44 +260,59 @@ function MarketingPage() {
             <div className="rounded-2xl border shadow-refined p-5">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Import from Spreadsheet</h3>
-                <span className="text-xs text-muted-foreground">Bring your existing network</span>
+                <span className="hidden text-xs text-stone-700 dark:text-stone-300 sm:inline">Bring your existing pipeline</span>
               </div>
               <div className="space-y-3">
-                {/* CSV upload area */}
-                <div className="rounded-lg border-2 border-dashed border-stone-300 dark:border-stone-600 p-4 text-center">
-                  <div className="w-8 h-8 rounded-lg bg-[var(--copper)]/10 flex items-center justify-center mx-auto mb-2">
-                    <span className="text-[var(--copper-text)] text-sm">&#x1f4ce;</span>
+                {/* Uploaded file */}
+                <div className="flex items-center gap-3 rounded-lg border border-stone-200 dark:border-stone-700 p-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--copper)]/10">
+                    <FileSpreadsheet className="h-4 w-4 text-[var(--copper-text)]" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-stone-900 dark:text-stone-100">investor-pipeline.csv</p>
+                    <p className="text-xs text-stone-700 dark:text-stone-300">47 investors found</p>
                   </div>
-                  <p className="text-xs font-medium">contacts.csv</p>
-                  <p className="text-[10px] text-muted-foreground">47 rows detected</p>
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 dark:text-green-400">
+                    <Check className="h-3.5 w-3.5" aria-hidden="true" /> Ready
+                  </span>
                 </div>
 
                 {/* Column mapping */}
-                <div className="rounded-lg bg-muted/50 p-3 space-y-1.5 text-sm">
-                  <p className="text-xs font-semibold text-muted-foreground mb-2">COLUMN MAPPING</p>
-                  {[
-                    { csv: "Full Name", savvo: "Name", status: "mapped" },
-                    { csv: "Organization", savvo: "Company", status: "mapped" },
-                    { csv: "Email Address", savvo: "Email", status: "mapped" },
-                    { csv: "Notes", savvo: "Raw Note", status: "mapped" },
-                    { csv: "Phone", savvo: "Phone", status: "mapped" },
-                  ].map((col) => (
-                    <div key={col.csv} className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">{col.csv}</span>
-                      <span className="text-muted-foreground">→</span>
-                      <span className="font-medium">{col.savvo}</span>
-                      <span className="text-green-600 text-[10px]">&#10003;</span>
-                    </div>
-                  ))}
+                <div className="rounded-lg bg-muted/50 p-3 text-xs">
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2">
+                    <span className="font-semibold uppercase tracking-wider text-[10px] text-stone-700 dark:text-stone-300">Your column</span>
+                    <span aria-hidden="true" />
+                    <span className="font-semibold uppercase tracking-wider text-[10px] text-stone-700 dark:text-stone-300">Savvo field</span>
+                    <span aria-hidden="true" />
+                    {[
+                      { csv: "Investor Name", savvo: "Name" },
+                      { csv: "Firm", savvo: "Company" },
+                      { csv: "Status", savvo: "Raise stage" },
+                      { csv: "Last Contact Date", savvo: "Last contact" },
+                      { csv: "Notes", savvo: "Notes" },
+                    ].map((col) => (
+                      <Fragment key={col.csv}>
+                        <span className="truncate text-stone-700 dark:text-stone-300">{col.csv}</span>
+                        <ArrowRight className="h-3.5 w-3.5 text-stone-400 dark:text-stone-500" aria-label="maps to" />
+                        <span className="truncate font-medium text-stone-900 dark:text-stone-100">{col.savvo}</span>
+                        <Check className="h-3.5 w-3.5 text-green-700 dark:text-green-400" aria-label="matched" />
+                      </Fragment>
+                    ))}
+                  </div>
                 </div>
 
-                {/* Success state */}
-                <div className="rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 p-3 text-center">
-                  <p className="text-sm font-medium text-green-700 dark:text-green-400">&#10003; 47 contacts imported</p>
-                  <p className="text-xs text-green-800 dark:text-green-300">3 duplicates skipped · Health scores generating...</p>
+                {/* Result */}
+                <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950/30">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-600 text-white">
+                    <Check className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-green-800 dark:text-green-300">47 investors imported</p>
+                    <p className="text-xs text-green-800 dark:text-green-300">3 duplicates skipped · Raise stages set</p>
+                  </div>
                 </div>
 
-                <p className="text-xs text-muted-foreground pt-1">Upload any CSV or connect Google Contacts. Savvo maps your columns, deduplicates, and generates health scores automatically. <Link href="/from-spreadsheet" className="text-[var(--copper-text)] hover:underline font-medium">Learn more →</Link></p>
+                <p className="text-xs text-stone-700 dark:text-stone-300 pt-1">Upload any CSV or connect Google Contacts. Savvo matches your columns, skips duplicates, and scores every relationship. <Link href="/from-spreadsheet" className="text-[var(--copper-text)] hover:underline font-medium">Learn more →</Link></p>
               </div>
             </div>
           </div>

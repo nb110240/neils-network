@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { clearOfflineData } from "@/lib/clear-offline-cache"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
@@ -197,6 +198,7 @@ export default function SettingsPage() {
         throw new Error(data.error || "Failed to delete account")
       }
       await supabase.auth.signOut()
+      await clearOfflineData()
       router.push("/")
       router.refresh()
     } catch (error) {
@@ -214,6 +216,7 @@ export default function SettingsPage() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
+    await clearOfflineData()
     router.push("/")
     router.refresh()
   }

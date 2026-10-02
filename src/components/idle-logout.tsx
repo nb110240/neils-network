@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import { clearOfflineData } from "@/lib/clear-offline-cache"
 
 const IDLE_TIMEOUT_MS = 1000 * 60 * 60 * 24 // 24 hours of no activity
 const CHECK_INTERVAL_MS = 1000 * 60 * 5 // re-check every 5 minutes
@@ -48,6 +49,7 @@ export function IdleLogout() {
         loggedOut.current = true
         try {
           await supabase.auth.signOut()
+          await clearOfflineData()
         } finally {
           router.replace("/login?reason=idle")
         }

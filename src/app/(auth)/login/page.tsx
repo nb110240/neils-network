@@ -1,6 +1,7 @@
 "use client"
 
 import { Suspense, useState, useRef, useEffect } from "react"
+import { clearOfflineData } from "@/lib/clear-offline-cache"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -337,6 +338,7 @@ function LoginPageInner() {
               type="button"
               onClick={async () => {
                 await supabase.auth.signOut()
+                await clearOfflineData()
                 setMfaFactorId(null)
                 setMfaCode("")
               }}

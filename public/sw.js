@@ -1,6 +1,8 @@
 // v3: purges v2 caches, which stored cross-origin Supabase responses
 // (auth and REST payloads with user data).
-const CACHE_NAME = "savvo-v3"
+// v4: purges v3 caches, which could hold a signed-out user's pages and
+// cached the /login redirect under protected URLs.
+const CACHE_NAME = "savvo-v4"
 const OFFLINE_QUEUE_KEY = "savvo-offline-queue"
 
 // Cache essential pages on install
@@ -46,7 +48,14 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        if (response.ok) {
+        // A protected page redirected to /login means nobody is signed in:
+        // drop every cached page so the previous user's data cannot be
+        // served offline on a shared device.
+        if (response.redirected && new URL(response.url).pathname === "/login") {
+          event.waitUntil(clearAllCaches())
+          return response
+        }
+        if (response.ok && !response.redirected) {
           const clone = response.clone()
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
         }
@@ -93,10 +102,19 @@ async function handleContactPost(request) {
   }
 }
 
-// Sync queued contacts when back online
+async function clearAllCaches() {
+  const keys = await caches.keys()
+  await Promise.all(keys.map((key) => caches.delete(key)))
+}
+
+// Sync queued contacts when back online; clear cached pages on sign-out.
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SYNC_OFFLINE_QUEUE") {
     syncQueue(event.data.queue)
+  }
+  if (event.data?.type === "CLEAR_CACHES") {
+    const done = clearAllCaches()
+    if (event.waitUntil) event.waitUntil(done)
   }
 })
 

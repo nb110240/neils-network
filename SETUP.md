@@ -46,6 +46,9 @@ Open http://localhost:3001. Set `NEXT_PUBLIC_APP_URL=http://localhost:3001` in `
 | `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` | Error monitoring and source maps |
 | `NEXT_PUBLIC_REVENUECAT_IOS_KEY`, `REVENUECAT_WEBHOOK_AUTH`, `REVENUECAT_ATTRIBUTE_SECRET` | iOS in-app purchase. Pro grants fail closed in production without `REVENUECAT_ATTRIBUTE_SECRET` |
 | `CAPACITOR_SERVER_URL` | Point the iOS shell at a non-production URL |
+| `APPLE_TEAM_ID`, `APPLE_SIWA_KEY_ID`, `APPLE_SIWA_PRIVATE_KEY`, `APPLE_SERVICES_ID` | Sign in with Apple token revocation on account deletion (App Review 5.1.1(v)). Sign-in works without them; revocation is skipped and logged |
+| `APNS_KEY_ID`, `APNS_PRIVATE_KEY` (+ `APPLE_TEAM_ID`), optional `APNS_ENV`, `APNS_BUNDLE_ID` | iOS push notifications. Without them (and without `FCM_SERVICE_ACCOUNT`) the push cron does nothing |
+| `FCM_SERVICE_ACCOUNT` | Android push notifications (Firebase service account JSON on one line) |
 | `E2E_PASSWORD` | Password for the seeded E2E personas (local only) |
 
 ## 3. Supabase
@@ -62,6 +65,7 @@ Open http://localhost:3001. Set `NEXT_PUBLIC_APP_URL=http://localhost:3001` in `
 4. Authentication:
    - Add `http://localhost:3001` and your production domain to Site URL / Redirect URLs.
    - Google provider: create OAuth credentials in Google Cloud and add `https://<project>.supabase.co/auth/v1/callback` as a redirect URI.
+   - Apple provider: Client IDs `app.savvo,<Services ID>` and a client-secret JWT that Apple expires every 6 months. Full steps in [ios/DEPLOY-IOS.md](ios/DEPLOY-IOS.md) (Setup D).
    - Optional: enable CAPTCHA (Turnstile) and set `NEXT_PUBLIC_TURNSTILE_SITE_KEY` in the app.
    - Production uses custom SMTP through Resend, with branded templates.
 
@@ -88,6 +92,7 @@ Defined in `vercel.json` and authenticated with `CRON_SECRET`:
 | Route | Schedule (UTC) | Job |
 |---|---|---|
 | `/api/cron/daily-digest` | 14:00 Mon–Fri | Digest email (daily for Pro, Monday for Free) |
+| `/api/cron/push-moves` | 15:00 Mon–Fri | Push the most urgent promise, pending reviews, or intro follow-ups to people with the app |
 | `/api/calendar/sync` | 18:00 daily | Pull calendar events for connected users |
 | `/api/cron/cleanup-unverified` | 03:00 Sunday | Remove stale unverified signups |
 

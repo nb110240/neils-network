@@ -129,6 +129,7 @@ describe("GET /api/settings/notifications", () => {
     await expect(res.json()).resolves.toEqual({
       digest_frequency: "weekly",
       can_use_daily: false,
+      push_enabled: true,
     })
   })
 
@@ -145,6 +146,54 @@ describe("GET /api/settings/notifications", () => {
     await expect(res.json()).resolves.toEqual({
       digest_frequency: "daily",
       can_use_daily: true,
+      push_enabled: true,
     })
+  })
+})
+
+describe("push notification preference", () => {
+  beforeEach(() => {
+    h.rateLimitSuccess = true
+    h.plan = "pro"
+  })
+
+  it("reports push turned off when the user switched it off", async () => {
+    h.supabase = createMockSupabase({
+      authUser: { id: "u1" },
+      queryResult: { data: { digest_frequency: "weekly", push_enabled: false }, error: null },
+    })
+    const res = await GET()
+    expect((await res.json()).push_enabled).toBe(false)
+  })
+
+  it("saves push alone without switching a new account to daily digests", async () => {
+    // Regression guard: digest_frequency defaults to "daily" in the table, so
+    // a push-only upsert that omits it would quietly start daily emails.
+    h.supabase = createMockSupabase({ authUser: { id: "u1" }, queryResult: { data: null, error: null } })
+    const res = await PUT(putRequest(URL, { push_enabled: false }))
+    expect(res.status).toBe(200)
+    expect(h.supabase._queryBuilder.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ user_id: "u1", push_enabled: false, digest_frequency: "weekly" }),
+      { onConflict: "user_id" }
+    )
+    await expect(res.json()).resolves.toEqual({ digest_frequency: "weekly", push_enabled: false })
+  })
+
+  it("keeps the saved digest frequency when only push changes", async () => {
+    h.supabase = createMockSupabase({
+      authUser: { id: "u1" },
+      queryResult: { data: { digest_frequency: "never" }, error: null },
+    })
+    await PUT(putRequest(URL, { push_enabled: true }))
+    expect(h.supabase._queryBuilder.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ push_enabled: true, digest_frequency: "never" }),
+      { onConflict: "user_id" }
+    )
+  })
+
+  it("rejects a non-boolean push setting", async () => {
+    h.supabase = createMockSupabase({ authUser: { id: "u1" } })
+    const res = await PUT(putRequest(URL, { push_enabled: "yes" }))
+    expect(res.status).toBe(400)
   })
 })

@@ -12,6 +12,7 @@ const h = vi.hoisted(() => ({
   analysis: vi.fn(),
   receivingGet: vi.fn(),
   inserts: [] as unknown[],
+  sendPush: vi.fn(async () => ({ sent: 1, removed: 0 })),
 }))
 
 vi.mock("resend", () => ({
@@ -32,6 +33,12 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/subscription", () => ({ getUserPlan: vi.fn(async () => h.plan) }))
 vi.mock("@/lib/action-extraction", () => ({ analyzeInteraction: h.analysis }))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+vi.mock("@/lib/push/send", () => ({ sendPushToUser: h.sendPush }))
+// after() needs a Next.js request scope; run the callback inline instead.
+vi.mock("next/server", async () => {
+  const actual = await vi.importActual<typeof import("next/server")>("next/server")
+  return { ...actual, after: (fn: () => unknown) => { void fn() } }
+})
 
 import { POST } from "@/app/api/webhooks/resend/route"
 
@@ -177,5 +184,11 @@ describe("POST /api/webhooks/resend", () => {
     })])
     expect(h.client!.from).not.toHaveBeenCalledWith("contacts")
     expect(h.client!.from).not.toHaveBeenCalledWith("commitments")
+    // The phone hears about it, deep-linked to the new review.
+    expect(h.sendPush).toHaveBeenCalledWith(h.client, "user-1", expect.objectContaining({
+      title: "Forwarded notes ready",
+      body: '"Fwd: Investor meeting" is ready to review',
+      url: "/inbox?review=review-1",
+    }))
   })
 })

@@ -5,6 +5,7 @@ import { createMockSupabase } from "../helpers/mock-supabase"
 const h = vi.hoisted(() => ({
   supabase: null as ReturnType<typeof import("../helpers/mock-supabase").createMockSupabase> | null,
   rateLimitSuccess: true,
+  revokeApple: vi.fn(async () => undefined),
 }))
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -23,6 +24,11 @@ vi.mock("@/lib/rate-limit", () => ({
 }))
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+
+vi.mock("@/lib/apple/sign-in", () => ({
+  isAppleSignInConfigured: vi.fn(() => true),
+  revokeAppleToken: h.revokeApple,
+}))
 
 import { DELETE } from "@/app/api/settings/delete-account/route"
 
@@ -96,5 +102,44 @@ describe("DELETE /api/settings/delete-account", () => {
     })
     const res = await DELETE()
     expect(res.status).toBe(500)
+  })
+})
+
+describe("DELETE /api/settings/delete-account with Sign in with Apple", () => {
+  beforeEach(() => {
+    h.rateLimitSuccess = true
+    h.revokeApple.mockReset()
+    h.revokeApple.mockResolvedValue(undefined)
+  })
+
+  it("revokes the Apple token before the user is deleted (App Review 5.1.1(v))", async () => {
+    h.supabase = createMockSupabase({
+      authUser: { id: "u1" },
+      queryResult: { data: { client_id: "app.savvo", refresh_token: "r.apple" }, error: null },
+    })
+    const res = await DELETE()
+    expect(res.status).toBe(200)
+    expect(h.supabase!.from).toHaveBeenCalledWith("apple_sign_in_tokens")
+    expect(h.revokeApple).toHaveBeenCalledWith("r.apple", "app.savvo")
+    expect(h.revokeApple.mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(h.supabase!.auth.admin.deleteUser).mock.invocationCallOrder[0]
+    )
+  })
+
+  it("still deletes the account when Apple's revoke call fails", async () => {
+    h.revokeApple.mockRejectedValue(new Error("Apple token revoke failed (503)"))
+    h.supabase = createMockSupabase({
+      authUser: { id: "u1" },
+      queryResult: { data: { client_id: "app.savvo", refresh_token: "r.apple" }, error: null },
+    })
+    const res = await DELETE()
+    expect(res.status).toBe(200)
+    expect(h.supabase!.auth.admin.deleteUser).toHaveBeenCalledWith("u1")
+  })
+
+  it("skips revocation for accounts without an Apple token", async () => {
+    h.supabase = createMockSupabase({ authUser: { id: "u1" } })
+    await DELETE()
+    expect(h.revokeApple).not.toHaveBeenCalled()
   })
 })

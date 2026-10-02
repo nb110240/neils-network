@@ -1,7 +1,7 @@
 "use client"
 
 /**
- * Native Google sign-in via the system browser.
+ * Native OAuth sign-in (Google, and Apple on Android) via the system browser.
  *
  * Google blocks OAuth inside embedded WebViews ("disallowed_useragent"), so the
  * in-app Capacitor WebView cannot run the normal supabase.auth.signInWithOAuth
@@ -38,7 +38,15 @@ function isCallbackUrl(raw: string): boolean {
   }
 }
 
-export async function signInWithGoogleNative(): Promise<AuthResult> {
+export type NativeOAuthProvider = "google" | "apple"
+
+const PROVIDER_LABEL: Record<NativeOAuthProvider, string> = { google: "Google", apple: "Apple" }
+
+/**
+ * System-browser OAuth for any Supabase provider. Used for Google on iOS and
+ * Android, and for Apple on Android (iOS uses the native Apple sheet).
+ */
+export async function signInWithOAuthNative(provider: NativeOAuthProvider): Promise<AuthResult> {
   if (!isNative()) return { ok: false, error: "not native" }
 
   const supabase = createClient()
@@ -46,11 +54,11 @@ export async function signInWithGoogleNative(): Promise<AuthResult> {
   const { Browser } = await import("@capacitor/browser")
 
   const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
+    provider,
     options: { redirectTo: NATIVE_OAUTH_REDIRECT, skipBrowserRedirect: true },
   })
   if (error || !data?.url) {
-    return { ok: false, error: error?.message ?? "Could not start Google sign-in" }
+    return { ok: false, error: error?.message ?? `Could not start ${PROVIDER_LABEL[provider]} sign-in` }
   }
 
   return new Promise<AuthResult>((resolve) => {
@@ -124,4 +132,8 @@ export async function signInWithGoogleNative(): Promise<AuthResult> {
         })
       })
   })
+}
+
+export function signInWithGoogleNative(): Promise<AuthResult> {
+  return signInWithOAuthNative("google")
 }

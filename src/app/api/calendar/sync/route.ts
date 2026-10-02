@@ -8,6 +8,8 @@ import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 import { analyzeInteraction } from "@/lib/action-extraction"
 import { hashMeetingContent, htmlToPlainText } from "@/lib/meeting-content"
+import { sendPushToUser } from "@/lib/push/send"
+import { calendarReviewsMessage } from "@/lib/push/messages"
 
 // Matches contacts whose last_contact_date is before `date` OR unset.
 // A bare .lt() skips NULL (NULL < x is never true), which left imported
@@ -114,6 +116,10 @@ export async function GET(request: Request) {
             return false
           }
           await supabase.from("integrations").update({ last_sync_error: null }).eq("id", id)
+          // Background sync found meetings worth a review: nudge the phone.
+          // Manual syncs skip this; the person is already in the app.
+          const reviewsMessage = calendarReviewsMessage(result.reviewsCreated ?? 0)
+          if (reviewsMessage) await sendPushToUser(supabase, user_id, reviewsMessage)
           return true
         } catch (err) {
           console.error(`Calendar sync failed for user ${user_id}:`, err)

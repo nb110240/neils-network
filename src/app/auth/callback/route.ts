@@ -1,6 +1,7 @@
 import { track } from "@vercel/analytics/server"
 import { createClient, createServiceClient } from "@/lib/supabase/server"
 import { REFERRAL_COOKIE, isValidReferralCode } from "@/lib/referrals"
+import { appleServicesId } from "@/lib/apple/sign-in"
 import {
   attributionEventProperties,
   attributionFromCookieHeader,
@@ -40,6 +41,21 @@ async function claimReferral(code: string, userId: string) {
   }
 }
 
+async function storeAppleRefreshToken(userId: string, refreshToken: string) {
+  const clientId = appleServicesId()
+  if (!clientId) return
+  try {
+    const service = await createServiceClient()
+    const { error } = await service.from("apple_sign_in_tokens").upsert(
+      { user_id: userId, client_id: clientId, refresh_token: refreshToken, updated_at: new Date().toISOString() },
+      { onConflict: "user_id" }
+    )
+    if (error) console.error("Failed to store Apple token:", error.message)
+  } catch {
+    console.error("Failed to store Apple token")
+  }
+}
+
 function withReferralCookieCleared(response: NextResponse, hadCookie: boolean) {
   if (hadCookie) response.cookies.delete(REFERRAL_COOKIE)
   return response
@@ -67,6 +83,19 @@ export async function GET(request: Request) {
         : null
     if (data?.user && claimCode) {
       await claimReferral(claimCode, data.user.id)
+    }
+
+    // Web Sign in with Apple: keep Apple's refresh token so deleting the
+    // account can revoke it. The login page marks Apple redirects with
+    // ?provider=apple because the session does not say which provider was
+    // used for this sign-in.
+    if (
+      data?.user &&
+      requestUrl.searchParams.get("provider") === "apple" &&
+      data.session?.provider_refresh_token &&
+      ((data.user.app_metadata?.providers as string[] | undefined) ?? []).includes("apple")
+    ) {
+      await storeAppleRefreshToken(data.user.id, data.session.provider_refresh_token)
     }
 
     // Send welcome email for new users (created within last 60 seconds)

@@ -6,6 +6,7 @@ import { Loader2, Crown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/toast"
+import { PushPreference } from "./push-preference"
 
 type DigestFrequency = "daily" | "weekly" | "never"
 
@@ -23,6 +24,7 @@ export function NotificationPreferences() {
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
   const [savedFrequency, setSavedFrequency] = useState<DigestFrequency>("weekly")
+  const [pushEnabled, setPushEnabled] = useState(true)
 
   useEffect(() => {
     async function load() {
@@ -33,6 +35,7 @@ export function NotificationPreferences() {
           setFrequency(data.digest_frequency)
           setSavedFrequency(data.digest_frequency)
           setCanUseDaily(data.can_use_daily)
+          setPushEnabled(data.push_enabled !== false)
         }
       } catch {
         // Use defaults
@@ -85,6 +88,7 @@ export function NotificationPreferences() {
 
   return (
     <div className="space-y-4">
+      <PushPreference initialEnabled={pushEnabled} />
       <div className="space-y-3">
         <Label className="text-sm font-medium">Digest Frequency</Label>
         {FREQUENCY_OPTIONS.map((option) => {

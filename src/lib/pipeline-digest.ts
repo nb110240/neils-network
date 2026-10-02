@@ -115,7 +115,7 @@ export function renderPipelineDigestBody(digest: PipelineDigest, options: { foun
 
 /** Footer for a recipient who isn't a Savvo user: who added them, and a way out. */
 export function renderPipelineDigestFooter(options: { founderName: string; unsubscribeUrl: string }): string {
-  return `You get this because ${escapeHtml(options.founderName)} added you in Savvo. <a href="${escapeHtml(options.unsubscribeUrl)}" style="color:#57534e;text-decoration:underline">Stop these emails</a>`
+  return `<span style="color:#57534e">You get this because ${escapeHtml(options.founderName)} added you in Savvo.</span> <a href="${escapeHtml(options.unsubscribeUrl)}" style="color:#57534e;text-decoration:underline">Stop these emails</a>`
 }
 
 /** Reads what the digest needs. Paged past the API's 1,000-row cap. */

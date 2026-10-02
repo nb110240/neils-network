@@ -8,7 +8,7 @@ const h = vi.hoisted(() => ({
   authUser: { id: "founder", email: "neil@savvo.app" } as { id: string; email: string } | null,
   users: {} as Record<string, { id: string; email: string; user_metadata?: Record<string, unknown> }>,
   plans: {} as Record<string, string>,
-  sendEmail: vi.fn(async (..._args: unknown[]) => {}),
+  sendEmail: vi.fn<(payload: unknown) => Promise<void>>(async () => {}),
   failEmailTo: null as string | null,
 }))
 

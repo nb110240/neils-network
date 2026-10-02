@@ -144,7 +144,9 @@ describe("POST /api/investor-update", () => {
     const prompt = h.structured.mock.calls[0][0].user as string
     expect(prompt).toContain("<user_data>Hit $50k MRR</user_data>")
     expect(prompt).toContain("Detailed")
-    expect(prompt).not.toContain("Chen")
+    for (const identity of ["Sarah", "Chen", "Sequoia", "Marcus", "a16z"]) {
+      expect(prompt).not.toContain(identity)
+    }
   })
 
   it("accepts an empty body with defaults", async () => {
@@ -191,7 +193,7 @@ describe("POST /api/investor-update", () => {
     await POST(postRequest(URL, {}))
     const selects = mock.calls.filter((c) => c.method === "select").map((c) => String(c.args[0]))
     for (const columns of selects) {
-      expect(columns).not.toMatch(/\*|email|phone|raw_note|content|notes/)
+      expect(columns).not.toMatch(/\*|\bname\b|company|email|phone|raw_note|content|notes/)
     }
   })
 })

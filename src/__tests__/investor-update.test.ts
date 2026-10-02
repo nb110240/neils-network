@@ -6,6 +6,7 @@ import {
   buildInvestorUpdateStats,
   cleanDraft,
   type InvestorUpdateSource,
+  type UpdateContactRow,
 } from "@/lib/investor-update"
 
 const NOW = new Date("2026-10-02T12:00:00Z")
@@ -14,14 +15,14 @@ const daysAhead = (n: number) => new Date(NOW.getTime() + n * 86_400_000).toISOS
 
 function source(overrides: Partial<InvestorUpdateSource> = {}): InvestorUpdateSource {
   return {
+    // Extra PII fields simulate a careless `select("*")` upstream.
     contacts: [
-      // Extra PII fields simulate a careless `select("*")` upstream.
-      { id: "c1", name: "Sarah Chen", company: "Sequoia", investor_stage: "first_meeting", email: "sarah@sequoia.com", phone: "+1 415 555 0100", raw_note: "Secret note about cap table" } as never,
+      { id: "c1", name: "Sarah Chen", company: "Sequoia", investor_stage: "first_meeting", email: "sarah@sequoia.com", phone: "+1 415 555 0100", raw_note: "Secret note about cap table" },
       { id: "c2", name: "Marcus Webb", company: "a16z", investor_stage: "committed" },
       { id: "c3", name: "Priya Patel", company: null, investor_stage: "passed" },
       { id: "c4", name: "Advisor Al", company: "Acme", investor_stage: null },
       { id: "c5", name: "Archived Andy", company: "Old Fund", investor_stage: "diligence", archived_at: daysAgo(1) },
-    ],
+    ] as unknown as UpdateContactRow[],
     activities: [
       { contact_id: "c1", type: "meeting", occurred_at: daysAgo(3) },
       { contact_id: "c1", type: "meeting", occurred_at: daysAgo(10) },
@@ -59,7 +60,6 @@ describe("buildInvestorUpdateStats", () => {
     const stats = buildInvestorUpdateStats(source(), 30, NOW)
     expect(stats.meetings.count).toBe(2)
     expect(stats.meetings.investors).toBe(1)
-    expect(stats.meetings.with).toEqual([{ first_name: "Sarah", firm: "Sequoia" }])
   })
 
   it("widens the window when period_days grows", () => {
@@ -85,7 +85,7 @@ describe("buildInvestorUpdateStats", () => {
     expect(stats.intros).toEqual({ in_progress: 1, introduced: 1, meetings_booked: 1 })
   })
 
-  it("never carries emails, phones, raw notes, or last names", () => {
+  it("never carries names, firms, emails, phones, or notes", () => {
     const stats = buildInvestorUpdateStats(source(), 30, NOW)
     const serialized = JSON.stringify(stats)
     const prompt = buildInvestorUpdatePrompt(stats, InvestorUpdateInputSchema.parse({}))
@@ -93,7 +93,10 @@ describe("buildInvestorUpdateStats", () => {
       expect(text).not.toContain("sarah@sequoia.com")
       expect(text).not.toContain("555")
       expect(text).not.toContain("Secret note")
-      expect(text).not.toContain("Chen")
+      expect(text).not.toContain("Sarah")
+      expect(text).not.toContain("Sequoia")
+      expect(text).not.toContain("Marcus")
+      expect(text).not.toContain("a16z")
       expect(text).not.toContain("Archived Andy")
       expect(text).not.toContain("Old Fund")
     }

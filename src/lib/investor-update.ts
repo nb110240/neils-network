@@ -1,7 +1,8 @@
 // ─── Investor update context ───
 // Turns a founder's CRM rows into a compact, PII-free summary for the
-// monthly investor update. Only counts, first names, and firms leave this
-// module: never emails, phone numbers, raw notes, or meeting content.
+// monthly investor update. Only counts leave this module: never names,
+// firms, emails, phone numbers, notes, or meeting content. The model sees
+// counts plus the founder's own words.
 
 import { z } from "zod/v4"
 import { sanitizeForPrompt } from "@/lib/api-utils"
@@ -10,7 +11,6 @@ import { INVESTOR_STAGE_VALUES, investorStageLabel, summarizeStages } from "@/li
 const DAY_MS = 24 * 60 * 60 * 1000
 /** Open commitments due within this window count as "due soon". */
 export const DUE_SOON_DAYS = 14
-const MAX_NAMED_MEETINGS = 8
 
 export const InvestorUpdateInputSchema = z
   .object({
@@ -25,8 +25,6 @@ export type InvestorUpdateInput = z.infer<typeof InvestorUpdateInputSchema>
 
 export interface UpdateContactRow {
   id: string
-  name: string | null
-  company: string | null
   investor_stage: string | null
   archived_at?: string | null
 }
@@ -67,12 +65,7 @@ export interface InvestorUpdateStats {
   period_end: string
   stages: Record<string, number>
   pipeline: { active: number; committed: number; passed: number }
-  meetings: {
-    count: number
-    investors: number
-    /** First name + firm only, capped. Used by the model, never shown as a list of contacts. */
-    with: Array<{ first_name: string; firm: string | null }>
-  }
+  meetings: { count: number; investors: number }
   commitments: { completed: number; open_due_soon: number }
   intros: { in_progress: number; introduced: number; meetings_booked: number }
 }
@@ -81,11 +74,6 @@ function inWindow(value: string | null | undefined, startMs: number, endMs: numb
   if (!value) return false
   const t = Date.parse(value)
   return Number.isFinite(t) && t >= startMs && t <= endMs
-}
-
-function firstName(name: string | null): string | null {
-  const first = name?.trim().split(/\s+/)[0]
-  return first ? first.slice(0, 40) : null
 }
 
 /**
@@ -120,11 +108,6 @@ export function buildInvestorUpdateStats(
     (a) => a.type === "meeting" && investors.has(a.contact_id) && inWindow(a.occurred_at, startMs, endMs)
   )
   const metIds = [...new Set(meetings.map((m) => m.contact_id))]
-  const named = metIds
-    .map((id) => investors.get(id)!)
-    .map((c) => ({ first_name: firstName(c.name), firm: c.company?.trim().slice(0, 80) || null }))
-    .filter((m): m is { first_name: string; firm: string | null } => m.first_name !== null)
-    .slice(0, MAX_NAMED_MEETINGS)
 
   const seenCommitments = new Set<string>()
   let completed = 0
@@ -153,7 +136,7 @@ export function buildInvestorUpdateStats(
     period_end: now.toISOString(),
     stages,
     pipeline: { active: summary.active, committed: summary.committed, passed: summary.passed },
-    meetings: { count: meetings.length, investors: metIds.length, with: named },
+    meetings: { count: meetings.length, investors: metIds.length },
     commitments: { completed, open_due_soon: openDueSoon },
     intros,
   }
@@ -172,10 +155,6 @@ function plural(n: number, one: string, many = `${one}s`) {
 
 /** Compact structured context for the model. Founder text is sanitized. */
 export function buildInvestorUpdatePrompt(stats: InvestorUpdateStats, input: InvestorUpdateInput): string {
-  const met = stats.meetings.with
-    .map((m) => sanitizeForPrompt(m.firm ? `${m.first_name} (${m.firm})` : m.first_name, 130))
-    .join(", ")
-
   return `PERIOD: last ${stats.period_days} days (${stats.period_start.slice(0, 10)} to ${stats.period_end.slice(0, 10)})
 
 PIPELINE (current counts):
@@ -186,7 +165,6 @@ PIPELINE (current counts):
 
 ACTIVITY THIS PERIOD:
 - Investor meetings: ${stats.meetings.count} across ${plural(stats.meetings.investors, "investor")}
-- Investors met (private context, do not name unless the founder's highlights name them): ${met || "none"}
 - Follow-ups completed: ${stats.commitments.completed}
 - Follow-ups the founder owes in the next ${DUE_SOON_DAYS} days: ${stats.commitments.open_due_soon}
 - Warm intros: ${stats.intros.in_progress} in progress, ${stats.intros.introduced} made, ${stats.intros.meetings_booked} turned into meetings
@@ -198,7 +176,7 @@ TONE: ${input.tone === "detailed" ? "Detailed. 2 to 4 bullets per section, under
 
 Write the update with exactly these section headings on their own lines: TL;DR, Highlights, Fundraising progress, Asks, What's next.
 Use "- " bullets. Plain text only, no markdown bold or headers with #.
-In Fundraising progress use counts only. Mention an investor by name only if the founder's highlights already name them.
+In Fundraising progress use counts only. Name an investor only if the founder's highlights or asks name them.
 If highlights or asks are missing, write a short bracketed placeholder like [Add your top win] instead of inventing facts.`
 }
 

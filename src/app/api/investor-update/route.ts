@@ -51,11 +51,11 @@ export async function POST(request: Request) {
     const since = new Date(now.getTime() - input.period_days * DAY_MS).toISOString()
     const dueSoon = new Date(now.getTime() + DUE_SOON_DAYS * DAY_MS).toISOString()
 
-    // Narrow selects only: no emails, phones, notes, or meeting content.
+    // Narrow selects only: no names, emails, phones, notes, or meeting content.
     const [contactsRes, activitiesRes, completedRes, openRes, introsRes] = await Promise.all([
       supabase
         .from("contacts")
-        .select("id, name, company, investor_stage")
+        .select("id, investor_stage")
         .eq("created_by", user.id)
         .is("archived_at", null)
         .limit(5000),

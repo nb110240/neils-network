@@ -123,7 +123,8 @@ export function SearchBar({ onSearch, isLoading, facets, totalMatches, searchMod
         <Button
           type="submit"
           disabled={isLoading || !query.trim()}
-          className="h-12 px-6 min-w-[80px] bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+          variant="copper"
+          className="h-12 px-6 min-w-[80px]"
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />

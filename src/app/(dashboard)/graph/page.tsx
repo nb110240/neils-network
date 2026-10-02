@@ -315,7 +315,7 @@ export default function GraphPage() {
             <p className="text-muted-foreground text-center max-w-sm mb-6">
               The relationship graph visualizes connections between your contacts based on shared tags, events, and companies. Upgrade to Pro to unlock it.
             </p>
-            <Button asChild className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0">
+            <Button variant="copper" asChild>
               <Link href="/pricing">
                 <Crown className="mr-2 h-4 w-4" />
                 Upgrade to Pro
@@ -353,7 +353,8 @@ export default function GraphPage() {
               Add contacts and tag them to visualize your network. Tags create connections between people, so the graph gets richer as you add more tags.
             </p>
             <Button
-              className="mt-6 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 shadow-md border-0"
+              variant="copper"
+              className="mt-6 shadow-md"
               asChild
             >
               <Link href="/add">Add Your First Contact</Link>

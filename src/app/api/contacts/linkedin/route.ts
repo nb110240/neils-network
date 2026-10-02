@@ -1,9 +1,10 @@
+import { revalidatePath } from "next/cache"
 import { NextResponse } from "next/server"
 import { authenticateRequest, authFailed, badRequestResponse, forbiddenResponse, errorResponse } from "@/lib/api-utils"
 import { checkContactLimit, getUserPlan } from "@/lib/subscription"
 import { generateEmbedding, buildContactEmbeddingText } from "@/lib/openai"
 import { findDuplicates, findStrongMatch } from "@/lib/dedup"
-import { nameFromLinkedInSlug } from "@/lib/linkedin"
+import { nameFromLinkedInSlug, normalizeLinkedInProfileUrl } from "@/lib/linkedin"
 
 export async function POST(request: Request) {
   try {
@@ -28,34 +29,29 @@ export async function POST(request: Request) {
       return badRequestResponse("LinkedIn URL is required")
     }
 
-    // Validate it's actually a LinkedIn URL (strip tracking params first)
-    let cleanUrl = url.trim()
-    try {
-      const parsed = new URL(cleanUrl)
-      if (!parsed.hostname.match(/^(www\.)?linkedin\.com$/i)) {
-        return badRequestResponse("Please enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/johndoe)")
-      }
-      // Strip query params and hash — keep only the path
-      cleanUrl = `${parsed.origin}${parsed.pathname}`.replace(/\/+$/, "")
-    } catch {
+    // Accepts country subdomains (uk.linkedin.com), the mobile host, missing
+    // scheme and tracking params; stores the canonical www URL.
+    const profile = normalizeLinkedInProfileUrl(url)
+    if (!profile) {
       return badRequestResponse("Please enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/johndoe)")
     }
+    const cleanUrl = profile.url
+    const slug = profile.slug
 
-    // Slugs for accented names are percent-encoded (/in/jos%C3%A9-garc%C3%ADa).
-    const linkedinRegex = /^https?:\/\/(www\.)?linkedin\.com\/in\/(?:[\w-]|%[0-9a-f]{2})+$/i
-    if (!linkedinRegex.test(cleanUrl)) {
-      return badRequestResponse("Please enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/johndoe)")
-    }
-
-    // Check for duplicate by LinkedIn URL (only among active contacts)
+    // Check for duplicate by LinkedIn slug (only among active contacts).
+    // Matches any stored host variant (linkedin.com, www., uk.) and is
+    // anchored at the end so /in/john does not match /in/johnsmith.
+    // limit(1).maybeSingle(): .single() errored when two rows matched, and
+    // the error was read as "no duplicate".
     const { data: existing } = await supabase
       .from("contacts")
       .select("id")
       .eq("created_by", user.id)
       .is("archived_at", null)
       // Escape LIKE wildcards: slugs can contain "_" and "%XX" escapes.
-      .ilike("website", `%${cleanUrl.replace(/\/$/, "").replace(/[\\%_]/g, "\\$&")}%`)
-      .single()
+      .ilike("website", `%linkedin.com/in/${slug.replace(/[\\%_]/g, "\\$&")}`)
+      .limit(1)
+      .maybeSingle()
 
     if (existing) {
       return NextResponse.json(
@@ -65,8 +61,7 @@ export async function POST(request: Request) {
     }
 
     // Extract name from LinkedIn URL slug
-    const slug = cleanUrl.replace(/\/$/, "").split("/").pop() || ""
-    const extractedName = nameFromLinkedInSlug(slug)
+    const extractedName = nameFromLinkedInSlug(profile.rawSlug)
 
     // If user provided additional context, use AI to extract more info
     let name = extractedName || null
@@ -147,6 +142,10 @@ export async function POST(request: Request) {
       console.error("LinkedIn contact insert error:", error)
       return errorResponse("Failed to create contact")
     }
+
+    revalidatePath("/dashboard")
+    revalidatePath("/reach-out")
+    revalidatePath("/contacts")
 
     return NextResponse.json({
       success: true,

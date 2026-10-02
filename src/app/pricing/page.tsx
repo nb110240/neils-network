@@ -227,7 +227,8 @@ export default function PricingPage() {
                 ))}
               </ul>
               <Button
-                className="w-full bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 shadow-md border-0"
+                variant="copper"
+                className="w-full shadow-md"
                 onClick={handleUpgrade}
                 disabled={isLoading}
               >

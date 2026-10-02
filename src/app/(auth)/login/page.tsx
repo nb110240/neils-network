@@ -1,6 +1,7 @@
 "use client"
 
 import { Suspense, useState, useRef, useEffect } from "react"
+import { clearOfflineData } from "@/lib/clear-offline-cache"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -323,7 +324,8 @@ function LoginPageInner() {
               </div>
               <Button
                 type="submit"
-                className="w-full h-11 text-base font-medium bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 transition-all shadow-md hover:shadow-lg border-0"
+                variant="copper"
+                className="w-full h-11 text-base font-medium transition-all shadow-md hover:shadow-lg"
                 disabled={isLoading || mfaCode.length !== 6}
               >
                 {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
@@ -336,6 +338,7 @@ function LoginPageInner() {
               type="button"
               onClick={async () => {
                 await supabase.auth.signOut()
+                await clearOfflineData()
                 setMfaFactorId(null)
                 setMfaCode("")
               }}
@@ -533,7 +536,8 @@ function LoginPageInner() {
                 )}
                 <Button
                   type="submit"
-                  className="w-full h-11 text-base font-medium bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 transition-all shadow-md hover:shadow-lg border-0"
+                  variant="copper"
+                  className="w-full h-11 text-base font-medium transition-all shadow-md hover:shadow-lg"
                   disabled={isLoading || (!!TURNSTILE_SITE_KEY && !captchaToken)}
                 >
                   {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}

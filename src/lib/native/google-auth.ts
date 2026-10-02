@@ -18,6 +18,7 @@
  */
 
 import { createClient } from "@/lib/supabase/client"
+import { claimReferralOnce } from "@/lib/referral-claim"
 import { isNative } from "./capacitor"
 
 const NATIVE_OAUTH_REDIRECT = "app.savvo://auth/callback"
@@ -82,7 +83,12 @@ export async function signInWithGoogleNative(): Promise<AuthResult> {
             settle({ ok: false, error: "No authorization code returned" })
             return
           }
-          const { error: exErr } = await supabase.auth.exchangeCodeForSession(code)
+          const { data: session, error: exErr } = await supabase.auth.exchangeCodeForSession(code)
+          if (!exErr) {
+            // This flow never reaches /auth/callback, where web sign-ins
+            // claim referrals. Fire and forget: it must not delay sign-in.
+            void claimReferralOnce(session?.user)
+          }
           settle(exErr ? { ok: false, error: exErr.message } : { ok: true })
         } catch (e) {
           settle({ ok: false, error: e instanceof Error ? e.message : "Sign-in failed" })

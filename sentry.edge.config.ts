@@ -1,6 +1,10 @@
 import * as Sentry from "@sentry/nextjs";
+import { sentryRedactionOptions } from "./src/lib/sentry-redact";
 
 Sentry.init({
+  // Strip /i/<token> and /s/<token> share-link credentials from events.
+  ...sentryRedactionOptions,
+
   dsn: process.env.SENTRY_DSN ?? process.env.NEXT_PUBLIC_SENTRY_DSN ?? "",
 
   sendDefaultPii: true,

@@ -27,6 +27,9 @@ export default function AddContactPage() {
   const router = useRouter()
   const { addToast } = useToast()
   const [rawNote, setRawNote] = useState("")
+  // Shown when the API could not find a name in the note (422 needs_name).
+  const [needsName, setNeedsName] = useState(false)
+  const [contactName, setContactName] = useState("")
   const [linkedinUrl, setLinkedinUrl] = useState("")
   const [linkedinNote, setLinkedinNote] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -57,11 +60,24 @@ export default function AddContactPage() {
       const response = await fetch("/api/contacts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ raw_note: rawNote }),
+        body: JSON.stringify({
+          raw_note: rawNote,
+          ...(needsName && contactName.trim() ? { name: contactName.trim() } : {}),
+        }),
       })
 
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}))
+        // No name found in the note (or AI extraction failed). Nothing was
+        // saved; ask for the name instead of creating an unnamed contact.
+        if (response.status === 422 && payload.needs_name) {
+          setNeedsName(true)
+          if (!contactName.trim() && typeof payload.suggested_name === "string") {
+            setContactName(payload.suggested_name)
+          }
+          setIsLoading(false)
+          return
+        }
         // 409 name-mismatch conflict from the auto-merge safety check.
         // Surface the structured message so the user can decide whether
         // to force-create (skip_dedup) or open the matched contact.
@@ -198,6 +214,25 @@ export default function AddContactPage() {
               rows={6}
               className="resize-none text-base leading-relaxed"
             />
+            {needsName && (
+              <div className="space-y-2 rounded-lg border border-stone-200 bg-stone-50 p-4 dark:border-stone-700 dark:bg-stone-800">
+                <label htmlFor="add-contact-name" className="text-sm font-medium text-stone-900 dark:text-stone-100">
+                  Who is this?
+                </label>
+                <p className="text-sm text-stone-700 dark:text-stone-300">
+                  We couldn&apos;t find a name in your note. Add one and we&apos;ll save the rest.
+                </p>
+                <Input
+                  id="add-contact-name"
+                  autoFocus
+                  placeholder="Full name"
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  maxLength={200}
+                  className="bg-white dark:bg-stone-900"
+                />
+              </div>
+            )}
             <div className="flex justify-end gap-3">
               <Button
                 type="button"
@@ -208,8 +243,8 @@ export default function AddContactPage() {
               </Button>
               <Button
                 type="submit"
-                disabled={isLoading || !rawNote.trim()}
-                className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+                disabled={isLoading || !rawNote.trim() || (needsName && !contactName.trim())}
+                variant="copper"
               >
                 {isLoading ? (
                   <>
@@ -321,7 +356,7 @@ export default function AddContactPage() {
               onClick={() => {
                 if (linkedinSuccess) router.push(`/contact/${linkedinSuccess.id}`)
               }}
-              className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+              variant="copper"
             >
               <Edit2 className="mr-2 h-4 w-4" />
               Edit & Add Details
@@ -352,7 +387,7 @@ export default function AddContactPage() {
             </Button>
             <Button
               asChild
-              className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+              variant="copper"
             >
               <Link href="/pricing">
                 <ArrowUpRight className="mr-2 h-4 w-4" />

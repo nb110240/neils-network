@@ -284,7 +284,8 @@ export function Walkthrough({ steps, storageKey, onComplete, delay = 600 }: Walk
               <Button
                 size="sm"
                 onClick={goNext}
-                className="h-7 px-3 text-xs bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+                variant="copper"
+                className="h-7 px-3 text-xs"
               >
                 {step.actionLabel || (currentStep === steps.length - 1 ? "Done" : "Next")}
                 {currentStep < steps.length - 1 && <ArrowRight className="h-3 w-3 ml-1" />}

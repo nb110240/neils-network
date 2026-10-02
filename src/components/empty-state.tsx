@@ -34,7 +34,8 @@ export function EmptyState({
         <p className="text-muted-foreground text-center max-w-sm mt-2">{description}</p>
         {actionLabel && actionHref && (
           <Button
-            className="mt-6 bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 shadow-md border-0"
+            variant="copper"
+            className="mt-6 shadow-md"
             asChild
           >
             <Link href={actionHref}>

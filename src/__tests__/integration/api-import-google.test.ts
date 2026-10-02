@@ -66,6 +66,7 @@ vi.mock("@/lib/openai", () => ({
 }))
 
 import { GET, POST } from "@/app/api/import/google/route"
+import { revalidatePath } from "next/cache"
 
 const URL = "http://localhost/api/import/google"
 
@@ -265,11 +266,16 @@ describe("/api/import/google", () => {
           }),
         }))
       )
+      vi.mocked(revalidatePath).mockClear()
       const res = await POST(postRequest(URL, {}))
       expect(res.status).toBe(200)
       const json = await res.json()
       expect(json.success).toBe(true)
       expect(json.imported).toBe(2)
+      // Regression: imported contacts did not show until the cache expired.
+      expect(revalidatePath).toHaveBeenCalledWith("/dashboard")
+      expect(revalidatePath).toHaveBeenCalledWith("/reach-out")
+      expect(revalidatePath).toHaveBeenCalledWith("/contacts")
     })
   })
 })

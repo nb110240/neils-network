@@ -1,4 +1,5 @@
 import { NextResponse, after } from "next/server"
+import { ilikeAnyFilter } from "@/lib/ilike-filter"
 import { authenticateRequest, authFailed, errorResponse } from "@/lib/api-utils"
 import { parseBody } from "@/lib/request"
 import { z } from "zod/v4"
@@ -34,10 +35,8 @@ export async function POST(request: Request) {
     // ─── Run keyword and vector search in parallel ───
 
     // Keyword search
-    const sanitized = query.replace(/[%_\\,().*]/g, (c) => `\\${c}`)
-    const searchPattern = `%${sanitized}%`
     const searchFields = ["name", "email", "company", "job_title", "how_we_met", "next_steps", "raw_note"]
-    const orFilter = searchFields.map((f) => `${f}.ilike.${searchPattern}`).join(",")
+    const orFilter = ilikeAnyFilter(searchFields, query)
 
     // Fired immediately (the trailing .then() starts execution now) so the
     // keyword query runs concurrently with the semantic-limit check + OpenAI

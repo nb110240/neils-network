@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
+import { clearOfflineData } from "@/lib/clear-offline-cache"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -55,6 +56,7 @@ export function NavHeader() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
+    await clearOfflineData()
     router.push("/")
     router.refresh()
   }

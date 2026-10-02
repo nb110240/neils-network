@@ -35,7 +35,8 @@ export default function ScanPage() {
   function extractLinkedInUrl(text: string): string | null {
     // LinkedIn QR codes can contain various URL formats
     const patterns = [
-      /https?:\/\/(www\.)?linkedin\.com\/in\/[\w-]+\/?/i,
+      // Country (uk.) and mobile (m.) hosts and percent-encoded slugs too.
+      /https?:\/\/(?:(?:[a-z]{2,3}|m)\.)?linkedin\.com\/in\/(?:[\w-]|%[0-9a-f]{2})+\/?/i,
       /https?:\/\/lnkd\.in\/[\w-]+/i,
     ]
     for (const pattern of patterns) {
@@ -264,7 +265,7 @@ export default function ScanPage() {
               </Button>
               <Button
                 onClick={() => handleImport(scannedUrl)}
-                className="bg-gradient-to-r from-[var(--copper)] to-[var(--copper-light)] hover:opacity-90 border-0"
+                variant="copper"
               >
                 Add as Contact
               </Button>

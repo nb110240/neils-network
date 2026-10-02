@@ -24,8 +24,22 @@ vi.mock("@/lib/rate-limit", () => ({
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 
-// Only the mutating export (DELETE) is exercised here.
-import { DELETE } from "@/app/api/events/active/route"
+import { DELETE, GET } from "@/app/api/events/active/route"
+
+describe("GET /api/events/active", () => {
+  it("counts only non-archived contacts for the active event", async () => {
+    h.rateLimitSuccess = true
+    h.supabase = createMockSupabase({
+      authUser: { id: "u1" },
+      queryResult: { data: { id: "ev1", name: "Demo day" }, error: null, count: 3 },
+    })
+    const res = await GET()
+    expect(res.status).toBe(200)
+    const builder = h.supabase.from("contacts")
+    expect(builder.eq).toHaveBeenCalledWith("event_id", "ev1")
+    expect(builder.is).toHaveBeenCalledWith("archived_at", null)
+  })
+})
 
 describe("DELETE /api/events/active", () => {
   beforeEach(() => {

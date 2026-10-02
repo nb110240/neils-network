@@ -45,6 +45,7 @@ vi.mock("@/lib/openai", () => ({
 }))
 
 import { POST } from "@/app/api/contacts/linkedin/route"
+import { revalidatePath } from "next/cache"
 
 const URL = "http://localhost/api/contacts/linkedin"
 const LINKEDIN_URL = "https://linkedin.com/in/johndoe"
@@ -142,15 +143,13 @@ describe("POST /api/contacts/linkedin", () => {
       })
     )
     const qb = h.supabase._queryBuilder
-    // .single() calls: (1) website-dup lookup → null so we proceed,
-    // (2) the final insert → the new contact row.
-    qb.single = vi
-      .fn()
-      .mockResolvedValueOnce({ data: null, error: null })
-      .mockResolvedValue({
-        data: { id: "new-contact", name: "Johndoe", website: LINKEDIN_URL },
-        error: null,
-      })
+    // .maybeSingle(): website-dup lookup → null so we proceed.
+    // .single(): the final insert → the new contact row.
+    qb.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
+    qb.single = vi.fn().mockResolvedValue({
+      data: { id: "new-contact", name: "Johndoe", website: LINKEDIN_URL },
+      error: null,
+    })
     // findDuplicates() (real dedup lib) awaits the builder directly and
     // iterates the result, so `then` must resolve to an array.
     Object.defineProperty(qb, "then", {
@@ -158,11 +157,16 @@ describe("POST /api/contacts/linkedin", () => {
         Promise.resolve({ data: [], error: null }).then(resolve),
       configurable: true,
     })
+    vi.mocked(revalidatePath).mockClear()
     const res = await POST(postRequest(URL, { url: LINKEDIN_URL }))
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.success).toBe(true)
     expect(json.contact.id).toBe("new-contact")
+    // Regression: LinkedIn imports did not refresh cached contact views.
+    expect(revalidatePath).toHaveBeenCalledWith("/dashboard")
+    expect(revalidatePath).toHaveBeenCalledWith("/reach-out")
+    expect(revalidatePath).toHaveBeenCalledWith("/contacts")
   })
 
   it.each([
@@ -170,21 +174,19 @@ describe("POST /api/contacts/linkedin", () => {
     [
       "https://www.linkedin.com/in/priya-raman-4b7a1b2c3?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=ios_app",
       "Priya Raman",
-      "%https://www.linkedin.com/in/priya-raman-4b7a1b2c3%",
+      "%linkedin.com/in/priya-raman-4b7a1b2c3",
     ],
     // Accented names arrive percent-encoded and used to be rejected outright.
     [
       "https://www.linkedin.com/in/jos%C3%A9-garc%C3%ADa-12ab34cd/",
       "José García",
-      "%https://www.linkedin.com/in/jos\\%C3\\%A9-garc\\%C3\\%ADa-12ab34cd%",
+      "%linkedin.com/in/jos\\%C3\\%A9-garc\\%C3\\%ADa-12ab34cd",
     ],
   ])("derives a clean name from a real share URL: %s", async (url, expectedName, expectedPattern) => {
     h.supabase = withIlike(createMockSupabase({ authUser: { id: "u1" } }))
     const qb = h.supabase._queryBuilder
-    qb.single = vi
-      .fn()
-      .mockResolvedValueOnce({ data: null, error: null })
-      .mockResolvedValue({ data: { id: "new-contact" }, error: null })
+    qb.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
+    qb.single = vi.fn().mockResolvedValue({ data: { id: "new-contact" }, error: null })
     Object.defineProperty(qb, "then", {
       value: (resolve: (v: { data: unknown[]; error: null }) => void) =>
         Promise.resolve({ data: [], error: null }).then(resolve),
@@ -194,6 +196,59 @@ describe("POST /api/contacts/linkedin", () => {
     expect(res.status).toBe(200)
     expect(qb.insert).toHaveBeenCalledWith(expect.objectContaining({ name: expectedName }))
     expect((qb as unknown as { ilike: ReturnType<typeof vi.fn> }).ilike).toHaveBeenCalledWith("website", expectedPattern)
+  })
+
+  function happyPathClient() {
+    h.supabase = withIlike(createMockSupabase({ authUser: { id: "u1" } }))
+    const qb = h.supabase._queryBuilder
+    qb.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
+    qb.single = vi.fn().mockResolvedValue({ data: { id: "new-contact" }, error: null })
+    Object.defineProperty(qb, "then", {
+      value: (resolve: (v: { data: unknown[]; error: null }) => void) =>
+        Promise.resolve({ data: [], error: null }).then(resolve),
+      configurable: true,
+    })
+    return qb
+  }
+
+  it.each([
+    // Regression: country subdomains were rejected outright.
+    ["https://uk.linkedin.com/in/oliver-bennett-9a8b7c6d", "Oliver Bennett", "oliver-bennett-9a8b7c6d"],
+    ["https://de.linkedin.com/in/lena-schmidt/?originalSubdomain=de", "Lena Schmidt", "lena-schmidt"],
+    ["https://m.linkedin.com/in/sam-lee", "Sam Lee", "sam-lee"],
+    ["linkedin.com/in/JaneDoe/", "JaneDoe", "janedoe"],
+    ["www.linkedin.com/in/priya-raman-4b7a1b2c3?utm_source=share&utm_medium=member_desktop", "Priya Raman", "priya-raman-4b7a1b2c3"],
+  ])("accepts %s and stores the canonical www URL", async (url, expectedName, slug) => {
+    const qb = happyPathClient()
+    const res = await POST(postRequest(URL, { url }))
+    expect(res.status).toBe(200)
+    expect(qb.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ name: expectedName, website: `https://www.linkedin.com/in/${slug}` })
+    )
+  })
+
+  it.each([
+    "https://linkedin.com.evil.com/in/jane",
+    "https://evil-linkedin.com/in/jane",
+    "https://www.linkedin.com/company/acme",
+    "https://www.linkedin.com/in/",
+    "javascript://linkedin.com/in/jane",
+  ])("rejects %s", async (url) => {
+    happyPathClient()
+    const res = await POST(postRequest(URL, { url }))
+    expect(res.status).toBe(400)
+  })
+
+  it("returns 409 instead of a duplicate when two contacts already share the URL", async () => {
+    // Regression: .single() errors when two rows match, and the route read
+    // the error as "no duplicate" and created a third.
+    const qb = happyPathClient()
+    qb.maybeSingle = vi.fn().mockResolvedValue({ data: { id: "first-match" }, error: null })
+    const res = await POST(postRequest(URL, { url: "https://uk.linkedin.com/in/oliver-bennett" }))
+    expect(res.status).toBe(409)
+    expect((await res.json()).contactId).toBe("first-match")
+    expect(qb.limit).toHaveBeenCalledWith(1)
+    expect(qb.insert).not.toHaveBeenCalled()
   })
 
   it("returns 500 when the request body is invalid JSON", async () => {

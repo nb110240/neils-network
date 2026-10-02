@@ -27,6 +27,7 @@ export async function GET() {
       .select("*", { count: "exact", head: true })
       .eq("created_by", user.id)
       .eq("event_id", event.id)
+      .is("archived_at", null)
 
     return NextResponse.json({
       event: {

@@ -1,6 +1,19 @@
 import * as Sentry from "@sentry/nextjs";
+import {
+  isShareTokenPath,
+  redactSentryPayload,
+  sentryRedactionOptions,
+} from "./src/lib/sentry-redact";
+
+// Replay snapshots record location.href, which beforeAddRecordingEvent cannot
+// reach. Never start replay on a share page, where the URL is the credential.
+const onSharePage =
+  typeof window !== "undefined" && isShareTokenPath(window.location.pathname);
 
 Sentry.init({
+  // Strip /i/<token> and /s/<token> share-link credentials from events.
+  ...sentryRedactionOptions,
+
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN ?? "",
 
   sendDefaultPii: true,
@@ -14,9 +27,14 @@ Sentry.init({
 
   enableLogs: true,
 
-  integrations: [
-    Sentry.replayIntegration(),
-  ],
+  integrations: onSharePage
+    ? []
+    : [
+        Sentry.replayIntegration({
+          // Navigation/fetch frames carry URLs; redact share tokens.
+          beforeAddRecordingEvent: (event) => redactSentryPayload(event),
+        }),
+      ],
 
   // Filter out noisy browser errors
   ignoreErrors: [

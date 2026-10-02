@@ -1,3 +1,4 @@
+import { ReferralClaim } from "@/components/referral-claim"
 import { NavHeader } from "@/components/nav-header"
 import { MobileFab } from "@/components/mobile-fab"
 import { OfflineIndicator } from "@/components/offline-indicator"
@@ -19,6 +20,7 @@ export default function DashboardLayout({
         {children}
       </main>
       <MobileFab />
+      <ReferralClaim />
     </div>
   )
 }

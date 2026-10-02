@@ -25,10 +25,23 @@ function loadServiceWorker() {
 
   function dispatchFetch(url: string) {
     const respondWith = vi.fn()
-    listeners.fetch({ request: new Request(url), respondWith })
-    return respondWith
+    const waitUntil = vi.fn()
+    listeners.fetch({ request: new Request(url), respondWith, waitUntil })
+    return Object.assign(respondWith, { waitUntil })
   }
-  return { dispatchFetch, cachePut, fetchMock, caches }
+  function dispatchMessage(data: unknown) {
+    const waitUntil = vi.fn()
+    listeners.message({ data, waitUntil })
+    return waitUntil
+  }
+  return { dispatchFetch, dispatchMessage, cachePut, fetchMock, caches }
+}
+
+function redirectedTo(url: string): Response {
+  const response = new Response("<html>login</html>", { status: 200 })
+  Object.defineProperty(response, "redirected", { value: true })
+  Object.defineProperty(response, "url", { value: url })
+  return response
 }
 
 describe("service worker caching", () => {
@@ -58,5 +71,79 @@ describe("service worker caching", () => {
     const response = await respondWith.mock.calls[0][0]
     expect(response).toBeInstanceOf(Response)
     expect(response.type).toBe("error")
+  })
+})
+
+describe("service worker sign-out hygiene", () => {
+  // Regression: cached /dashboard and /contacts outlived sign-out, so on a
+  // shared device the offline fallback could show the previous user's data.
+  let sw: ReturnType<typeof loadServiceWorker>
+  beforeEach(() => {
+    sw = loadServiceWorker()
+    sw.caches.keys.mockResolvedValue(["savvo-v4", "savvo-v3"] as never)
+  })
+
+  it("deletes every cache when the page asks on sign-out", async () => {
+    const waitUntil = sw.dispatchMessage({ type: "CLEAR_CACHES" })
+    await waitUntil.mock.calls[0][0]
+    expect(sw.caches.delete).toHaveBeenCalledWith("savvo-v4")
+    expect(sw.caches.delete).toHaveBeenCalledWith("savvo-v3")
+  })
+
+  it("clears caches and does not cache when a protected page redirects to /login", async () => {
+    sw.fetchMock.mockResolvedValueOnce(redirectedTo("https://savvo.app/login"))
+    const respondWith = sw.dispatchFetch("https://savvo.app/dashboard")
+    await respondWith.mock.calls[0][0]
+    await respondWith.waitUntil.mock.calls[0][0]
+    expect(sw.caches.delete).toHaveBeenCalledWith("savvo-v4")
+    expect(sw.cachePut).not.toHaveBeenCalled()
+  })
+
+  it("still caches a normal signed-in page", async () => {
+    const respondWith = sw.dispatchFetch("https://savvo.app/contacts")
+    await respondWith.mock.calls[0][0]
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(sw.cachePut).toHaveBeenCalledOnce()
+    expect(sw.caches.delete).not.toHaveBeenCalled()
+  })
+})
+
+describe("clearOfflineData", () => {
+  it("clears Cache Storage, the offline queue, and tells the worker", async () => {
+    const removeItem = vi.fn()
+    const postMessage = vi.fn()
+    const del = vi.fn(async () => true)
+    vi.stubGlobal("localStorage", { removeItem })
+    vi.stubGlobal("navigator", { serviceWorker: { controller: { postMessage } } })
+    vi.stubGlobal("caches", { keys: vi.fn(async () => ["savvo-v4"]), delete: del })
+    const { clearOfflineData } = await import("@/lib/clear-offline-cache")
+    await clearOfflineData()
+    expect(removeItem).toHaveBeenCalledWith("savvo-offline-queue")
+    expect(postMessage).toHaveBeenCalledWith({ type: "CLEAR_CACHES" })
+    expect(del).toHaveBeenCalledWith("savvo-v4")
+    vi.unstubAllGlobals()
+  })
+
+  it("never throws when storage and Cache Storage are unavailable", async () => {
+    vi.stubGlobal("localStorage", { removeItem: () => { throw new Error("blocked") } })
+    vi.stubGlobal("navigator", {})
+    vi.stubGlobal("caches", { keys: async () => { throw new Error("insecure") } })
+    const { clearOfflineData } = await import("@/lib/clear-offline-cache")
+    await expect(clearOfflineData()).resolves.toBeUndefined()
+    vi.unstubAllGlobals()
+  })
+
+  it("runs on every client sign-out path", () => {
+    for (const file of [
+      "src/components/nav-header.tsx",
+      "src/components/idle-logout.tsx",
+      "src/app/(dashboard)/settings/page.tsx",
+      "src/app/(auth)/login/page.tsx",
+    ]) {
+      const source = readFileSync(join(process.cwd(), file), "utf8")
+      const signOuts = source.match(/auth\.signOut\(\)/g)?.length ?? 0
+      const clears = source.match(/clearOfflineData\(\)/g)?.length ?? 0
+      expect({ file, clears }).toEqual({ file, clears: signOuts })
+    }
   })
 })

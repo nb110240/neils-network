@@ -5,7 +5,7 @@ const h = vi.hoisted(() => ({
   supabase: null as unknown,
   sendDigestEmail: vi.fn(async () => undefined),
   sendNewUserNudgeEmail: vi.fn(async () => undefined),
-  sendActivationEmail: vi.fn(async (..._args: unknown[]) => undefined),
+  sendActivationEmail: vi.fn<(...args: unknown[]) => Promise<undefined>>(async () => undefined),
 }))
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -94,7 +94,7 @@ function digestSupabase(opts: {
       Promise.resolve({ data: resolveData(), error: null }).then(resolve)
     return builder
   })
-  const updateUserById = vi.fn(async (..._args: unknown[]) => ({ data: {}, error: null }))
+  const updateUserById = vi.fn<(...args: unknown[]) => Promise<{ data: object; error: null }>>(async () => ({ data: {}, error: null }))
   return { from, auth: { admin: { listUsers, updateUserById } } }
 }
 

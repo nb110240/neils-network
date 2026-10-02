@@ -133,11 +133,17 @@ export function releaseSyncLock(token: string, storage: Pick<Storage, "getItem" 
 
 /**
  * Runs `sync` only if no other tab is syncing, holding the lock until it
- * settles. Resolves false when another tab holds the lock; its result
- * reaches this tab too.
+ * settles. Resolves false when another tab holds the lock (its result
+ * reaches this tab too), or when no exclusive coordination exists.
+ *
+ * `viaWorker`: the sync goes through the service worker, which runs one sync
+ * at a time for every tab. Without Web Locks, the localStorage lock (read
+ * then write, so not atomic) is only trusted on top of that guard; a direct
+ * page sync waits for a browser or page that can coordinate.
  */
 export async function withSyncLock(
   sync: () => Promise<void>,
+  viaWorker: boolean,
   locks: LockManagerLike | undefined = typeof navigator !== "undefined"
     ? (navigator as unknown as { locks?: LockManagerLike }).locks
     : undefined,
@@ -150,6 +156,7 @@ export async function withSyncLock(
       return true
     })
   }
+  if (!viaWorker) return false
   const store = storage ?? localStorage
   const token = tryAcquireSyncLock(Date.now(), store)
   if (!token) return false

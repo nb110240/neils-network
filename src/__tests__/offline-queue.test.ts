@@ -3,6 +3,7 @@ import fs from "node:fs"
 import path from "node:path"
 import {
   OFFLINE_QUEUE_KEY,
+  SYNC_LOCK_KEY,
   SYNC_LOCK_TTL_MS,
   enqueue,
   isOfflineQueuedResponse,
@@ -123,23 +124,37 @@ describe("offline contact queue", () => {
     }
     let finish!: () => void
     const sends: string[] = []
-    const first = withSyncLock(() => new Promise<void>((resolve) => { sends.push("tab-1"); finish = resolve }), locks)
-    const second = await withSyncLock(async () => { sends.push("tab-2") }, locks)
+    const first = withSyncLock(() => new Promise<void>((resolve) => { sends.push("tab-1"); finish = resolve }), false, locks)
+    const second = await withSyncLock(async () => { sends.push("tab-2") }, false, locks)
     expect(second).toBe(false)
     finish()
     expect(await first).toBe(true)
     expect(sends).toEqual(["tab-1"])
     // Free again once the first tab finished.
-    expect(await withSyncLock(async () => { sends.push("tab-3") }, locks)).toBe(true)
+    expect(await withSyncLock(async () => { sends.push("tab-3") }, false, locks)).toBe(true)
   })
 
-  it("falls back to the storage lock without Web Locks", async () => {
+  it("falls back to the storage lock without Web Locks, behind the worker's guard", async () => {
     const storage = memoryStorage()
     let finish!: () => void
-    const first = withSyncLock(() => new Promise<void>((resolve) => { finish = resolve }), undefined, storage)
-    expect(await withSyncLock(async () => {}, undefined, storage)).toBe(false)
+    const first = withSyncLock(() => new Promise<void>((resolve) => { finish = resolve }), true, undefined, storage)
+    expect(await withSyncLock(async () => {}, true, undefined, storage)).toBe(false)
     finish()
     expect(await first).toBe(true)
-    expect(await withSyncLock(async () => {}, undefined, storage)).toBe(true)
+    expect(await withSyncLock(async () => {}, true, undefined, storage)).toBe(true)
+  })
+
+  it("never syncs directly from two tabs without Web Locks or a service worker", async () => {
+    // Both tabs could pass the read-then-write storage lock at once, and no
+    // worker serializes their POSTs: neither sends until one can coordinate.
+    const storage = memoryStorage()
+    const sends: string[] = []
+    const [tabA, tabB] = await Promise.all([
+      withSyncLock(async () => { sends.push("tab-a") }, false, undefined, storage),
+      withSyncLock(async () => { sends.push("tab-b") }, false, undefined, storage),
+    ])
+    expect([tabA, tabB]).toEqual([false, false])
+    expect(sends).toEqual([])
+    expect(storage.getItem(SYNC_LOCK_KEY)).toBeNull()
   })
 })

@@ -21,7 +21,15 @@ type SendPayload = Parameters<Resend["emails"]["send"]>[0]
 export async function sendEmail(payload: SendPayload): Promise<void> {
   const result = await getResend().emails.send(payload)
   if (result?.error) {
-    throw new Error(`Resend send failed: ${result.error.message}`)
+    throw new EmailSendError(`Resend send failed: ${result.error.message}`, result.error.name ?? null)
+  }
+}
+
+/** A rejected send; `code` is Resend's error name, e.g. "rate_limit_exceeded". */
+export class EmailSendError extends Error {
+  constructor(message: string, readonly code: string | null) {
+    super(message)
+    this.name = "EmailSendError"
   }
 }
 

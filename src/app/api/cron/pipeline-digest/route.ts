@@ -6,6 +6,7 @@ import { log } from "@/lib/logger"
 import { getUserPlan } from "@/lib/subscription"
 import { fetchAllRows } from "@/lib/fetch-all"
 import { buildPipelineDigest, loadPipelineData, sendPipelineDigestEmail } from "@/lib/pipeline-digest"
+import { EmailSendError } from "@/lib/email"
 
 // Monday morning: each founder's co-founder or advisor gets the state of
 // the raise (see src/lib/pipeline-digest.ts for what is and isn't shared).
@@ -16,6 +17,27 @@ const ROUTE = "/api/cron/pipeline-digest"
 const CONCURRENCY = 5
 /** A retried or doubled cron run must not email anyone twice in a week. */
 const RESEND_GUARD_MS = 6 * 24 * 60 * 60 * 1000
+/** Space sends ~5/s, under Resend's default 10 requests/second. */
+const MIN_SEND_GAP_MS = 200
+/** Backoff before each retry of a send Resend rate-limited. */
+const RATE_LIMIT_BACKOFF_MS = [1_000, 2_000, 4_000]
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/** One shared slot clock: concurrent users still send one at a time, spaced. */
+function createPacer(gapMs: number) {
+  let nextSlot = 0
+  return async () => {
+    const now = Date.now()
+    const at = Math.max(now, nextSlot)
+    nextSlot = at + gapMs
+    if (at > now) await sleep(at - now)
+  }
+}
+
+function isRateLimited(error: unknown): boolean {
+  return error instanceof EmailSendError && error.code === "rate_limit_exceeded"
+}
 
 type Recipient = { id: string; user_id: string; email: string; unsubscribe_token: string; last_sent_at: string | null }
 
@@ -35,6 +57,7 @@ export async function GET(request: Request) {
   try {
     const service = await createServiceClient()
     const now = new Date()
+    const pace = createPacer(MIN_SEND_GAP_MS)
     const { data: recipients, error } = await fetchAllRows<Recipient>((from, to) =>
       service
         .from("pipeline_digest_recipients")
@@ -76,21 +99,59 @@ export async function GET(request: Request) {
             return
           }
           for (const recipient of list) {
+            // Claim the week's send before sending, as a compare-and-swap on
+            // the last_sent_at we listed: a recipient another run already
+            // emailed, or who just unsubscribed, is skipped, and a failed
+            // record can never cause a second email.
+            const claimedAt = new Date().toISOString()
+            const claim = service
+              .from("pipeline_digest_recipients")
+              .update({ last_sent_at: claimedAt })
+              .eq("id", recipient.id)
+              .is("unsubscribed_at", null)
+            const { data: claimed, error: claimError } = await (recipient.last_sent_at
+              ? claim.eq("last_sent_at", recipient.last_sent_at)
+              : claim.is("last_sent_at", null)
+            ).select("id")
+            if (claimError) {
+              failed++
+              log("warn", "pipeline digest claim failed", { action: "cron.pipeline_digest", route: ROUTE, userId, error: claimError.message })
+              continue
+            }
+            if (!claimed || claimed.length === 0) {
+              skipped++
+              continue
+            }
             try {
-              await sendPipelineDigestEmail({
-                to: recipient.email,
-                unsubscribeToken: recipient.unsubscribe_token,
-                digest,
-                founderEmail: user.email,
-              })
-              await service
-                .from("pipeline_digest_recipients")
-                .update({ last_sent_at: new Date().toISOString() })
-                .eq("id", recipient.id)
+              for (let attempt = 0; ; attempt++) {
+                await pace()
+                try {
+                  await sendPipelineDigestEmail({
+                    to: recipient.email,
+                    unsubscribeToken: recipient.unsubscribe_token,
+                    digest,
+                    founderEmail: user.email,
+                  })
+                  break
+                } catch (err) {
+                  if (!isRateLimited(err) || attempt >= RATE_LIMIT_BACKOFF_MS.length) throw err
+                  await sleep(RATE_LIMIT_BACKOFF_MS[attempt])
+                }
+              }
               sent++
             } catch (err) {
               failed++
               log("warn", "pipeline digest send failed", { action: "cron.pipeline_digest", route: ROUTE, userId, error: String(err) })
+              // Release the claim so next week's run (or a re-run) retries.
+              // If this fails too, they miss one week: never a duplicate.
+              const { error: releaseError } = await service
+                .from("pipeline_digest_recipients")
+                .update({ last_sent_at: recipient.last_sent_at })
+                .eq("id", recipient.id)
+                .eq("last_sent_at", claimedAt)
+              if (releaseError) {
+                log("error", "pipeline digest claim release failed", { action: "cron.pipeline_digest", route: ROUTE, userId, error: releaseError.message })
+              }
             }
           }
         } catch (err) {

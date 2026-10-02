@@ -10,6 +10,8 @@ const h = vi.hoisted(() => ({
   plans: {} as Record<string, string>,
   sendEmail: vi.fn<(payload: unknown) => Promise<void>>(async () => {}),
   failEmailTo: null as string | null,
+  rateLimitOnce: null as string | null,
+  failClaim: false,
 }))
 
 // In-memory table with the filters these routes use.
@@ -30,6 +32,9 @@ function table(name: string) {
       return { data: project([row]), error: null }
     }
     const matched = rows().filter((r) => filters.every((f) => f(r)))
+    if (op === "update" && h.failClaim && name === "pipeline_digest_recipients" && payload && "last_sent_at" in payload) {
+      return { data: null, error: { message: "db unavailable" } }
+    }
     if (op === "update") matched.forEach((r) => Object.assign(r, payload))
     if (op === "delete") h.tables[name] = rows().filter((r) => !matched.includes(r))
     const data = range ? matched.slice(range[0], range[1] + 1) : matched
@@ -76,6 +81,10 @@ vi.mock("@/lib/email", async (importOriginal) => {
     ...actual,
     sendEmail: vi.fn(async (payload: { to: string }) => {
       if (payload.to === h.failEmailTo) throw new Error("Resend send failed")
+      if (payload.to === h.rateLimitOnce) {
+        h.rateLimitOnce = null
+        throw new actual.EmailSendError("Resend send failed: Too many requests", "rate_limit_exceeded")
+      }
       return h.sendEmail(payload)
     }),
   }
@@ -99,6 +108,8 @@ beforeEach(() => {
   h.plans = {}
   h.sendEmail.mockClear()
   h.failEmailTo = null
+  h.rateLimitOnce = null
+  h.failClaim = false
   process.env.CRON_SECRET = "test-cron-secret"
   process.env.NEXT_PUBLIC_APP_URL = "https://savvo.app"
 })
@@ -257,4 +268,24 @@ describe("Monday cron", () => {
     expect(body).toMatchObject({ sent: 1, failed: 1 })
     expect(h.tables.pipeline_digest_recipients.find((r) => r.email === "bounce@x.com")?.last_sent_at).toBeNull()
   })
+
+  it("retries a send Resend rate-limited, then counts it once", async () => {
+    h.tables.contacts = investors()
+    h.tables.pipeline_digest_recipients = [recipient({ email: "busy@x.com" })]
+    h.rateLimitOnce = "busy@x.com"
+    const body = await (await cron()).json()
+    expect(body).toMatchObject({ sent: 1, failed: 0 })
+    expect(h.sendEmail).toHaveBeenCalledTimes(1)
+    expect(h.tables.pipeline_digest_recipients[0].last_sent_at).toEqual(expect.any(String))
+  })
+
+  it("sends nothing when the week's send can't be recorded first", async () => {
+    h.tables.contacts = investors()
+    h.tables.pipeline_digest_recipients = [recipient({ email: "cofounder@x.com" })]
+    h.failClaim = true
+    const body = await (await cron()).json()
+    expect(body).toMatchObject({ sent: 0, failed: 1 })
+    expect(h.sendEmail).not.toHaveBeenCalled()
+  })
+
 })

@@ -2,10 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Sun, Moon, Monitor } from "lucide-react"
-
-const STORAGE_KEY = "savvo-theme"
-
-type Theme = "light" | "dark" | "system"
+import { THEME_STORAGE_KEY, isDarkTheme, storedTheme, type Theme } from "@/lib/theme"
 
 const OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
   { value: "light", label: "Light", icon: Sun },
@@ -14,12 +11,8 @@ const OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
 ]
 
 function applyTheme(theme: Theme) {
-  if (theme === "system") {
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
-    document.documentElement.classList.toggle("dark", prefersDark)
-  } else {
-    document.documentElement.classList.toggle("dark", theme === "dark")
-  }
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+  document.documentElement.classList.toggle("dark", isDarkTheme(theme, prefersDark))
 }
 
 export function ThemeSelector() {
@@ -27,22 +20,13 @@ export function ThemeSelector() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as Theme | null
-    if (stored === "dark" || stored === "light") {
-      setTheme(stored)
-    } else {
-      setTheme("system")
-    }
+    setTheme(storedTheme(localStorage.getItem(THEME_STORAGE_KEY)))
     setMounted(true)
   }, [])
 
   const handleChange = useCallback((newTheme: Theme) => {
     setTheme(newTheme)
-    if (newTheme === "system") {
-      localStorage.removeItem(STORAGE_KEY)
-    } else {
-      localStorage.setItem(STORAGE_KEY, newTheme)
-    }
+    localStorage.setItem(THEME_STORAGE_KEY, newTheme)
     applyTheme(newTheme)
   }, [])
 

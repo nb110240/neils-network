@@ -18,6 +18,7 @@ import {
   Info,
 } from "lucide-react"
 import { trackContactsCreated } from "@/components/posthog-provider"
+import { extractLinkedInUrl } from "@/lib/linkedin"
 
 export default function ScanPage() {
   const router = useRouter()
@@ -31,20 +32,6 @@ export default function ScanPage() {
   const [isImporting, setIsImporting] = useState(false)
   const [importedContact, setImportedContact] = useState<{ id: string; name: string } | null>(null)
   const [error, setError] = useState("")
-
-  function extractLinkedInUrl(text: string): string | null {
-    // LinkedIn QR codes can contain various URL formats
-    const patterns = [
-      // Country (uk.) and mobile (m.) hosts and percent-encoded slugs too.
-      /https?:\/\/(?:(?:[a-z]{2,3}|m)\.)?linkedin\.com\/in\/(?:[\w-]|%[0-9a-f]{2})+\/?/i,
-      /https?:\/\/lnkd\.in\/[\w-]+/i,
-    ]
-    for (const pattern of patterns) {
-      const match = text.match(pattern)
-      if (match) return match[0]
-    }
-    return null
-  }
 
   async function startScanner() {
     setIsScanning(true)

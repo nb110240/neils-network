@@ -123,7 +123,7 @@ describe("POST /api/contacts/linkedin", () => {
     h.supabase = withIlike(
       createMockSupabase({
         authUser: { id: "u1" },
-        queryResult: { data: { id: "existing-contact" }, error: null },
+        queryResult: { data: [{ id: "existing-contact", website: "https://www.linkedin.com/in/johndoe" }], error: null },
       })
     )
     const res = await POST(postRequest(URL, { url: LINKEDIN_URL }))
@@ -239,16 +239,46 @@ describe("POST /api/contacts/linkedin", () => {
     expect(res.status).toBe(400)
   })
 
+  // The duplicate query is `.ilike(...).limit(n)`; feed it candidate rows.
+  function withDuplicateCandidates(qb: ReturnType<typeof happyPathClient>, rows: { id: string; website: string }[]) {
+    const limit = vi.fn(async () => ({ data: rows, error: null }))
+    ;(qb as unknown as { ilike: ReturnType<typeof vi.fn> }).ilike = vi.fn(() => ({ limit }))
+    return limit
+  }
+
   it("returns 409 instead of a duplicate when two contacts already share the URL", async () => {
     // Regression: .single() errors when two rows match, and the route read
     // the error as "no duplicate" and created a third.
     const qb = happyPathClient()
-    qb.maybeSingle = vi.fn().mockResolvedValue({ data: { id: "first-match" }, error: null })
+    withDuplicateCandidates(qb, [
+      { id: "first-match", website: "https://www.linkedin.com/in/oliver-bennett" },
+      { id: "second-match", website: "linkedin.com/in/oliver-bennett/" },
+    ])
     const res = await POST(postRequest(URL, { url: "https://uk.linkedin.com/in/oliver-bennett" }))
     expect(res.status).toBe(409)
     expect((await res.json()).contactId).toBe("first-match")
-    expect(qb.limit).toHaveBeenCalledWith(1)
     expect(qb.insert).not.toHaveBeenCalled()
+  })
+
+  it("does not report a look-alike host as a duplicate", async () => {
+    // Regression: the leading % in the ILIKE matched evil-linkedin.com and
+    // limit(1) returned that unrelated contact's id with a 409.
+    const qb = happyPathClient()
+    withDuplicateCandidates(qb, [
+      { id: "lookalike", website: "https://evil-linkedin.com/in/jane" },
+      { id: "real", website: "https://www.linkedin.com/in/jane" },
+    ])
+    const res = await POST(postRequest(URL, { url: "https://www.linkedin.com/in/jane?utm_source=share" }))
+    expect(res.status).toBe(409)
+    expect((await res.json()).contactId).toBe("real")
+  })
+
+  it("creates the contact when the only candidate is a look-alike host", async () => {
+    const qb = happyPathClient()
+    withDuplicateCandidates(qb, [{ id: "lookalike", website: "https://evil-linkedin.com/in/jane" }])
+    const res = await POST(postRequest(URL, { url: "linkedin.com/in/jane" }))
+    expect(res.status).toBe(200)
+    expect(qb.insert).toHaveBeenCalled()
   })
 
   it("returns 500 when the request body is invalid JSON", async () => {

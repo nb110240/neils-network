@@ -39,19 +39,23 @@ export async function POST(request: Request) {
     const slug = profile.slug
 
     // Check for duplicate by LinkedIn slug (only among active contacts).
-    // Matches any stored host variant (linkedin.com, www., uk.) and is
-    // anchored at the end so /in/john does not match /in/johnsmith.
-    // limit(1).maybeSingle(): .single() errored when two rows matched, and
-    // the error was read as "no duplicate".
-    const { data: existing } = await supabase
+    // The ILIKE is a prefilter: it matches any stored host variant
+    // (linkedin.com, www., uk.) and is anchored at the end so /in/john does
+    // not match /in/johnsmith, but its leading % also matches hosts such as
+    // evil-linkedin.com. Each candidate is re-checked with the normalizer
+    // before it counts as a duplicate. (No .single(): it errored when two
+    // rows matched, and the error was read as "no duplicate".)
+    const { data: candidates } = await supabase
       .from("contacts")
-      .select("id")
+      .select("id, website")
       .eq("created_by", user.id)
       .is("archived_at", null)
       // Escape LIKE wildcards: slugs can contain "_" and "%XX" escapes.
       .ilike("website", `%linkedin.com/in/${slug.replace(/[\\%_]/g, "\\$&")}`)
-      .limit(1)
-      .maybeSingle()
+      .limit(50)
+    const existing = ((candidates ?? []) as { id: string; website: string | null }[]).find(
+      (c) => normalizeLinkedInProfileUrl(c.website ?? "")?.slug === slug
+    )
 
     if (existing) {
       return NextResponse.json(

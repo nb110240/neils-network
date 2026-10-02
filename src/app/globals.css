@@ -126,6 +126,10 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-dm-serif), Georgia, serif;
   letter-spacing: -0.02em;
+  /* DM Serif Display ships one weight (400). Headings styled font-semibold or
+     font-bold would get a browser-synthesized bold that smears the letterforms,
+     so render them at the real weight instead. */
+  font-synthesis-weight: none;
 }
 
 /* Focus styles */

@@ -33,4 +33,8 @@ describe("brand fonts in globals.css", () => {
     expect(headings).toContain("font-family: var(--font-dm-serif)")
     expect(headings).not.toContain("var(--font-serif)")
   })
+
+  it("never fakes a bold DM Serif Display, which only has one weight", () => {
+    expect(rule("h1, h2, h3, h4, h5, h6")).toContain("font-synthesis-weight: none")
+  })
 })

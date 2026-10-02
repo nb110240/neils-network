@@ -13,6 +13,10 @@
       "schedule": "0 18 * * *"
     },
     {
+      "path": "/api/cron/granola-sync",
+      "schedule": "0 7 * * *"
+    },
+    {
       "path": "/api/cron/cleanup-unverified",
       "schedule": "0 3 * * 0"
     }

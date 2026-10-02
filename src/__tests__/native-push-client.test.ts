@@ -43,3 +43,66 @@ describe("Sign in with Apple helpers", () => {
     expect(isAppleCancel(new Error("Network unavailable"))).toBe(false)
   })
 })
+
+describe("push token registration across an account switch", () => {
+  type Listener = (data: { value: string }) => void
+  const listeners: Record<string, Listener> = {}
+
+  beforeEach(() => {
+    vi.resetModules()
+    vi.doMock("@capacitor/push-notifications", () => ({
+      PushNotifications: {
+        addListener: vi.fn(async (event: string, cb: Listener) => {
+          listeners[event] = cb
+          return { remove: async () => {} }
+        }),
+      },
+    }))
+    vi.stubGlobal("window", { Capacitor: { isNativePlatform: () => true, getPlatform: () => "ios" } })
+    const store = new Map<string, string>([["savvo:push-token", "tok"]])
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+    })
+  })
+  afterEach(() => {
+    vi.doUnmock("@capacitor/push-notifications")
+    vi.unstubAllGlobals()
+  })
+
+  it("lets the sign-out DELETE finish before the next account's POST, so it cannot remove the new registration", async () => {
+    const { forgetPushToken, initPushListeners } = await import("@/lib/native/push")
+    await initPushListeners(() => {})
+
+    const calls: string[] = []
+    let finishDelete: () => void = () => {}
+    vi.stubGlobal("fetch", vi.fn((_url: string, init: { method: string }) => {
+      calls.push(`${init.method} start`)
+      if (init.method === "DELETE") {
+        return new Promise((resolve) => {
+          finishDelete = () => {
+            calls.push("DELETE end")
+            resolve({ ok: true })
+          }
+        })
+      }
+      calls.push(`${init.method} end`)
+      return Promise.resolve({ ok: true })
+    }))
+
+    // Account A signs out (slow DELETE), then account B signs in and iOS hands back the same token.
+    const forgotten = forgetPushToken()
+    await new Promise((r) => setTimeout(r, 0))
+    listeners.registration({ value: "tok" })
+    await new Promise((r) => setTimeout(r, 0))
+    expect(calls).toEqual(["DELETE start"])
+
+    finishDelete()
+    await forgotten
+    await new Promise((r) => setTimeout(r, 0))
+    expect(calls).toEqual(["DELETE start", "DELETE end", "POST start", "POST end"])
+    // The device stays remembered for B, so B's sign-out can forget it.
+    expect(localStorage.getItem("savvo:push-token")).toBe("tok")
+  })
+})

@@ -19,13 +19,13 @@
  * Client IDs alongside the web Services ID.
  */
 
+import { APPLE_BUNDLE_ID } from "@/lib/apple/bundle-id"
 import { createClient } from "@/lib/supabase/client"
 import { isNative } from "./capacitor"
 import { signInWithOAuthNative } from "./google-auth"
 
 type AuthResult = { ok: boolean; error?: string }
 
-const BUNDLE_ID = "app.savvo"
 const WEB_REDIRECT = "https://savvo.app/auth/callback"
 
 function platform(): string | undefined {
@@ -77,7 +77,7 @@ export async function signInWithAppleNative(): Promise<AuthResult> {
     const { SignInWithApple } = await import("@capacitor-community/apple-sign-in")
     const rawNonce = randomNonce()
     const { response } = await SignInWithApple.authorize({
-      clientId: BUNDLE_ID,
+      clientId: APPLE_BUNDLE_ID,
       redirectURI: WEB_REDIRECT,
       scopes: "email name",
       nonce: await sha256Hex(rawNonce),

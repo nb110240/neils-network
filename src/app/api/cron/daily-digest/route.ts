@@ -109,19 +109,24 @@ export async function GET(request: Request) {
         user.user_metadata?.full_name || email.split("@")[0]
 
       // Get user's contacts with scheduling fields for richer context
-      const { data: contacts } = await supabase
+      const { data: contacts, error: contactsError } = await supabase
         .from("contacts")
         .select("id, name, company, job_title, how_we_met, next_steps, last_contact_date, created_at, follow_up_needed, cadence_days, snoozed_until, next_due_date")
         .eq("created_by", user_id)
         .is("archived_at", null)
 
+      // A failed query is not "zero contacts": never send activation mail
+      // to an account we couldn't read.
+      if (contactsError) throw new Error(`contacts query failed: ${contactsError.message}`)
+
       if (!contacts || contacts.length === 0) {
         const step = activationStep(user)
         if (!step) return "none"
-        await sendActivationEmail(email, userName, step)
-        // Record only after a successful send. app_metadata is server-only;
-        // spread it so provider fields survive whether the API merges or
-        // replaces.
+        // Record the step BEFORE sending so a failed metadata write can never
+        // let the same step go out again (the cap is two emails, ever). If the
+        // send then fails, roll the record back so the step can retry.
+        // app_metadata is server-only; spread it so provider fields survive
+        // whether the API merges or replaces.
         const { error: markError } = await supabase.auth.admin.updateUserById(user.id, {
           app_metadata: {
             ...user.app_metadata,
@@ -129,28 +134,107 @@ export async function GET(request: Request) {
             activation_email_last_at: new Date().toISOString(),
           },
         })
-        if (markError) {
-          log("error", "Failed to record activation email", {
-            action: "cron.daily_digest",
-            route: "/api/cron/daily-digest",
-            userId: user.id,
-            error: markError.message,
+        if (markError) throw new Error(`Failed to record activation email: ${markError.message}`)
+        try {
+          await sendActivationEmail(email, userName, step)
+        } catch (sendError) {
+          const { error: rollbackError } = await supabase.auth.admin.updateUserById(user.id, {
+            app_metadata: {
+              ...user.app_metadata,
+              activation_emails_sent: step - 1,
+              activation_email_last_at: user.app_metadata?.activation_email_last_at ?? null,
+            },
           })
+          if (rollbackError) {
+            // Step stays consumed: one fewer email, never one more.
+            log("error", "Failed to roll back activation email record", {
+              action: "cron.daily_digest",
+              route: "/api/cron/daily-digest",
+              userId: user.id,
+              error: rollbackError.message,
+            })
+          }
+          throw sendError
         }
         return "nudged"
       }
+
+      // Raise Autopilot items: promises due soon, overdue asks, pending
+      // reviews and due intro follow-ups. Fetched in parallel; a failure in
+      // any of them just leaves that section out. Candidates are joined to
+      // contacts so archived ones are excluded before the row limits apply.
+      const loadMoves = async () => {
+        const nowIso = new Date().toISOString()
+        const promiseHorizon = new Date(Date.now() + PROMISE_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString()
+        const [{ data: commitmentRows }, { count: pendingReviews }, { data: introRows }] = await Promise.all([
+          supabase
+            .from("commitments")
+            .select("id, contact_id, direction, title, due_at, contacts!inner(id)")
+            .eq("user_id", user_id)
+            .eq("status", "open")
+            .is("contacts.archived_at", null)
+            .lte("due_at", promiseHorizon)
+            .order("due_at", { ascending: true })
+            .limit(50),
+          supabase
+            .from("after_call_reviews")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user_id)
+            .eq("status", "pending"),
+          supabase
+            .from("intro_requests")
+            .select("id, target_contact_id, connector_contact_id, status, next_follow_up_at, target:contacts!target_contact_id!inner(id)")
+            .eq("user_id", user_id)
+            .in("status", ["requested", "accepted", "introduced"])
+            .is("target.archived_at", null)
+            .lte("next_follow_up_at", nowIso)
+            .limit(20),
+        ])
+        return buildDigestMoves({
+          commitments: commitmentRows || [],
+          pendingReviews: pendingReviews || 0,
+          intros: introRows || [],
+          contactNames: new Map(contacts.map((c) => [c.id, c.name])),
+        })
+      }
+
+      const networkStats = () => ({
+        totalContacts: contacts.length,
+        healthBreakdown: contacts.reduce(
+          (acc, c) => {
+            const h = calculateHealthScore(c.last_contact_date, c.created_at, c.cadence_days)
+            acc[h.level] = (acc[h.level] || 0) + 1
+            return acc
+          },
+          {} as Record<string, number>
+        ),
+        followUpCount: contacts.filter((c) => c.follow_up_needed).length,
+        isPro: canUseDaily,
+      })
 
       // New-user nudge path: users with 1-4 contacts can't get a useful
       // digest yet, but they still need a recurring reason to come back.
       // Without this they hear nothing from Savvo during the exact window
       // when the habit forms. New accounts (<=21 days) get a Mon/Wed/Fri
       // nudge; older accounts with a stalled network get a Monday-only one.
+      // A due promise or pending review beats the generic nudge: send those
+      // moves instead, on the same schedule.
       if (contacts.length < 5) {
         const accountAgeDays = Math.floor(
           (Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24)
         )
         const isNewAccount = accountAgeDays <= 21
         if (isNewAccount ? !isNudgeDay : !isMonday) return "none"
+
+        const moves = await loadMoves()
+        if (hasDigestMoves(moves)) {
+          await sendDigestEmail(email, userName, [], {
+            ...networkStats(),
+            isWeekly: frequency === "weekly",
+            moves,
+          })
+          return "sent"
+        }
 
         await sendNewUserNudgeEmail(email, userName, contacts)
         return "nudged"
@@ -225,39 +309,7 @@ export async function GET(request: Request) {
           return { ...c, health, adjustedScore, timesShown, lastActivity }
         })
 
-      // Raise Autopilot items: promises due soon, overdue asks, pending
-      // reviews and due intro follow-ups. Fetched in parallel; a failure in
-      // any of them just leaves that section out.
-      const nowIso = new Date().toISOString()
-      const promiseHorizon = new Date(Date.now() + PROMISE_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString()
-      const [{ data: commitmentRows }, { count: pendingReviews }, { data: introRows }] = await Promise.all([
-        supabase
-          .from("commitments")
-          .select("id, contact_id, direction, title, due_at")
-          .eq("user_id", user_id)
-          .eq("status", "open")
-          .lte("due_at", promiseHorizon)
-          .order("due_at", { ascending: true })
-          .limit(50),
-        supabase
-          .from("after_call_reviews")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user_id)
-          .eq("status", "pending"),
-        supabase
-          .from("intro_requests")
-          .select("id, target_contact_id, connector_contact_id, status, next_follow_up_at")
-          .eq("user_id", user_id)
-          .in("status", ["requested", "accepted", "introduced"])
-          .lte("next_follow_up_at", nowIso)
-          .limit(20),
-      ])
-      const moves = buildDigestMoves({
-        commitments: commitmentRows || [],
-        pendingReviews: pendingReviews || 0,
-        intros: introRows || [],
-        contactNames: new Map(contacts.map((c) => [c.id, c.name])),
-      })
+      const moves = await loadMoves()
 
       if (eligible.length === 0 && !hasDigestMoves(moves)) return "none"
 
@@ -291,24 +343,8 @@ export async function GET(request: Request) {
 
       if (picks.length === 0 && !hasDigestMoves(moves)) return "none"
 
-      // Compute network stats for the email
-      const healthBreakdown = contacts.reduce(
-        (acc, c) => {
-          const h = calculateHealthScore(c.last_contact_date, c.created_at, c.cadence_days)
-          acc[h.level] = (acc[h.level] || 0) + 1
-          return acc
-        },
-        {} as Record<string, number>
-      )
-
-      const followUpCount = contacts.filter((c) => c.follow_up_needed).length
-
-      // Send email
       await sendDigestEmail(email, userName, picks, {
-        totalContacts: contacts.length,
-        healthBreakdown,
-        followUpCount,
-        isPro: canUseDaily,
+        ...networkStats(),
         isWeekly: frequency === "weekly",
         moves,
       })

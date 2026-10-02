@@ -6,6 +6,7 @@ import {
   countCsvDataRows,
   isUneditedTemplate,
   readPendingImport,
+  resumePendingImport,
   savePendingImport,
 } from "@/lib/pending-import"
 
@@ -24,6 +25,11 @@ describe("tracker CSV checks", () => {
   it("counts data rows, ignoring blank and comma-only lines", () => {
     expect(countCsvDataRows("Investor Name,Firm\n")).toBe(0)
     expect(countCsvDataRows("Investor Name,Firm\r\nJane,Acme\r\n,,\r\n\r\nBob,Beta\r\n")).toBe(2)
+  })
+
+  it("counts records, not lines, when a quoted field holds a newline", () => {
+    expect(countCsvDataRows('"Investor\nName",Firm\n')).toBe(0)
+    expect(countCsvDataRows('Investor Name,Notes\nJane,"met at\nthe summit"\n')).toBe(1)
   })
 
   it("recognizes the unedited template but not a filled-in one", () => {
@@ -53,6 +59,27 @@ describe("pending import storage", () => {
     localStorage.setItem("savvo-pending-import", "{not json")
     expect(readPendingImport()).toBeNull()
     localStorage.setItem("savvo-pending-import", JSON.stringify({ name: 1 }))
+    expect(readPendingImport()).toBeNull()
+  })
+
+  it("drops the older pending file when saving a replacement fails", () => {
+    const storage = memoryStorage()
+    vi.stubGlobal("localStorage", storage)
+    expect(savePendingImport("old.csv", "a\n1")).toBe(true)
+    storage.setItem = () => { throw new Error("QuotaExceededError") }
+    expect(savePendingImport("new.csv", "a\n2")).toBe(false)
+    expect(readPendingImport()).toBeNull()
+  })
+
+  it("keeps the pending file until the server has answered for it", async () => {
+    savePendingImport("t.csv", "a\n1")
+    const pending = readPendingImport()!
+    let loaded: File | null = null
+    await resumePendingImport(pending, async (file) => { loaded = file; return false })
+    expect(loaded!.name).toBe("t.csv")
+    expect(await loaded!.text()).toBe("a\n1")
+    expect(readPendingImport()).not.toBeNull()
+    await resumePendingImport(pending, async () => true)
     expect(readPendingImport()).toBeNull()
   })
 

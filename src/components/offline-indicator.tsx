@@ -73,8 +73,8 @@ export function OfflineIndicator() {
   const syncOfflineQueue = useCallback(async (queue: QueuedContact[]) => {
     // Holds the lock until finishSync runs (the service worker answers by
     // message). Another tab already syncing: its result reaches this tab too.
+    const worker = navigator.serviceWorker?.controller ?? null
     await withSyncLock(() => new Promise<void>((resolve) => {
-      const worker = navigator.serviceWorker?.controller ?? null
       let timer: ReturnType<typeof setTimeout> | undefined
       const end = () => {
         clearTimeout(timer)
@@ -93,7 +93,7 @@ export function OfflineIndicator() {
       }
       endSyncRef.current = end
       void sendQueue(queue, worker)
-    }))
+    }), worker !== null)
   }, [sendQueue])
 
   useEffect(() => {

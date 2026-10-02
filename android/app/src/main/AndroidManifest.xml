@@ -73,4 +73,12 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Android 13+ runtime permission for push notifications (@capacitor/push-notifications). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!--
+        The /scan page (LinkedIn QR scanner) calls getUserMedia inside the
+        WebView. Capacitor's WebChromeClient only grants WebView camera access
+        when CAMERA is declared here; frames are decoded on device.
+        required="false" keeps camera-less devices eligible on Play.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>

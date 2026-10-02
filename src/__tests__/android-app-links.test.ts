@@ -57,4 +57,9 @@ describe("AndroidManifest deep links", () => {
   it("declares POST_NOTIFICATIONS for Android 13+ push", () => {
     expect(manifest).toContain("android.permission.POST_NOTIFICATIONS")
   })
+
+  it("lets the WebView QR scanner use the camera without requiring camera hardware", () => {
+    expect(manifest).toContain("android.permission.CAMERA")
+    expect(manifest).toMatch(/android\.hardware\.camera"\s+android:required="false"/)
+  })
 })

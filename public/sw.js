@@ -118,15 +118,26 @@ self.addEventListener("message", (event) => {
   }
 })
 
+// Mirrors isRetryableStatus in src/lib/offline-queue.ts: signed out, rate
+// limited, or a server error can succeed later, so those notes stay queued.
+function isRetryableStatus(status) {
+  return status === 401 || status === 408 || status === 429 || status >= 500
+}
+
 async function syncQueue(queue) {
+  // Report exactly which notes were delivered so the page removes only
+  // those. Clearing the whole queue lost notes when a send failed.
+  const delivered = []
   for (const item of queue) {
     try {
-      await fetch("/api/contacts", {
+      const response = await fetch("/api/contacts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // Nobody is there to answer a name prompt during background sync.
         body: JSON.stringify({ raw_note: item.raw_note, allow_unnamed: true }),
       })
+      if (isRetryableStatus(response.status)) break
+      delivered.push(`${item.queued_at}|${item.raw_note}`)
     } catch {
       // Still offline, stop trying
       break
@@ -136,6 +147,6 @@ async function syncQueue(queue) {
   // Notify clients sync is done
   const clients = await self.clients.matchAll()
   for (const client of clients) {
-    client.postMessage({ type: "OFFLINE_SYNC_COMPLETE" })
+    client.postMessage({ type: "OFFLINE_SYNC_COMPLETE", delivered })
   }
 }

@@ -20,6 +20,7 @@ import Link from "next/link"
 import { type NetworkingGoal, GOAL_CONFIGS } from "@/lib/personalization"
 import { Celebration, useFirstContactCelebration } from "@/components/celebration"
 import { trackContactsCreated } from "@/components/posthog-provider"
+import { isOfflineQueuedResponse } from "@/lib/offline-queue"
 
 const DEFAULT_PLACEHOLDER = `Example: Met John Doe at the AI Summit. He's VP of Engineering at Acme Corp. We talked about their platform and he mentioned they're hiring. Should follow up next week.`
 
@@ -96,6 +97,20 @@ export default function AddContactPage() {
       }
 
       const data = await response.json()
+
+      // Offline: the service worker queued the note and answered for the
+      // server, so there is no contact (or id) yet. Stay here, ready for the
+      // next note; it syncs when the connection returns.
+      if (isOfflineQueuedResponse(data)) {
+        addToast({
+          title: "Saved offline",
+          description: "We'll add this contact as soon as you're back online.",
+        })
+        setRawNote("")
+        setNeedsName(false)
+        setContactName("")
+        return
+      }
 
       // Handle merged response — note was added to existing contact
       if (data.merged) {

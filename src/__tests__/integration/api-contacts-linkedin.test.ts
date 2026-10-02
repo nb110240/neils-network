@@ -45,6 +45,7 @@ vi.mock("@/lib/openai", () => ({
 }))
 
 import { POST } from "@/app/api/contacts/linkedin/route"
+import { revalidatePath } from "next/cache"
 
 const URL = "http://localhost/api/contacts/linkedin"
 const LINKEDIN_URL = "https://linkedin.com/in/johndoe"
@@ -158,11 +159,16 @@ describe("POST /api/contacts/linkedin", () => {
         Promise.resolve({ data: [], error: null }).then(resolve),
       configurable: true,
     })
+    vi.mocked(revalidatePath).mockClear()
     const res = await POST(postRequest(URL, { url: LINKEDIN_URL }))
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.success).toBe(true)
     expect(json.contact.id).toBe("new-contact")
+    // Regression: LinkedIn imports did not refresh cached contact views.
+    expect(revalidatePath).toHaveBeenCalledWith("/dashboard")
+    expect(revalidatePath).toHaveBeenCalledWith("/reach-out")
+    expect(revalidatePath).toHaveBeenCalledWith("/contacts")
   })
 
   it.each([

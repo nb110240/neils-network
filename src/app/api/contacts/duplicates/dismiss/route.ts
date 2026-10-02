@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache"
 import { NextResponse } from "next/server"
 import {
   authenticateRequest,
@@ -43,6 +44,10 @@ export async function POST(request: Request) {
       console.error("Dismiss error:", error)
       return errorResponse("Failed to dismiss")
     }
+
+    revalidatePath("/dashboard")
+    revalidatePath("/reach-out")
+    revalidatePath("/contacts")
 
     return NextResponse.json({ success: true, dismissed: rows.length })
   } catch (error) {

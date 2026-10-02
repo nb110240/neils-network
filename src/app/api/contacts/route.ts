@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache"
 import { NextResponse } from "next/server"
 import { createHash } from "crypto"
 import { authenticateRequest, authFailed, badRequestResponse, errorResponse, forbiddenResponse } from "@/lib/api-utils"
@@ -156,6 +157,10 @@ export async function POST(request: Request) {
           return errorResponse("Failed to update existing contact")
         }
 
+        revalidatePath("/dashboard")
+        revalidatePath("/reach-out")
+        revalidatePath("/contacts")
+
         return NextResponse.json({
           success: true,
           merged: true,
@@ -230,6 +235,10 @@ export async function POST(request: Request) {
       extractionSuccess: !!extracted.name,
       embeddingStatus,
     })
+
+    revalidatePath("/dashboard")
+    revalidatePath("/reach-out")
+    revalidatePath("/contacts")
 
     // If there's an active event, associate this contact with it
     if (contact?.id) {

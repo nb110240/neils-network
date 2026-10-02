@@ -26,6 +26,7 @@ vi.mock("@/lib/rate-limit", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 
 import { POST } from "@/app/api/contacts/duplicates/dismiss/route"
+import { revalidatePath } from "next/cache"
 
 const URL = "http://localhost/api/contacts/duplicates/dismiss"
 const ID_A = "11111111-1111-4111-8111-111111111111"
@@ -74,6 +75,29 @@ describe("POST /api/contacts/duplicates/dismiss", () => {
     const json = await res.json()
     expect(json.success).toBe(true)
     expect(json.dismissed).toBe(1)
+  })
+
+  it("revalidates contact views after dismissing (regression: stale duplicate banner)", async () => {
+    vi.mocked(revalidatePath).mockClear()
+    h.supabase = createMockSupabase({
+      authUser: { id: "u1" },
+      queryResult: { data: null, error: null },
+    })
+    const res = await POST(postRequest(URL, { contactIds: [ID_A, ID_B] }))
+    expect(res.status).toBe(200)
+    expect(revalidatePath).toHaveBeenCalledWith("/dashboard")
+    expect(revalidatePath).toHaveBeenCalledWith("/reach-out")
+    expect(revalidatePath).toHaveBeenCalledWith("/contacts")
+  })
+
+  it("does not revalidate when the upsert fails", async () => {
+    vi.mocked(revalidatePath).mockClear()
+    h.supabase = createMockSupabase({
+      authUser: { id: "u1" },
+      queryResult: { data: null, error: { message: "db error" } },
+    })
+    await POST(postRequest(URL, { contactIds: [ID_A, ID_B] }))
+    expect(revalidatePath).not.toHaveBeenCalled()
   })
 
   it("dismisses all pairwise combinations for three contacts", async () => {

@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache"
 import { NextResponse } from "next/server"
 import { authenticateRequest, authFailed, badRequestResponse, forbiddenResponse, errorResponse } from "@/lib/api-utils"
 import { checkContactLimit, getUserPlan } from "@/lib/subscription"
@@ -147,6 +148,10 @@ export async function POST(request: Request) {
       console.error("LinkedIn contact insert error:", error)
       return errorResponse("Failed to create contact")
     }
+
+    revalidatePath("/dashboard")
+    revalidatePath("/reach-out")
+    revalidatePath("/contacts")
 
     return NextResponse.json({
       success: true,

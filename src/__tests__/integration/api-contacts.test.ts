@@ -50,6 +50,7 @@ vi.mock("@/lib/subscription", () => ({
 }))
 
 import { POST, GET } from "@/app/api/contacts/route"
+import { revalidatePath } from "next/cache"
 
 const URL = "http://localhost/api/contacts"
 
@@ -93,6 +94,19 @@ describe("POST /api/contacts", () => {
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.success).toBe(true)
+  })
+
+  it("revalidates dashboard, reach-out and contacts after creating (regression)", async () => {
+    vi.mocked(revalidatePath).mockClear()
+    h.supabase = createMockSupabase({
+      authUser: { id: "u1" },
+      queryResult: { data: [], error: null },
+    })
+    const res = await POST(postRequest(URL, { raw_note: "Met Ada at a conference" }))
+    expect(res.status).toBe(200)
+    expect(revalidatePath).toHaveBeenCalledWith("/dashboard")
+    expect(revalidatePath).toHaveBeenCalledWith("/reach-out")
+    expect(revalidatePath).toHaveBeenCalledWith("/contacts")
   })
 
   it("returns 429 when rate limited", async () => {

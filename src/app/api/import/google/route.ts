@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache"
 import { NextResponse, after } from "next/server"
 import * as Sentry from "@sentry/nextjs"
 import { cookies } from "next/headers"
@@ -222,6 +223,10 @@ export async function POST(request: Request) {
       console.error("Google import error:", error)
       return errorResponse("Failed to import contacts")
     }
+
+    revalidatePath("/dashboard")
+    revalidatePath("/reach-out")
+    revalidatePath("/contacts")
 
     // Generate embeddings after the response is sent. after() keeps the
     // serverless instance alive until this finishes, so a frozen/reclaimed

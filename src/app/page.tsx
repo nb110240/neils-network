@@ -488,6 +488,8 @@ function MarketingPage() {
           {" "}&middot;{" "}
           <Link href="/terms" className="hover:text-foreground">Terms of Service</Link>
           {" "}&middot;{" "}
+          <Link href="/help" className="hover:text-foreground">Help</Link>
+          {" "}&middot;{" "}
           <Link href="#faq" className="hover:text-foreground">FAQ</Link>
           {" "}&middot;{" "}
           <Link href="/from-spreadsheet" className="hover:text-foreground">Switching from Spreadsheets?</Link>

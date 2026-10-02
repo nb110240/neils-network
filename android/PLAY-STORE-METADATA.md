@@ -88,7 +88,7 @@ Pro unlocks unlimited contacts, unlimited semantic search, Google Contacts impor
 PRIVATE BY DESIGN
 Savvo does not scrape social networks, does not sell your data, and does not show ads. The people you add stay private to your account. You can export your data or delete your account and everything in it from Settings at any time.
 
-Questions or feedback? Reach us at support@savvo.app.
+Questions or feedback? Reach us at neil@savvo.app.
 ```
 
 Count: about 2,350 characters. Well under 4,000.
@@ -107,11 +107,13 @@ Verification notes for the claims above:
 
 - **App category:** Productivity
 - **Tags** (Play Console -> Store settings -> Manage tags, pick up to 5): Productivity, Business, Contacts / CRM, Networking (pick the closest available labels).
-- **Contact details:** email `support@savvo.app`, website `https://savvo.app`.
+- **Contact details:** email `neil@savvo.app`, website `https://savvo.app/help`.
 - **Privacy policy URL:** `https://savvo.app/privacy` (public, returns 200 logged out).
+- **Delete account URL** (Data safety -> Data deletion): `https://savvo.app/help#delete-account`
+  (public; explains in-app deletion and how to request it by email without signing in).
 
-Note: `/support` is behind auth (`src/proxy.ts` protected paths), so do not use it
-as the public website or support link.
+`/help` is the public support page. `/support` is the signed-in contact form; logged-out
+visitors there are redirected to `/help`.
 
 ---
 

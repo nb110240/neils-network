@@ -51,9 +51,10 @@ export default function PricingPage() {
 
     setIsLoading(true)
     try {
-      // Native (iOS): Apple Guideline 3.1.1 requires In-App Purchase for digital
-      // goods, so route the upgrade through RevenueCat instead of Stripe. Web
-      // falls through to Stripe Checkout below.
+      // Native (iOS + Android): Apple Guideline 3.1.1 and Google Play's
+      // Payments policy require store billing for digital goods, so route the
+      // upgrade through RevenueCat (StoreKit / Play Billing, picked by
+      // platform) instead of Stripe. Web falls through to Stripe Checkout below.
       const { isNative } = await import("@/lib/native/capacitor")
       if (isNative()) {
         const { configurePurchases, purchasePro } = await import(

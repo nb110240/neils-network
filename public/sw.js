@@ -4,6 +4,10 @@
 // cached the /login redirect under protected URLs.
 const CACHE_NAME = "savvo-v4"
 const OFFLINE_QUEUE_KEY = "savvo-offline-queue"
+// Bumped on every CLEAR_CACHES (sign-out). A page response is cached only if
+// no sign-out happened between its request and its cache write, so a fetch
+// still in flight at sign-out cannot recreate the previous user's cache.
+let cacheGeneration = 0
 
 // Cache essential pages on install
 self.addEventListener("install", (event) => {
@@ -45,6 +49,7 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.startsWith("/api/")) return
 
   // Network-first for pages
+  const generation = cacheGeneration
   event.respondWith(
     fetch(event.request)
       .then((response) => {
@@ -55,9 +60,11 @@ self.addEventListener("fetch", (event) => {
           event.waitUntil(clearAllCaches())
           return response
         }
-        if (response.ok && !response.redirected) {
+        if (response.ok && !response.redirected && generation === cacheGeneration) {
           const clone = response.clone()
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
+          caches.open(CACHE_NAME).then((cache) => {
+            if (generation === cacheGeneration) return cache.put(event.request, clone)
+          })
         }
         return response
       })
@@ -83,7 +90,8 @@ async function handleContactPost(request) {
     for (const client of clients) {
       client.postMessage({
         type: "OFFLINE_QUEUE_ADD",
-        data: { raw_note: body.raw_note, queued_at: new Date().toISOString() },
+        // Keep a name the user already confirmed so sync does not re-guess it.
+        data: { raw_note: body.raw_note, name: body.name, queued_at: new Date().toISOString() },
       })
     }
 
@@ -113,6 +121,7 @@ self.addEventListener("message", (event) => {
     syncQueue(event.data.queue)
   }
   if (event.data?.type === "CLEAR_CACHES") {
+    cacheGeneration++
     const done = clearAllCaches()
     if (event.waitUntil) event.waitUntil(done)
   }
@@ -125,7 +134,7 @@ async function syncQueue(queue) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // Nobody is there to answer a name prompt during background sync.
-        body: JSON.stringify({ raw_note: item.raw_note, allow_unnamed: true }),
+        body: JSON.stringify({ raw_note: item.raw_note, name: item.name, allow_unnamed: true }),
       })
     } catch {
       // Still offline, stop trying

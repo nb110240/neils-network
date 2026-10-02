@@ -5,7 +5,9 @@ import { WifiOff, Loader2, Check } from "lucide-react"
 
 const QUEUE_KEY = "savvo-offline-queue"
 
-function getQueue(): { raw_note: string; queued_at: string }[] {
+type QueuedContact = { raw_note: string; name?: string; queued_at: string }
+
+function getQueue(): QueuedContact[] {
   try {
     return JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]")
   } catch {
@@ -13,7 +15,7 @@ function getQueue(): { raw_note: string; queued_at: string }[] {
   }
 }
 
-function saveQueue(queue: { raw_note: string; queued_at: string }[]) {
+function saveQueue(queue: QueuedContact[]) {
   localStorage.setItem(QUEUE_KEY, JSON.stringify(queue))
 }
 
@@ -27,7 +29,7 @@ export function OfflineIndicator() {
     setQueueCount(getQueue().length)
   }, [])
 
-  const syncOfflineQueue = useCallback(async (queue: { raw_note: string; queued_at: string }[]) => {
+  const syncOfflineQueue = useCallback(async (queue: QueuedContact[]) => {
     setIsSyncing(true)
 
     // Try sending via service worker first
@@ -44,7 +46,7 @@ export function OfflineIndicator() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             // Nobody is there to answer a name prompt during background sync.
-            body: JSON.stringify({ raw_note: item.raw_note, allow_unnamed: true }),
+            body: JSON.stringify({ raw_note: item.raw_note, name: item.name, allow_unnamed: true }),
           })
         } catch {
           break

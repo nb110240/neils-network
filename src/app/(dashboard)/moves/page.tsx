@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic"
 import Link from "next/link"
 import { ArrowLeft, Plus } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
-import { fetchArchivedContactIds } from "@/lib/archived-contacts"
+import { fetchArchivedContactIdsForPage } from "@/lib/archived-contacts"
 import { buildNextMoves } from "@/lib/next-moves"
 import { getUserPlan } from "@/lib/subscription"
 import { NextMoves } from "@/components/next-moves"
@@ -37,7 +37,7 @@ export default async function MovesPage() {
       .select("*")
       .eq("user_id", user.id)
       .in("status", ["draft", "requested", "accepted", "introduced"]),
-    fetchArchivedContactIds(supabase, user.id),
+    fetchArchivedContactIdsForPage(supabase, user.id),
   ])
 
   const moves = buildNextMoves({

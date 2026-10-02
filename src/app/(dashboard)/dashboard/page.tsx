@@ -22,7 +22,7 @@ import { DashboardWalkthrough } from "@/components/dashboard-walkthrough"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { InstallPrompt } from "@/components/install-prompt"
 import { NextMoves } from "@/components/next-moves"
-import { fetchArchivedContactIds } from "@/lib/archived-contacts"
+import { fetchArchivedContactIdsForPage } from "@/lib/archived-contacts"
 import { buildNextMoves } from "@/lib/next-moves"
 import type { AfterCallReview, Commitment, IntroRequest } from "@/lib/types"
 import { Plus, Users, ArrowRight, ThermometerSnowflake, Crown } from "lucide-react"
@@ -84,7 +84,7 @@ export default async function DashboardPage() {
       .from("commitments")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id),
-    fetchArchivedContactIds(supabase, user.id),
+    fetchArchivedContactIdsForPage(supabase, user.id),
   ])
 
   const totalContacts = allContacts?.length ?? 0

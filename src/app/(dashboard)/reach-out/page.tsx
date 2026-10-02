@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { getUserPlan } from "@/lib/subscription"
-import { fetchArchivedContactIds } from "@/lib/archived-contacts"
+import { fetchArchivedContactIdsForPage } from "@/lib/archived-contacts"
 import { buildNextMoves, relationshipMoves } from "@/lib/next-moves"
 import { NextMoves } from "@/components/next-moves"
 import { Button } from "@/components/ui/button"
@@ -42,7 +42,7 @@ export default async function ReachOutPage() {
       .select("*")
       .eq("user_id", user.id)
       .in("status", ["draft", "requested", "accepted", "introduced"]),
-    fetchArchivedContactIds(supabase, user.id),
+    fetchArchivedContactIdsForPage(supabase, user.id),
   ])
 
   const people = relationshipMoves(buildNextMoves({

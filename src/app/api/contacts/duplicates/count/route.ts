@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { authenticateRequest, authFailed, errorResponse } from "@/lib/api-utils"
-import { scorePair } from "@/lib/dedup"
+import { duplicateCandidatePairs, scorePair } from "@/lib/dedup"
 import { fetchAllRows } from "@/lib/fetch-all"
 
 interface ContactRow {
@@ -51,18 +51,17 @@ export async function GET() {
     const involved = new Set<string>()
     const highInvolved = new Set<string>()
 
-    for (let i = 0; i < contacts.length; i++) {
-      for (let j = i + 1; j < contacts.length; j++) {
-        const key = canonicalKey(contacts[i].id, contacts[j].id)
-        if (dismissed.has(key)) continue
-        const result = scorePair(contacts[i], contacts[j])
-        if (result && result.score >= 0.5) {
-          involved.add(contacts[i].id)
-          involved.add(contacts[j].id)
-          if (result.score >= 0.9) {
-            highInvolved.add(contacts[i].id)
-            highInvolved.add(contacts[j].id)
-          }
+    // Same candidate pairs as the duplicates scan, so the counts match it.
+    for (const [i, j] of duplicateCandidatePairs(contacts)) {
+      const key = canonicalKey(contacts[i].id, contacts[j].id)
+      if (dismissed.has(key)) continue
+      const result = scorePair(contacts[i], contacts[j])
+      if (result && result.score >= 0.5) {
+        involved.add(contacts[i].id)
+        involved.add(contacts[j].id)
+        if (result.score >= 0.9) {
+          highInvolved.add(contacts[i].id)
+          highInvolved.add(contacts[j].id)
         }
       }
     }

@@ -23,11 +23,38 @@ export function readQueue(storage: Pick<Storage, "getItem"> = localStorage): Que
   }
 }
 
-export function writeQueue(queue: QueuedContact[], storage: Pick<Storage, "setItem"> = localStorage) {
+/** Returns false when storage is full or blocked and the queue wasn't saved. */
+export function writeQueue(queue: QueuedContact[], storage: Pick<Storage, "setItem"> = localStorage): boolean {
   try {
     storage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue))
+    return true
   } catch {
-    // Storage full or blocked: nothing more we can do offline.
+    return false
+  }
+}
+
+/**
+ * Makes sure an offline note is stored before /add reports it saved. The
+ * service worker's reply carries the note it queued; storing it here is a
+ * no-op when a tab already did (same key). False: the note was not saved.
+ */
+export function persistQueuedNote(
+  item: QueuedContact,
+  storage: Pick<Storage, "getItem" | "setItem"> = localStorage
+): boolean {
+  const queue = readQueue(storage)
+  if (queue.some((queued) => queueKey(queued) === queueKey(item))) return true
+  return writeQueue(enqueue(queue, item), storage)
+}
+
+/** The note a service worker reply says it queued, when it says so. */
+export function queuedNoteFrom(data: unknown): QueuedContact | null {
+  const queued = (data as { queued?: unknown } | null)?.queued as Partial<QueuedContact> | undefined
+  if (!queued || typeof queued.raw_note !== "string" || typeof queued.queued_at !== "string") return null
+  return {
+    raw_note: queued.raw_note,
+    queued_at: queued.queued_at,
+    ...(typeof queued.name === "string" ? { name: queued.name } : {}),
   }
 }
 
@@ -58,30 +85,88 @@ export function isOfflineQueuedResponse(data: unknown): boolean {
 }
 
 // Every open tab hears "online" at the same moment. Only one may send the
-// queue, or each note becomes a contact once per tab. The lock expires so a
-// tab closed mid-sync can't block syncing forever.
+// queue, or each note becomes a contact once per tab. The Web Locks API gives
+// one tab exclusive ownership; browsers without it fall back to a
+// localStorage lock. Either way the lock expires so a tab closed (or a
+// service worker stopped) mid-sync can't block syncing forever.
 export const SYNC_LOCK_KEY = "savvo-offline-sync-lock"
 export const SYNC_LOCK_TTL_MS = 60_000
 
+type LockManagerLike = {
+  request: (
+    name: string,
+    options: { ifAvailable: boolean },
+    callback: (lock: unknown) => Promise<boolean>
+  ) => Promise<boolean>
+}
+
+/**
+ * Fallback lock: returns this tab's token when it took the lock, or null
+ * while another tab holds an unexpired one.
+ */
 export function tryAcquireSyncLock(
   nowMs: number = Date.now(),
-  storage: Pick<Storage, "getItem" | "setItem"> = localStorage
-): boolean {
+  storage: Pick<Storage, "getItem" | "setItem"> = localStorage,
+  token: string = `${nowMs}-${Math.random().toString(36).slice(2)}`
+): string | null {
   try {
-    const held = Number(storage.getItem(SYNC_LOCK_KEY) || 0)
-    if (held && nowMs - held < SYNC_LOCK_TTL_MS) return false
-    storage.setItem(SYNC_LOCK_KEY, String(nowMs))
-    return true
+    const held = Number((storage.getItem(SYNC_LOCK_KEY) || "").split("|")[0] || 0)
+    if (held && nowMs - held < SYNC_LOCK_TTL_MS) return null
+    storage.setItem(SYNC_LOCK_KEY, `${nowMs}|${token}`)
+    return token
   } catch {
-    // No storage: syncing from this tab beats never syncing.
-    return true
+    // Storage blocked: no tab can share a lock, and only browsers without
+    // Web Locks get here. Syncing from this tab beats never syncing.
+    return token
   }
 }
 
-export function releaseSyncLock(storage: Pick<Storage, "removeItem"> = localStorage) {
+/** Releases the fallback lock only if this tab still holds it. */
+export function releaseSyncLock(token: string, storage: Pick<Storage, "getItem" | "removeItem"> = localStorage) {
   try {
-    storage.removeItem(SYNC_LOCK_KEY)
+    const value = storage.getItem(SYNC_LOCK_KEY) || ""
+    if (value.slice(value.indexOf("|") + 1) === token) storage.removeItem(SYNC_LOCK_KEY)
   } catch {
     // ignore
+  }
+}
+
+function expiring(work: Promise<void>, ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(resolve, ms)
+    work.catch(() => {}).finally(() => {
+      clearTimeout(timer)
+      resolve()
+    })
+  })
+}
+
+/**
+ * Runs `sync` only if no other tab is syncing, holding the lock until it
+ * finishes (or SYNC_LOCK_TTL_MS passes). Resolves false when another tab
+ * holds the lock; its result reaches this tab too.
+ */
+export async function withSyncLock(
+  sync: () => Promise<void>,
+  locks: LockManagerLike | undefined = typeof navigator !== "undefined"
+    ? (navigator as unknown as { locks?: LockManagerLike }).locks
+    : undefined,
+  storage?: Pick<Storage, "getItem" | "setItem" | "removeItem">
+): Promise<boolean> {
+  if (locks?.request) {
+    return locks.request(SYNC_LOCK_KEY, { ifAvailable: true }, async (lock) => {
+      if (!lock) return false
+      await expiring(sync(), SYNC_LOCK_TTL_MS)
+      return true
+    })
+  }
+  const store = storage ?? localStorage
+  const token = tryAcquireSyncLock(Date.now(), store)
+  if (!token) return false
+  try {
+    await expiring(sync(), SYNC_LOCK_TTL_MS)
+    return true
+  } finally {
+    releaseSyncLock(token, store)
   }
 }

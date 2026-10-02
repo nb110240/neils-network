@@ -55,10 +55,21 @@ export default function PricingPage() {
       const { configurePurchases, restorePurchases } = await import("@/lib/native/purchases")
       await configurePurchases(user.id)
       const result = await restorePurchases()
-      if (result.ok) {
+      // The store found a subscription, but Pro is granted server-side (by
+      // the RevenueCat webhook). A subscription bought under another Savvo
+      // account stays there, so confirm this account is Pro before saying so.
+      const plan = result.ok
+        ? await fetch("/api/subscription").then((res) => (res.ok ? res.json() : null)).catch(() => null)
+        : null
+      if (result.ok && plan?.plan && plan.plan !== "free") {
         addToast({ title: "Pro restored", description: "Your subscription is active on this device." })
         router.push("/dashboard")
         router.refresh()
+      } else if (result.ok) {
+        addToast({
+          title: "Subscription found",
+          description: "It isn’t active on this Savvo account yet. If you subscribed with a different account, sign in with that one, or contact support.",
+        })
       } else {
         addToast({
           title: result.error ? "Couldn't restore" : "Nothing to restore",

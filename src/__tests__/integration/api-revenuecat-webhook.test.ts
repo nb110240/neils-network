@@ -83,6 +83,42 @@ describe("POST /api/native/revenuecat-webhook", () => {
         },
       )
 
+      it("SUBSCRIPTION_EXTENDED no newer than the stored period end changes nothing", async () => {
+        // A later RENEWAL already stored a further period end.
+        h.supabase!._queryBuilder.maybeSingle.mockResolvedValueOnce({
+          data: { current_period_end: "2026-12-02T00:00:00.000Z" },
+          error: null,
+        })
+        expect((await POST(webhook(rcEvent({ store, type: "SUBSCRIPTION_EXTENDED" })))).status).toBe(200)
+        expect(h.supabase!._queryBuilder.upsert).not.toHaveBeenCalled()
+
+        // A retry of the same extension, after an EXPIRATION.
+        h.supabase!._queryBuilder.maybeSingle.mockResolvedValueOnce({
+          data: { current_period_end: "2026-11-02T00:00:00.000Z" },
+          error: null,
+        })
+        expect((await POST(webhook(rcEvent({ store, type: "SUBSCRIPTION_EXTENDED" })))).status).toBe(200)
+        expect(h.supabase!._queryBuilder.upsert).not.toHaveBeenCalled()
+      })
+
+      it("SUBSCRIPTION_EXTENDED past the stored period end extends it", async () => {
+        h.supabase!._queryBuilder.maybeSingle.mockResolvedValueOnce({
+          data: { current_period_end: "2026-10-20T00:00:00.000Z" },
+          error: null,
+        })
+        expect((await POST(webhook(rcEvent({ store, type: "SUBSCRIPTION_EXTENDED" })))).status).toBe(200)
+        expect(h.supabase!._queryBuilder.upsert).toHaveBeenCalledWith(
+          expect.objectContaining({ status: "active", current_period_end: "2026-11-02T00:00:00.000Z" }),
+          { onConflict: "user_id" },
+        )
+      })
+
+      it("SUBSCRIPTION_EXTENDED asks for a retry when the stored period can't be read", async () => {
+        h.supabase!._queryBuilder.maybeSingle.mockResolvedValueOnce({ data: null, error: { message: "timeout" } })
+        expect((await POST(webhook(rcEvent({ store, type: "SUBSCRIPTION_EXTENDED" })))).status).toBe(500)
+        expect(h.supabase!._queryBuilder.upsert).not.toHaveBeenCalled()
+      })
+
       it("EXPIRATION downgrades to free", async () => {
         const res = await POST(webhook(rcEvent({ store, type: "EXPIRATION" })))
         expect(res.status).toBe(200)

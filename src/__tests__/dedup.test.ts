@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { findDuplicates } from "@/lib/dedup"
+import { duplicateCandidatePairs, findDuplicates, scorePair } from "@/lib/dedup"
 import type { Contact } from "@/lib/types"
 
 function makeContact(overrides: Partial<Contact>): Contact {
@@ -283,5 +283,57 @@ describe("findDuplicates", () => {
       phone: "",
     })
     expect(results).toHaveLength(0)
+  })
+})
+
+describe("duplicateCandidatePairs", () => {
+  // Deterministic PRNG so a failure reproduces.
+  function rng(seed: number) {
+    return () => {
+      seed = (seed * 1664525 + 1013904223) % 4294967296
+      return seed / 4294967296
+    }
+  }
+  const pick = <T,>(r: () => number, items: T[]) => items[Math.floor(r() * items.length)]
+
+  it("flags exactly the pairs an all-pairs scan flags", () => {
+    const r = rng(42)
+    const names = [null, "", "Sam Lee", "sam lee", "Sam  Lee", "S. Lee", "Priya Patel", "Priya", "Jo", "Lee Sam", "O'Brien Kate", "obrienkate"]
+    const emails = [null, "", "sam@x.com", "SAM@x.com ", "samlee@y.com", "priyapatel@z.io", "kate@q.com", "obrienkate@w.com"]
+    const phones = [null, "", "+1 (415) 555-0100", "4155550100", "555"]
+    const sites = [null, "https://linkedin.com/in/samlee", "https://www.linkedin.com/in/SamLee/", "https://example.com"]
+    const companies = [null, "Acme", "acme ", "Index"]
+    const vectors = [null, [1, 0, 0], [0.99, 0.05, 0], [0, 1, 0], [1, 0]]
+    const contacts = Array.from({ length: 160 }, () => ({
+      name: pick(r, names),
+      email: pick(r, emails),
+      phone: pick(r, phones),
+      website: pick(r, sites),
+      company: pick(r, companies),
+      embedding: pick(r, vectors),
+    }))
+
+    const brute: string[] = []
+    for (let i = 0; i < contacts.length; i++) {
+      for (let j = i + 1; j < contacts.length; j++) {
+        const result = scorePair(contacts[i], contacts[j])
+        if (result) brute.push(`${i}-${j}:${result.score}:${result.reason}`)
+      }
+    }
+    const bucketed: string[] = []
+    for (const [i, j] of duplicateCandidatePairs(contacts)) {
+      const result = scorePair(contacts[i], contacts[j])
+      if (result) bucketed.push(`${i}-${j}:${result.score}:${result.reason}`)
+    }
+    expect(brute.length).toBeGreaterThan(100)
+    expect(new Set(brute.map((p) => p.split(":")[1].split(" ")[0])).size).toBeGreaterThan(3)
+    // Same pairs, same scores and reasons, in the same order.
+    expect(bucketed).toEqual(brute)
+  })
+
+  it("skips pairs with nothing in common", () => {
+    const word = (i: number) => [...i.toString(26).padStart(3, "0")].map((ch) => String.fromCharCode(97 + parseInt(ch, 26))).join("")
+    const contacts = Array.from({ length: 500 }, (_, i) => ({ name: `Ann ${word(i)}`, email: `${word(i)}@x.com` }))
+    expect(duplicateCandidatePairs(contacts)).toEqual([])
   })
 })

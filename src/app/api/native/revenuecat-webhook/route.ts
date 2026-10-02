@@ -45,6 +45,27 @@ function authorized(header: string | null): boolean {
   return timingSafeEqual(a, b)
 }
 
+/**
+ * Whether an extension's new expiration is later than the stored period end,
+ * i.e. it really extends the subscription. `error` when the lookup failed.
+ */
+async function extendsStoredPeriod(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  userId: string,
+  currentPeriodEnd: string | null,
+): Promise<{ extends: boolean; error: { message: string } | null }> {
+  const incoming = currentPeriodEnd ? Date.parse(currentPeriodEnd) : NaN
+  if (!Number.isFinite(incoming)) return { extends: false, error: null }
+  const { data: existing, error } = await supabase
+    .from("subscriptions")
+    .select("current_period_end")
+    .eq("user_id", userId)
+    .maybeSingle()
+  if (error) return { extends: false, error }
+  const stored = existing?.current_period_end ? Date.parse(existing.current_period_end) : 0
+  return { extends: incoming > stored, error: null }
+}
+
 export async function POST(request: Request) {
   if (!authorized(request.headers.get("authorization"))) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
@@ -140,16 +161,34 @@ export async function POST(request: Request) {
         userId,
       })
     } else {
-      const { error } = await supabase.from("subscriptions").upsert(
-        {
-          user_id: userId,
-          plan: "pro",
-          status: "active",
-          current_period_end: currentPeriodEnd,
-        },
-        { onConflict: "user_id" },
-      )
-      dbError = error
+      // A retried or late extension that is no newer than what we have (for
+      // example after an EXPIRATION or a later RENEWAL) must not reactivate
+      // the subscription or pull its period end back.
+      const extension = type === "SUBSCRIPTION_EXTENDED"
+        ? await extendsStoredPeriod(supabase, userId, currentPeriodEnd)
+        : null
+      if (extension?.error) {
+        dbError = extension.error
+      } else if (extension && !extension.extends) {
+        log("info", "RevenueCat stale extension ignored", {
+          action: "revenuecat.webhook",
+          route: "/api/native/revenuecat-webhook",
+          eventType: type,
+          store,
+          userId,
+        })
+      } else {
+        const { error } = await supabase.from("subscriptions").upsert(
+          {
+            user_id: userId,
+            plan: "pro",
+            status: "active",
+            current_period_end: currentPeriodEnd,
+          },
+          { onConflict: "user_id" },
+        )
+        dbError = error
+      }
     }
   } else if (DEACTIVATE.includes(type)) {
     // Guard against a stale/out-of-order expiration overwriting a newer

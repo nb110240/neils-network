@@ -12,6 +12,25 @@ export function storedTheme(value: string | null): Theme {
   return value === "dark" || value === "system" ? value : "light"
 }
 
+/** The saved theme, or light when storage is blocked (it can throw). */
+export function readStoredTheme(storage: Pick<Storage, "getItem"> = localStorage): Theme {
+  try {
+    return storedTheme(storage.getItem(THEME_STORAGE_KEY))
+  } catch {
+    return "light"
+  }
+}
+
+/** Saves the choice; returns false when storage is blocked or full. */
+export function saveTheme(theme: Theme, storage: Pick<Storage, "setItem"> = localStorage): boolean {
+  try {
+    storage.setItem(THEME_STORAGE_KEY, theme)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function isDarkTheme(theme: Theme, systemPrefersDark: boolean): boolean {
   return theme === "dark" || (theme === "system" && systemPrefersDark)
 }

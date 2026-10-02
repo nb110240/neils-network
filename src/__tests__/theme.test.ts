@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { runInNewContext } from "node:vm"
-import { THEME_BOOT_SCRIPT, isDarkTheme, storedTheme } from "@/lib/theme"
+import { THEME_BOOT_SCRIPT, isDarkTheme, readStoredTheme, saveTheme, storedTheme } from "@/lib/theme"
 
 // Runs the real inline <head> script against a fake browser.
 function bootDark(saved: string | null, systemDark: boolean): boolean {
@@ -36,5 +36,24 @@ describe("theme", () => {
 
   it("survives storage that throws (private mode)", () => {
     expect(() => runInNewContext(THEME_BOOT_SCRIPT, { localStorage: { getItem: () => { throw new Error("blocked") } }, window: {}, document: {} })).not.toThrow()
+  })
+})
+
+describe("theme storage", () => {
+  const blocked = {
+    getItem: () => { throw new Error("SecurityError") },
+    setItem: () => { throw new Error("QuotaExceededError") },
+  }
+
+  it("falls back to light when storage can't be read", () => {
+    expect(readStoredTheme(blocked)).toBe("light")
+    expect(readStoredTheme({ getItem: () => "dark" })).toBe("dark")
+  })
+
+  it("reports a failed save instead of throwing", () => {
+    expect(saveTheme("dark", blocked)).toBe(false)
+    const saved: string[] = []
+    expect(saveTheme("system", { setItem: (_k: string, v: string) => { saved.push(v) } })).toBe(true)
+    expect(saved).toEqual(["system"])
   })
 })

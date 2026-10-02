@@ -85,14 +85,13 @@ async function handleContactPost(request) {
     // Offline — save to queue
     const body = await request.json()
 
-    // Store in IndexedDB via message to clients
+    // Keep a name the user already confirmed so sync does not re-guess it.
+    const queued = { raw_note: body.raw_note, name: body.name, queued_at: new Date().toISOString() }
+
+    // Open tabs store it in localStorage (src/lib/offline-queue.ts)
     const clients = await self.clients.matchAll()
     for (const client of clients) {
-      client.postMessage({
-        type: "OFFLINE_QUEUE_ADD",
-        // Keep a name the user already confirmed so sync does not re-guess it.
-        data: { raw_note: body.raw_note, name: body.name, queued_at: new Date().toISOString() },
-      })
+      client.postMessage({ type: "OFFLINE_QUEUE_ADD", data: queued })
     }
 
     return new Response(
@@ -101,6 +100,8 @@ async function handleContactPost(request) {
         offline: true,
         message: "Saved offline. Will sync when back online.",
         contact: { name: "Pending...", raw_note: body.raw_note },
+        // /add stores this too and only reports the note saved once it is.
+        queued,
       }),
       {
         status: 200,

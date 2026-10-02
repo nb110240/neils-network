@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Sun, Moon, Monitor } from "lucide-react"
-import { THEME_STORAGE_KEY, isDarkTheme, storedTheme, type Theme } from "@/lib/theme"
+import { isDarkTheme, readStoredTheme, saveTheme, type Theme } from "@/lib/theme"
 
 const OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
   { value: "light", label: "Light", icon: Sun },
@@ -20,13 +20,14 @@ export function ThemeSelector() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setTheme(storedTheme(localStorage.getItem(THEME_STORAGE_KEY)))
+    setTheme(readStoredTheme())
     setMounted(true)
   }, [])
 
   const handleChange = useCallback((newTheme: Theme) => {
     setTheme(newTheme)
-    localStorage.setItem(THEME_STORAGE_KEY, newTheme)
+    // Blocked storage only means the choice isn't remembered next visit.
+    saveTheme(newTheme)
     applyTheme(newTheme)
   }, [])
 

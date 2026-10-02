@@ -192,6 +192,63 @@ export function scorePair(a: ScorableFields, b: ScorableFields): PairScore | nul
 }
 
 /**
+ * Keys two contacts must share for scorePair to flag them: one per rule it
+ * checks. Email-matches-name pairs meet under the fuzzy-name key, and the
+ * semantic fallback needs a shared name token, so it meets under a token key.
+ */
+function candidateKeys(c: ScorableFields): string[] {
+  const keys: string[] = []
+  const email = c.email?.trim().toLowerCase() || ""
+  if (email) {
+    keys.push(`e:${email}`)
+    const prefix = email.split("@")[0].replace(/[^a-z0-9]/g, "")
+    if (prefix.length >= 3) keys.push(`f:${prefix}`)
+  }
+  const slug = extractLinkedInSlug(c.website ?? null)
+  if (slug) keys.push(`l:${slug}`)
+  const phone = c.phone ? normalizePhone(c.phone) : ""
+  if (phone) keys.push(`p:${phone}`)
+  const name = c.name ? normalizeName(c.name) : ""
+  if (name) keys.push(`n:${name}`)
+  const fuzzy = fuzzyName(c.name)
+  if (fuzzy.length >= 3) keys.push(`f:${fuzzy}`)
+  if (c.embedding) for (const token of nameTokens(c.name)) keys.push(`t:${token}`)
+  return keys
+}
+
+/**
+ * Index pairs [i, j] (i < j, in scan order) that could be duplicates: every
+ * pair scorePair can flag shares a candidate key, so scoring only these
+ * gives the same result as scoring all n² pairs, at a fraction of the cost
+ * for large contact lists.
+ */
+export function duplicateCandidatePairs(contacts: ScorableFields[]): Array<[number, number]> {
+  const buckets = new Map<string, number[]>()
+  contacts.forEach((contact, index) => {
+    for (const key of new Set(candidateKeys(contact))) {
+      const bucket = buckets.get(key)
+      if (bucket) bucket.push(index)
+      else buckets.set(key, [index])
+    }
+  })
+  const partners = new Map<number, Set<number>>()
+  for (const bucket of buckets.values()) {
+    for (let x = 0; x < bucket.length; x++) {
+      for (let y = x + 1; y < bucket.length; y++) {
+        const set = partners.get(bucket[x])
+        if (set) set.add(bucket[y])
+        else partners.set(bucket[x], new Set([bucket[y]]))
+      }
+    }
+  }
+  const pairs: Array<[number, number]> = []
+  for (const i of [...partners.keys()].sort((p, q) => p - q)) {
+    for (const j of [...partners.get(i)!].sort((p, q) => p - q)) pairs.push([i, j])
+  }
+  return pairs
+}
+
+/**
  * Find potential duplicate contacts for the given fields among the user's
  * active (non-archived) contacts. Returns matches sorted by score descending.
  */

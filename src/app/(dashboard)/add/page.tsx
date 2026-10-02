@@ -20,7 +20,7 @@ import Link from "next/link"
 import { type NetworkingGoal, GOAL_CONFIGS } from "@/lib/personalization"
 import { Celebration, useFirstContactCelebration } from "@/components/celebration"
 import { trackContactsCreated } from "@/components/posthog-provider"
-import { isOfflineQueuedResponse } from "@/lib/offline-queue"
+import { isOfflineQueuedResponse, persistQueuedNote, queuedNoteFrom } from "@/lib/offline-queue"
 
 const DEFAULT_PLACEHOLDER = `Example: Met John Doe at the AI Summit. He's VP of Engineering at Acme Corp. We talked about their platform and he mentioned they're hiring. Should follow up next week.`
 
@@ -112,6 +112,17 @@ export default function AddContactPage() {
       // server, so there is no contact (or id) yet. Stay here, ready for the
       // next note; it syncs when the connection returns.
       if (isOfflineQueuedResponse(data)) {
+        // Storage full or blocked: the note exists nowhere else, so keep it
+        // on screen rather than clearing it.
+        const queued = queuedNoteFrom(data)
+        if (queued && !persistQueuedNote(queued)) {
+          addToast({
+            title: "Couldn’t save offline",
+            description: "Your browser storage is full or blocked. Keep this note and add it when you’re back online.",
+            variant: "destructive",
+          })
+          return
+        }
         addToast({
           title: "Saved offline",
           description: "We'll add this contact as soon as you're back online.",

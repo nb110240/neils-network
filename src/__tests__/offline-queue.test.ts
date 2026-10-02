@@ -7,11 +7,14 @@ import {
   enqueue,
   isOfflineQueuedResponse,
   isRetryableStatus,
+  persistQueuedNote,
   queueKey,
+  queuedNoteFrom,
   readQueue,
   releaseSyncLock,
   removeDelivered,
   tryAcquireSyncLock,
+  withSyncLock,
   writeQueue,
 } from "@/lib/offline-queue"
 
@@ -69,10 +72,69 @@ describe("offline contact queue", () => {
 
   it("lets only one tab sync at a time, and a stale lock can't block forever", () => {
     const storage = memoryStorage()
-    expect(tryAcquireSyncLock(1_000, storage)).toBe(true)
-    expect(tryAcquireSyncLock(2_000, storage)).toBe(false)
-    expect(tryAcquireSyncLock(1_000 + SYNC_LOCK_TTL_MS, storage)).toBe(true)
-    releaseSyncLock(storage)
-    expect(tryAcquireSyncLock(1_000 + SYNC_LOCK_TTL_MS + 1, storage)).toBe(true)
+    expect(tryAcquireSyncLock(1_000, storage, "tab-a")).toBe("tab-a")
+    expect(tryAcquireSyncLock(2_000, storage, "tab-b")).toBeNull()
+    expect(tryAcquireSyncLock(1_000 + SYNC_LOCK_TTL_MS, storage, "tab-c")).toBe("tab-c")
+    // tab-a's lock expired and was taken over: its release must not free tab-c's.
+    releaseSyncLock("tab-a", storage)
+    expect(tryAcquireSyncLock(1_000 + SYNC_LOCK_TTL_MS + 1, storage, "tab-d")).toBeNull()
+    releaseSyncLock("tab-c", storage)
+    expect(tryAcquireSyncLock(1_000 + SYNC_LOCK_TTL_MS + 2, storage, "tab-d")).toBe("tab-d")
+  })
+
+  it("reports a queue write that storage refused", () => {
+    const full = { ...memoryStorage(), setItem: () => { throw new Error("QuotaExceededError") } }
+    expect(writeQueue([a], full)).toBe(false)
+    expect(writeQueue([a], memoryStorage())).toBe(true)
+    expect(persistQueuedNote(a, full)).toBe(false)
+  })
+
+  it("stores the note from the service worker's reply once, whichever side writes first", () => {
+    const storage = memoryStorage()
+    const reply = { success: true, offline: true, queued: { ...a, name: "Priya" } }
+    const note = queuedNoteFrom(reply)
+    expect(note).toEqual({ ...a, name: "Priya" })
+    expect(persistQueuedNote(note!, storage)).toBe(true)
+    // The tab's OFFLINE_QUEUE_ADD handler stores the same note: no duplicate.
+    writeQueue(enqueue(readQueue(storage), { ...a, name: "Priya" }), storage)
+    expect(persistQueuedNote(note!, storage)).toBe(true)
+    expect(readQueue(storage)).toHaveLength(1)
+    // A reply from an older worker carries no note.
+    expect(queuedNoteFrom({ offline: true })).toBeNull()
+  })
+
+  it("gives exactly one tab the Web Lock while it syncs", async () => {
+    const held = new Set<string>()
+    const locks = {
+      request: async (name: string, _opts: { ifAvailable: boolean }, cb: (lock: unknown) => Promise<boolean>) => {
+        if (held.has(name)) return cb(null)
+        held.add(name)
+        try {
+          return await cb({ name })
+        } finally {
+          held.delete(name)
+        }
+      },
+    }
+    let finish!: () => void
+    const sends: string[] = []
+    const first = withSyncLock(() => new Promise<void>((resolve) => { sends.push("tab-1"); finish = resolve }), locks)
+    const second = await withSyncLock(async () => { sends.push("tab-2") }, locks)
+    expect(second).toBe(false)
+    finish()
+    expect(await first).toBe(true)
+    expect(sends).toEqual(["tab-1"])
+    // Free again once the first tab finished.
+    expect(await withSyncLock(async () => { sends.push("tab-3") }, locks)).toBe(true)
+  })
+
+  it("falls back to the storage lock without Web Locks", async () => {
+    const storage = memoryStorage()
+    let finish!: () => void
+    const first = withSyncLock(() => new Promise<void>((resolve) => { finish = resolve }), undefined, storage)
+    expect(await withSyncLock(async () => {}, undefined, storage)).toBe(false)
+    finish()
+    expect(await first).toBe(true)
+    expect(await withSyncLock(async () => {}, undefined, storage)).toBe(true)
   })
 })

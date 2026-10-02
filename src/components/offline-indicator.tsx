@@ -1,15 +1,14 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { WifiOff, Loader2, Check } from "lucide-react"
 import {
   enqueue,
   isRetryableStatus,
   queueKey,
   readQueue,
-  releaseSyncLock,
   removeDelivered,
-  tryAcquireSyncLock,
+  withSyncLock,
   writeQueue,
   type QueuedContact,
 } from "@/lib/offline-queue"
@@ -19,6 +18,8 @@ export function OfflineIndicator() {
   const [queueCount, setQueueCount] = useState(0)
   const [isSyncing, setIsSyncing] = useState(false)
   const [syncDone, setSyncDone] = useState(false)
+  // Ends this tab's sync and frees the cross-tab lock (see withSyncLock).
+  const endSyncRef = useRef<(() => void) | null>(null)
 
   const updateQueueCount = useCallback(() => {
     setQueueCount(readQueue().length)
@@ -28,7 +29,8 @@ export function OfflineIndicator() {
     // Re-read: another tab may have queued more while this sync ran.
     const remaining = removeDelivered(readQueue(), delivered)
     writeQueue(remaining)
-    releaseSyncLock()
+    endSyncRef.current?.()
+    endSyncRef.current = null
     setQueueCount(remaining.length)
     setIsSyncing(false)
     if (remaining.length === 0) {
@@ -37,9 +39,7 @@ export function OfflineIndicator() {
     }
   }, [])
 
-  const syncOfflineQueue = useCallback(async (queue: QueuedContact[]) => {
-    // Another tab is already sending these; its result reaches this tab too.
-    if (!tryAcquireSyncLock()) return
+  const sendQueue = useCallback(async (queue: QueuedContact[]) => {
     setIsSyncing(true)
 
     // Try sending via service worker first
@@ -68,6 +68,15 @@ export function OfflineIndicator() {
       finishSync(delivered)
     }
   }, [finishSync])
+
+  const syncOfflineQueue = useCallback(async (queue: QueuedContact[]) => {
+    // Holds the lock until finishSync runs (the service worker answers by
+    // message). Another tab already syncing: its result reaches this tab too.
+    await withSyncLock(() => new Promise<void>((resolve) => {
+      endSyncRef.current = resolve
+      void sendQueue(queue)
+    }))
+  }, [sendQueue])
 
   useEffect(() => {
     setIsOffline(!navigator.onLine)

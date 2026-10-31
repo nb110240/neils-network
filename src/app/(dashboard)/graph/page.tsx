@@ -337,7 +337,7 @@ export default function GraphPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Relationship Graph</h1>
           <p className="text-muted-foreground">
-            {contacts.length} contacts &middot; Click a node to view details
+            {contacts.length}{" "}contacts &middot; Click a node to view details
           </p>
         </div>
       </div>

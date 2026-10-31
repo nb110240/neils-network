@@ -110,13 +110,13 @@ export default function Page() {
           forwardable introductions.
         </li>
         <li>
-          <strong>Traction.</strong> DocSend&apos;s pre-seed research found investors spent far
+          <strong>Traction.</strong>{" "}DocSend&apos;s pre-seed research found investors spent far
           more time on the traction section of successful decks in 2023 than in prior years.
           Real usage or revenue may improve conversion, but the report does not establish a
           fixed meetings-saved ratio. If you are pre-product, plan conservatively.
         </li>
         <li>
-          <strong>Market conditions and heat.</strong> DocSend&apos;s 2021 and 2023 cohorts reported
+          <strong>Market conditions and heat.</strong>{" "}DocSend&apos;s 2021 and 2023 cohorts reported
           materially different outreach and meeting averages. You cannot control the market, but you can control
           concentration. Batching meetings into a tighter window can make it easier to compare
           feedback and keep your own process moving.

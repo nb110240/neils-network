@@ -106,7 +106,7 @@ export default function Page() {
         workflow and maintain the tracker.
       </p>
       <p>
-        <strong>Pick Airtable if</strong> you enjoy building databases and want total control
+        <strong>Pick Airtable if</strong>{" "}you enjoy building databases and want total control
         over the tracker&apos;s shape. Full breakdown:{" "}
         <Link href="/vs/airtable">Savvo vs Airtable</Link>.
       </p>

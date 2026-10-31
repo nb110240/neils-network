@@ -37,7 +37,7 @@ export default function Page() {
           feel consistent.
         </li>
         <li>
-          <strong>Wave 3: the reach list.</strong> The name-brand funds and dream angels. Talk
+          <strong>Wave 3: the reach list.</strong>{" "}The name-brand funds and dream angels. Talk
           to them when you have momentum to report: meetings stacking up, a partner meeting
           scheduled, or a first commitment. A reach investor hearing &quot;we&apos;re 40 percent
           committed&quot; is a different conversation than a cold open.
@@ -67,7 +67,7 @@ export default function Page() {
       </ol>
       <p>
         The rule that keeps this honest: <strong>every investor in statuses 4 through 6 must
-        have a next step and a date attached.</strong> If you cannot name the next step, the
+        have a next step and a date attached.</strong>{" "}If you cannot name the next step, the
         deal is not &quot;in process,&quot; it is drifting. Drifting deals are where seed rounds
         go to die quietly.
       </p>
@@ -98,20 +98,20 @@ export default function Page() {
       </p>
       <ul>
         <li>
-          <strong>Who said what.</strong> Which partner you met, what they pushed on, what made
+          <strong>Who said what.</strong>{" "}Which partner you met, what they pushed on, what made
           them lean in. Three months from now, &quot;met with Alta Ventures&quot; is useless;
           &quot;Sarah pushed hard on payback period, lit up at the pilot data&quot; is a script
           for the next meeting.
         </li>
         <li>
-          <strong>The real objection versus the soft pass.</strong> &quot;Too early for us&quot;
+          <strong>The real objection versus the soft pass.</strong>{" "}&quot;Too early for us&quot;
           can be true, or it can be polite cover for &quot;I don&apos;t believe the market is
           big.&quot; Write down what you think the actual concern was, not just the words. If
           the same real objection shows up three times, that is not an investor problem, it is a
           pitch problem, and you can fix it mid-raise.
         </li>
         <li>
-          <strong>The next step and its date.</strong> &quot;They want to see October revenue,
+          <strong>The next step and its date.</strong>{" "}&quot;They want to see October revenue,
           call scheduled Nov 3&quot; is a next step. &quot;They said keep in touch&quot; is not.
           If a meeting truly ended without one, log that too. It is a signal.
         </li>
@@ -141,7 +141,7 @@ export default function Page() {
 
       <h2>When to call a pass a pass</h2>
       <p>
-        As Y Combinator&apos;s <Link href="https://www.ycombinator.com/blog/how-to-raise-a-seed-round/">seed fundraising guide</Link>
+        As Y Combinator&apos;s <Link href="https://www.ycombinator.com/blog/how-to-raise-a-seed-round/">seed fundraising guide</Link>{" "}
         notes, investors have many ways to say no. Phrases like &quot;keep us posted,&quot;
         &quot;a bit early for us,&quot; and &quot;circle back when you have a lead&quot; should not automatically stay live. Treating those as active deals
         wrecks your pipeline math and your morale. Call it a pass when any of these are true:

@@ -46,6 +46,7 @@ Open http://localhost:3001. Set `NEXT_PUBLIC_APP_URL=http://localhost:3001` in `
 | `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` | Error monitoring and source maps |
 | `NEXT_PUBLIC_REVENUECAT_IOS_KEY`, `REVENUECAT_WEBHOOK_AUTH`, `REVENUECAT_ATTRIBUTE_SECRET` | iOS in-app purchase. Pro grants fail closed in production without `REVENUECAT_ATTRIBUTE_SECRET` |
 | `CAPACITOR_SERVER_URL` | Point the iOS shell at a non-production URL |
+| `NEXT_PUBLIC_APPLE_SIGN_IN` | `true` shows "Continue with Apple" on the login page. Set it only once the Apple provider is enabled in Supabase Auth |
 | `APPLE_TEAM_ID`, `APPLE_SIWA_KEY_ID`, `APPLE_SIWA_PRIVATE_KEY`, `APPLE_SERVICES_ID` | Sign in with Apple token revocation on account deletion (App Review 5.1.1(v)). Sign-in works without them; revocation is skipped and logged |
 | `APNS_KEY_ID`, `APNS_PRIVATE_KEY` (+ `APPLE_TEAM_ID`), optional `APNS_ENV`, `APNS_BUNDLE_ID` | iOS push notifications. Without them (and without `FCM_SERVICE_ACCOUNT`) the push cron does nothing |
 | `FCM_SERVICE_ACCOUNT` | Android push notifications (Firebase service account JSON on one line) |

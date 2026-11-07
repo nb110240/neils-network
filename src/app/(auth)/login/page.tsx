@@ -24,6 +24,7 @@ import {
   getFirstTouchAttribution,
 } from "@/lib/attribution"
 import { Loader2, Mail, Eye, EyeOff } from "lucide-react"
+import { appleSignInEnabled } from "@/lib/apple/sign-in-flag"
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
@@ -649,6 +650,7 @@ function LoginPageInner() {
             Continue with Google
           </Button>
           {/* Apple's guidelines: black button with white logo, white in dark mode, same size as other sign-in options. */}
+          {appleSignInEnabled() && (
           <Button
             className="w-full h-11 text-base font-medium border-0 bg-black text-white hover:bg-stone-900 dark:bg-white dark:text-black dark:hover:bg-stone-100 shadow-md"
             onClick={handleAppleAuth}
@@ -659,6 +661,7 @@ function LoginPageInner() {
             </svg>
             Continue with Apple
           </Button>
+          )}
           <div className="relative py-2">
             <div className="absolute inset-0 flex items-center">
               <Separator className="w-full" />
